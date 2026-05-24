@@ -58,7 +58,8 @@ Prerequisites:
 
 - Docker Desktop
 - Git
-- Node.js and Python will be needed from Days 3-4 onward
+- Node.js
+- Python 3.13 or another modern Python 3 version
 
 Create local environment files from the examples:
 
@@ -73,6 +74,24 @@ Start the Day 1-2 infrastructure services:
 docker compose up -d mongodb redis
 ```
 
+Run the backend locally:
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+Run the frontend locally in another terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
 Check service status:
 
 ```powershell
@@ -85,7 +104,7 @@ Stop local services:
 docker compose down
 ```
 
-The `backend` and `frontend` Compose services are included under the `app` profile for the later scaffolding days. After the FastAPI and Vite projects are created, the full stack can be started with:
+The full stack can also be started through the `app` Compose profile:
 
 ```powershell
 docker compose --profile app up --build
@@ -95,6 +114,8 @@ docker compose --profile app up --build
 
 - Frontend: `http://localhost:5173`
 - Backend API: `http://localhost:8000`
+- Backend Swagger: `http://localhost:8000/docs`
+- Health Check: `http://localhost:8000/api/v1/health`
 - MongoDB: `localhost:27018` by default for the Docker container
 - Redis: `localhost:6379`
 
