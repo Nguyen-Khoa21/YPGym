@@ -1,5 +1,5 @@
 def get_current_user_placeholder() -> dict[str, str]:
-    """Temporary auth placeholder; replace with JWT validation on Day 10."""
+    """Temporary auth placeholder until the Day 11-21 auth implementation."""
     return {
         "id": "placeholder-user",
         "role": "guest",

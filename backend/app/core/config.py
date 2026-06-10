@@ -7,9 +7,9 @@ class Settings(BaseSettings):
     APP_NAME: str = "YPGym API"
     ENVIRONMENT: str = "development"
     API_V1_PREFIX: str = "/api/v1"
-    FRONTEND_URL: str = "http://localhost:5173"
-    MONGODB_URI: str = "mongodb://localhost:27018/ypgym"
-    REDIS_URL: str = "redis://localhost:6379/0"
+    FRONTEND_URL: str = "http://localhost:5174"
+    DATABASE_URL: str = "postgresql+asyncpg://ypgym:ypgym_dev_password@localhost:5433/ypgym"
+    REDIS_URL: str = "redis://localhost:6380/0"
     JWT_SECRET_KEY: str = "change-this-secret-in-production"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
@@ -17,7 +17,9 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USERNAME: str = ""
     SMTP_PASSWORD: str = ""
-    AI_API_KEY: str = ""
+    QR_TOKEN_TTL_SECONDS: int = 60
+    ATTENDANCE_TIMEOUT_MINUTES: int = 180
+    GYM_CAPACITY: int = 150
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -43,6 +43,7 @@ backend/htmlcov/
 backend/storage/
 backend/uploads/
 backend/generated/
+backend/celerybeat-schedule*
 
 # Local database and Docker data
 data/
@@ -61,6 +62,7 @@ logs/
 .vscode/
 .DS_Store
 Thumbs.db
+~$*.docx
 
 # Local certificates and secrets
 *.pem

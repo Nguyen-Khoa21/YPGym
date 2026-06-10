@@ -1,5 +1,6 @@
 import { CalendarDays, CreditCard, QrCode } from "lucide-react";
 
+import { EmptyState } from "@/components/common/FeedbackState";
 import { AppFrame } from "@/components/layout/AppFrame";
 
 const memberCards = [
@@ -32,6 +33,11 @@ export function MemberDashboardPage() {
             </article>
           ))}
         </section>
+        <EmptyState
+          className="mt-6"
+          title="Design architecture route map pending"
+          message="Day 5-10 work creates the shared states and route map before feature data is connected."
+        />
       </main>
     </AppFrame>
   );

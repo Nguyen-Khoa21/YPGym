@@ -1,4 +1,4 @@
-import { Activity, CalendarDays, Dumbbell, ShieldCheck } from "lucide-react";
+import { Activity, CalendarDays, CreditCard, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { AppFrame } from "@/components/layout/AppFrame";
@@ -20,9 +20,9 @@ const foundationItems = [
     icon: CalendarDays,
   },
   {
-    title: "Personalization",
-    description: "Preferences, recommendations, and guided support.",
-    icon: Dumbbell,
+    title: "Billing",
+    description: "Plan purchases, renewals, invoices, and CRM records.",
+    icon: CreditCard,
   },
 ];
 
@@ -40,7 +40,7 @@ export function HomePage() {
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
               A focused gym management workspace for members, attendance,
-              classes, billing, CRM, and future AI-assisted support.
+              classes, billing, CRM, and mobile check-in flows.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

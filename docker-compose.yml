@@ -1,25 +1,29 @@
 services:
-  mongodb:
-    image: mongo:7
-    container_name: ypgym-mongodb
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: ypgym-postgres-db
     restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ypgym}
+      POSTGRES_USER: ${POSTGRES_USER:-ypgym}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ypgym_dev_password}
     ports:
-      - "127.0.0.1:${MONGODB_HOST_PORT:-27018}:27017"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
     volumes:
-      - mongodb_data:/data/db
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ypgym} -d ${POSTGRES_DB:-ypgym}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
 
-  redis:
+  redis-cache:
     image: redis:7-alpine
-    container_name: ypgym-redis
+    container_name: ypgym-redis-cache
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_HOST_PORT:-6380}:6379"
     volumes:
       - redis_data:/data
     command: ["redis-server", "--appendonly", "yes"]
@@ -29,50 +33,104 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
-    profiles: ["app"]
+  backend-api:
+    profiles: ["app", "iot"]
     build:
       context: ./backend
-    container_name: ypgym-backend
+    container_name: ypgym-backend-api
     restart: unless-stopped
     environment:
       ENVIRONMENT: development
       API_V1_PREFIX: /api/v1
-      FRONTEND_URL: http://localhost:5173
-      MONGODB_URI: mongodb://mongodb:27017/ypgym
-      REDIS_URL: redis://redis:6379/0
+      FRONTEND_URL: http://localhost:${FRONTEND_HOST_PORT:-5174}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ypgym}:${POSTGRES_PASSWORD:-ypgym_dev_password}@postgres-db:5432/${POSTGRES_DB:-ypgym}
+      REDIS_URL: redis://redis-cache:6379/0
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-local-secret}
       JWT_ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 60
-      AI_API_KEY: ${AI_API_KEY:-}
+      QR_TOKEN_TTL_SECONDS: 60
+      ATTENDANCE_TIMEOUT_MINUTES: 180
+      GYM_CAPACITY: 150
     ports:
-      - "8000:8000"
+      - "${BACKEND_HOST_PORT:-8001}:8000"
     volumes:
       - ./backend:/app
     depends_on:
-      mongodb:
+      postgres-db:
         condition: service_healthy
-      redis:
+      redis-cache:
         condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  frontend:
+  frontend-web:
     profiles: ["app"]
     build:
       context: ./frontend
-    container_name: ypgym-frontend
+    container_name: ypgym-frontend-web
     restart: unless-stopped
     environment:
-      VITE_API_BASE_URL: http://localhost:8000/api/v1
+      VITE_API_BASE_URL: http://localhost:${BACKEND_HOST_PORT:-8001}/api/v1
     ports:
-      - "5173:5173"
+      - "${FRONTEND_HOST_PORT:-5174}:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     depends_on:
-      - backend
+      - backend-api
     command: npm run dev -- --host 0.0.0.0
 
+  celery-worker:
+    profiles: ["app"]
+    build:
+      context: ./backend
+    container_name: ypgym-celery-worker
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ypgym}:${POSTGRES_PASSWORD:-ypgym_dev_password}@postgres-db:5432/${POSTGRES_DB:-ypgym}
+      REDIS_URL: redis://redis-cache:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    command: celery -A app.workers.celery_app worker --loglevel=info
+
+  celery-beat:
+    profiles: ["app"]
+    build:
+      context: ./backend
+    container_name: ypgym-celery-beat
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ypgym}:${POSTGRES_PASSWORD:-ypgym_dev_password}@postgres-db:5432/${POSTGRES_DB:-ypgym}
+      REDIS_URL: redis://redis-cache:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    command: celery -A app.workers.celery_app beat --loglevel=info
+
+  iot-simulator:
+    profiles: ["iot"]
+    build:
+      context: ./iot-simulator
+    container_name: ypgym-iot-simulator
+    restart: "no"
+    environment:
+      API_BASE_URL: http://backend-api:8000/api/v1
+      IOT_DEVICE_ID: local-simulator-1
+      IOT_DEVICE_API_KEY: ${IOT_DEVICE_API_KEY:-local-iot-key}
+    depends_on:
+      - backend-api
+    command: python -m app.main
+
 volumes:
-  mongodb_data:
+  postgres_data:
   redis_data:

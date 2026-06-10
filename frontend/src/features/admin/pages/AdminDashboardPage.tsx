@@ -1,5 +1,6 @@
 import { BarChart3, ClipboardList, Users } from "lucide-react";
 
+import { PermissionState } from "@/components/common/FeedbackState";
 import { AppFrame } from "@/components/layout/AppFrame";
 
 const adminCards = [
@@ -32,6 +33,11 @@ export function AdminDashboardPage() {
             </article>
           ))}
         </section>
+        <PermissionState
+          className="mt-6"
+          title="Role checks coming next"
+          message="Admin pages now share a consistent permission state while RBAC is implemented in the next milestone."
+        />
       </main>
     </AppFrame>
   );
