@@ -1,15 +1,15 @@
 # YPGym
 
-YPGym is a full-stack gym management web application for membership management, attendance tracking, class booking, billing, CRM, personalization, and AI-assisted member support.
+YPGym is a full-stack gym management application for membership management, attendance tracking, class booking, billing, CRM, mobile check-in flows, and operational dashboards.
 
-This repository follows the 60-day development plan in `YPGym_60_Day_Development_Plan.md`. The first milestone establishes a monorepo foundation with a React frontend, FastAPI backend, MongoDB, Redis, and documentation folders.
+This repository follows the revised PostgreSQL 60-day development plan in `YPGym_60_Day_Development_Plan_Revised_PostgreSQL (1).md`. Days 5-10 establish a PostgreSQL/FastAPI baseline, design-architecture route map, policy docs, diagrams, and shared error-state foundations. Days 11-20 add authentication, email verification, profile management, membership plans, mock purchases, invoices, and billing history.
 
 ## Tech Stack
 
 - Frontend: React, Vite, TypeScript, Tailwind CSS, shadcn/ui
-- Backend: Python, FastAPI, MongoDB, Redis, JWT authentication
+- Backend: Python, FastAPI, PostgreSQL, SQLAlchemy, Alembic, Redis, JWT authentication
 - Architecture: Monorepo with feature-based frontend and layered backend
-- Local services: Docker Compose for MongoDB and Redis
+- Local services: Docker Compose for PostgreSQL, Redis, backend, frontend and worker services
 
 ## Folder Structure
 
@@ -26,8 +26,6 @@ ypgym/
 |       |   |-- attendance/
 |       |   |-- classes/
 |       |   |-- billing/
-|       |   |-- personalization/
-|       |   |-- chatbot/
 |       |   `-- admin/
 |       |-- hooks/
 |       |-- lib/
@@ -47,7 +45,11 @@ ypgym/
 |-- docs/
 |   |-- architecture/
 |   |-- api/
-|   `-- database/
+|   |-- database/
+|   |-- design/
+|   |-- diagrams/
+|   |-- policies/
+|   `-- demo/
 |-- docker-compose.yml
 `-- README.md
 ```
@@ -68,10 +70,10 @@ Copy-Item backend/.env.example backend/.env
 Copy-Item frontend/.env.example frontend/.env
 ```
 
-Start the Day 1-2 infrastructure services:
+Start the Day 5-10 infrastructure services:
 
 ```powershell
-docker compose up -d mongodb redis
+docker compose up -d postgres-db redis-cache
 ```
 
 Run the backend locally:
@@ -81,7 +83,7 @@ cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8001
 ```
 
 Run the frontend locally in another terminal:
@@ -89,7 +91,7 @@ Run the frontend locally in another terminal:
 ```powershell
 cd frontend
 npm install
-npm run dev
+npm run dev -- --host 0.0.0.0 --port 5174
 ```
 
 Check service status:
@@ -104,22 +106,42 @@ Stop local services:
 docker compose down
 ```
 
+Run database migrations from the backend folder after PostgreSQL is running:
+
+```powershell
+cd backend
+alembic upgrade head
+```
+
+Seed default membership plans and system configuration values:
+
+```powershell
+cd backend
+python -m app.db.seed
+```
+
+Inside Docker Compose, run the same seed command through the backend service:
+
+```powershell
+docker compose --profile app exec backend-api python -m app.db.seed
+```
+
 The full stack can also be started through the `app` Compose profile:
 
 ```powershell
-docker compose --profile app up --build
+docker compose --profile app up -d --build
 ```
 
 ## Local Ports
 
-- Frontend: `http://localhost:5173`
-- Backend API: `http://localhost:8000`
-- Backend Swagger: `http://localhost:8000/docs`
-- Health Check: `http://localhost:8000/api/v1/health`
-- MongoDB: `localhost:27018` by default for the Docker container
-- Redis: `localhost:6379`
+- Frontend: `http://localhost:5174`
+- Backend API: `http://localhost:8001`
+- Backend Swagger: `http://localhost:8001/docs`
+- Health Check: `http://localhost:8001/api/v1/health`
+- PostgreSQL: `localhost:5433` by default for the Docker container
+- Redis: `localhost:6380` by default for the Docker container
 
-The MongoDB host port can be changed with `MONGODB_HOST_PORT` if needed. Inside Docker Compose, backend services should still use `mongodb://mongodb:27017/ypgym`.
+The PostgreSQL host port can be changed with `POSTGRES_HOST_PORT` if needed. The Redis host port can be changed with `REDIS_HOST_PORT`. The backend and frontend host ports can be changed with `BACKEND_HOST_PORT` and `FRONTEND_HOST_PORT`. Inside Docker Compose, backend services should use the `postgres-db` and `redis-cache` service names.
 
 ## Development Rules
 
@@ -127,3 +149,5 @@ The MongoDB host port can be changed with `MONGODB_HOST_PORT` if needed. Inside 
 - Keep frontend pages and components inside their feature folders.
 - Use JWT and role checks for member/admin-only workflows.
 - Log sensitive admin actions to audit logs once audit support is implemented.
+- Use `docs/design/route-screen-map.md` and the updated BRD Design Architecture section as the UI source of truth.
+- Keep AI chatbot, personalization, and recommendations as post-60-day backlog unless the lecturer restores them to required scope.

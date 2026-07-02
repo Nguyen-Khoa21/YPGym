@@ -1,14 +1,25 @@
 import type { PropsWithChildren } from "react";
 import { NavLink } from "react-router-dom";
 
-const navItems = [
-  { to: "/", label: "Home" },
-  { to: "/member", label: "Member" },
-  { to: "/admin", label: "Admin" },
-  { to: "/login", label: "Login" },
-];
+import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/features/auth/AuthContext";
 
 export function AppFrame({ children }: PropsWithChildren) {
+  const { user, logout } = useAuth();
+  const navItems = [
+    { to: "/", label: "Home", show: true },
+    { to: "/memberships", label: "Plans", show: true },
+    { to: "/member", label: "Member", show: Boolean(user) },
+    { to: "/profile", label: "Profile", show: Boolean(user) },
+    { to: "/billing", label: "Billing", show: Boolean(user) },
+    {
+      to: "/admin",
+      label: "Admin",
+      show: user ? ["admin", "manager", "staff"].includes(user.role) : false,
+    },
+    { to: "/login", label: "Login", show: !user },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
@@ -17,7 +28,7 @@ export function AppFrame({ children }: PropsWithChildren) {
             YPGym
           </NavLink>
           <nav className="flex flex-wrap gap-2">
-            {navItems.map((item) => (
+            {navItems.filter((item) => item.show).map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -33,6 +44,11 @@ export function AppFrame({ children }: PropsWithChildren) {
                 {item.label}
               </NavLink>
             ))}
+            {user ? (
+              <Button variant="ghost" className="min-h-9 px-3 py-2" onClick={logout}>
+                Logout
+              </Button>
+            ) : null}
           </nav>
         </div>
       </header>

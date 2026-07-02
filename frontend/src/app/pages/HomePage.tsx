@@ -45,16 +45,16 @@ export function HomePage() {
           </div>
           <div className="flex flex-wrap gap-3">
             <Link
-              to="/member"
+              to="/memberships"
               className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
             >
-              Member Area
+              View Plans
             </Link>
             <Link
-              to="/admin"
+              to="/register"
               className="rounded-md border border-border bg-card px-4 py-2 text-sm font-semibold shadow-sm transition hover:bg-muted"
             >
-              Admin Area
+              Register
             </Link>
           </div>
         </div>

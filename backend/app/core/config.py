@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     QR_TOKEN_TTL_SECONDS: int = 60
     ATTENDANCE_TIMEOUT_MINUTES: int = 180
     GYM_CAPACITY: int = 150
+    EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 60
+    INVOICE_STORAGE_DIR: str = "storage/invoices"
 
     model_config = SettingsConfigDict(
         env_file=".env",

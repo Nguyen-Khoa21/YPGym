@@ -1,0 +1,35 @@
+classDiagram
+  class ApiEndpoint {
+    +validate request
+    +return response schema
+  }
+  class Service {
+    +enforce business rules
+    +coordinate repositories
+  }
+  class Repository {
+    +query PostgreSQL
+    +persist SQLAlchemy models
+  }
+  class SQLAlchemyModel {
+    +id
+    +created_at
+    +updated_at
+  }
+  class RedisClient {
+    +token TTL
+    +occupancy cache
+    +rate limit state
+  }
+  class WorkerTask {
+    +send reminders
+    +generate invoices
+    +expire sessions
+  }
+
+  ApiEndpoint --> Service
+  Service --> Repository
+  Repository --> SQLAlchemyModel
+  Service --> RedisClient
+  Service --> WorkerTask
+

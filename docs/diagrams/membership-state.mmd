@@ -1,0 +1,15 @@
+stateDiagram-v2
+  [*] --> PendingVerification
+  PendingVerification --> Active: email verified and plan active
+  Active --> ExpiringSoon: scheduled worker threshold
+  ExpiringSoon --> Expired: expiry date passed
+  Expired --> Active: renewal purchase
+  Active --> Frozen: approved freeze
+  Frozen --> Active: freeze ends
+  Active --> CancellationRequested: member requests cancellation
+  CancellationRequested --> Cancelled: admin or manager approves
+  Active --> Revoked: admin revokes with reason
+  Frozen --> Revoked: admin revokes with reason
+  Cancelled --> [*]
+  Revoked --> [*]
+

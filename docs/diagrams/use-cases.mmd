@@ -1,0 +1,21 @@
+flowchart LR
+  member["Member"] --> register["Register and verify account"]
+  member --> membership["Purchase, renew, freeze or cancel membership"]
+  member --> qr["Display rotating QR"]
+  member --> booking["Book, cancel or waitlist classes"]
+  member --> notifications["Manage notification preferences"]
+
+  staff["Staff"] --> scanner["Scan QR and verify attendance"]
+  staff --> attendance["Review limited attendance state"]
+
+  admin["Admin"] --> crm["Manage member CRM"]
+  admin --> classes["Manage classes and trainers"]
+  admin --> billing["Review billing and exports"]
+  admin --> audit["Review audit logs"]
+
+  manager["Manager"] --> approvals["Approve cancellations and configuration"]
+  manager --> analytics["Review attendance and revenue analytics"]
+
+  pt["Personal Trainer"] --> profile["Maintain trainer profile"]
+  pt --> assigned["Review assigned classes"]
+

@@ -1,7 +1,9 @@
 import { BarChart3, ClipboardList, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 
-import { PermissionState } from "@/components/common/FeedbackState";
+import { EmptyState } from "@/components/common/FeedbackState";
 import { AppFrame } from "@/components/layout/AppFrame";
+import { ButtonLink } from "@/components/ui/Button";
 
 const adminCards = [
   { title: "CRM", value: "Member records pending", icon: Users },
@@ -16,7 +18,8 @@ export function AdminDashboardPage() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
           <p className="mt-2 text-muted-foreground">
-            Admin routes are ready for CRM, billing, attendance, and analytics.
+            Admin routes are role protected. Billing has a Day 20 placeholder
+            table; full CRM work starts later.
           </p>
         </div>
         <section className="grid gap-4 md:grid-cols-3">
@@ -33,10 +36,15 @@ export function AdminDashboardPage() {
             </article>
           ))}
         </section>
-        <PermissionState
+        <div className="mt-6">
+          <ButtonLink asChild>
+            <Link to="/admin/billing">Open billing placeholder</Link>
+          </ButtonLink>
+        </div>
+        <EmptyState
           className="mt-6"
-          title="Role checks coming next"
-          message="Admin pages now share a consistent permission state while RBAC is implemented in the next milestone."
+          title="Full admin CRM is not in Day 11-20"
+          message="Member CRM, QR attendance, cancellations, and notifications remain outside this implementation window."
         />
       </main>
     </AppFrame>

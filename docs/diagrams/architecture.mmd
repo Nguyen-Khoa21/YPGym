@@ -1,0 +1,18 @@
+flowchart LR
+  member["Member Web/Mobile Client"] --> api["FastAPI backend-api"]
+  admin["Admin/Manager Web Client"] --> api
+  pt["PT Web Client"] --> api
+  scanner["IoT Scanner or Simulator"] --> scan["Attendance Scanner API"]
+  scan --> api
+
+  api --> services["Service Layer"]
+  services --> repos["Repository Layer"]
+  repos --> postgres[("PostgreSQL")]
+  services --> redis[("Redis")]
+  services --> worker["Celery Worker"]
+  beat["Celery Beat"] --> worker
+  worker --> postgres
+  worker --> redis
+  worker --> email["SMTP/Email"]
+  worker --> invoices["Invoice PDF Generator"]
+

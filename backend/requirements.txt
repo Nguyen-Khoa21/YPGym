@@ -10,7 +10,9 @@ alembic
 redis
 celery
 passlib[bcrypt]
+bcrypt<5
 python-jose[cryptography]
 email-validator
 python-multipart
 httpx
+reportlab
