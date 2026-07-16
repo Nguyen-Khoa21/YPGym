@@ -1,11 +1,7 @@
 import type { PropsWithChildren } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
-import {
-  LoadingState,
-  PermissionState,
-} from "@/components/common/FeedbackState";
-import { ButtonLink } from "@/components/ui/Button";
+import { LoadingState } from "@/components/common/FeedbackState";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { useAuth } from "@/features/auth/AuthContext";
 import type { UserRole } from "@/types/api";
@@ -29,25 +25,11 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
   }
 
   if (!token || !user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
   }
 
   if (roles?.length && !roles.includes(user.role)) {
-    return (
-      <AppFrame>
-        <main className="mx-auto max-w-3xl px-5 py-10">
-          <PermissionState
-            title="This area is restricted"
-            message="Your current role does not allow access to this page."
-            action={
-              <ButtonLink asChild>
-                <Link to="/member">Go to member dashboard</Link>
-              </ButtonLink>
-            }
-          />
-        </main>
-      </AppFrame>
-    );
+    return <Navigate to="/permission-denied" replace state={{ from: location.pathname }} />;
   }
 
   return <>{children}</>;

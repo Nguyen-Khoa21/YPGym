@@ -1,47 +1,51 @@
 # Design Architecture Route-Screen Map
 
-Primary reference: `FYP Brief BRD - Anh Khoa - Design Architecture.docx`, section `10. Design Architecture`.
+Primary references:
 
-## Web and Admin Screens
+- `FYP Brief BRD - Anh Khoa - Design Architecture.docx`, section `10. Design Architecture`.
+- Figma `Untitled` (`XQ3HBuKBg9NpLxCqoCwUb9`), Page 1.
+- Figma frame `Membership Policies` (`1:2`) and mobile `Member Profile` (`1:4176`).
 
-| Screen | Route | API dependencies | Shared components | Status |
+## Current Web Routes
+
+| Screen | Canonical route | Existing alias | API dependencies | Status |
 |---|---|---|---|---|
-| YPGym Home Page | `/` | none initially | public nav, hero, cards, footer | pending |
-| Register for YPGym | `/register` | `POST /auth/register` | auth shell, form fields, inline errors | implemented Day 12; exact screenshot unavailable in repo export, matched YPGym auth style |
-| Login to YPGym | `/login` | `POST /auth/login` | auth shell, form fields, alert | implemented Day 14; exact screenshot unavailable in repo export, matched YPGym auth style |
-| Forgot Password | `/forgot-password` | `POST /auth/forgot-password` | auth card, neutral success state | implemented Day 15; exact screenshot unavailable in repo export, matched YPGym auth style |
-| Reset Password | `/reset-password?token=...` | `POST /auth/reset-password` | auth card, invalid/expired token error | implemented Day 15; derived from Forgot Password style |
-| Email Verification Success | `/verify-email` and `/verify-email/success` | `GET /auth/verify-email` | success card, CTA | implemented Day 13; exact screenshot unavailable in repo export, matched success-card style |
-| Profile Settings | `/profile` | `GET /users/me`, `PATCH /users/me` | member shell, profile form, security fields | implemented Day 16; derived from member profile design direction |
-| Membership Plans | `/memberships` | `GET /membership-plans` | plan cards, CTA | implemented Day 18; exact screenshot unavailable in repo export, matched YPGym card hierarchy |
-| Buy/Renew Membership | `/memberships/buy/:planId` | `POST /memberships/purchase` | plan summary, mock payment confirmation, success state | implemented Day 19; prepares mobile renewal state patterns |
-| Membership Policies | `/policies/membership` | policy/config values | TOC sidebar, policy cards | pending |
-| Payment and Invoice History | `/billing` | `GET /billing/me/payments`, `GET /billing/me/invoices`, invoice download | billing cards, invoice actions, empty/error states | implemented Day 20; exact screenshot unavailable in repo export, matched member billing style |
-| Member Dashboard | `/member` | billing summary endpoints | member shell, KPI cards, quick actions | partial Day 20; invoice/payment summary connected, QR/classes placeholders retained |
-| My QR Code | `/app/qr` | `GET /attendance/qr-token/me` | QR panel, timer, status card | pending |
-| Web Class Booking | `/app/classes` | class list, booking, waitlist endpoints | member shell, class cards, filters | derived from mobile |
-| Member CRM (Updated) | `/admin/members` | paginated member search | admin shell, KPI cards, TanStack Table | pending |
-| Admin Member Details (Updated) | `/admin/members/:id` | member detail, billing, attendance, bookings | tabs/cards/action panel | pending |
-| Class & Schedule Management (Updated) | `/admin/classes` | class CRUD, trainer list | admin shell, schedule cards, dialogs | pending |
-| Attendance Dashboard | `/admin/attendance` | occupancy, attendance log, recent scans | KPI cards, facility status, tables | pending |
-| PT Assignment Management | `/admin/pt-assignments` | PT profiles, assignments | assignment deck, trainer cards | pending |
-| Personal Trainer Dashboard | `/pt/dashboard` | assigned classes, PT stats | PT shell, stat cards, schedule list | pending |
-| Admin Billing Placeholder | `/admin/billing` | `GET /billing/admin/payments` | admin shell, simple billing table | partial Day 20; full Day 26 billing intentionally not built |
+| YPGym Home | `/` | none | none | redesigned; public shell and no mocked feature data |
+| Register | `/register` | none | `POST /auth/register` | redesigned and connected |
+| Login | `/login` | none | `POST /auth/login`, `GET /auth/me` | redesigned and connected; redirects by role |
+| Forgot Password | `/forgot-password` | none | `POST /auth/forgot-password` | redesigned and connected |
+| Reset Password | `/reset-password?token=...` | none | `POST /auth/reset-password` | redesigned and query-token compatible |
+| Email verification callback | `/verify-email?token=...` | none | `GET /auth/verify-email` | redesigned and connected |
+| Email verification success | `/verify-email/success` | none | callback outcome | redesigned success destination |
+| Membership Policies | `/policies/membership` | none | none | implemented from Figma `1:2`; lifecycle-only sections marked as planned |
+| Membership Plans | `/memberships` | none | `GET /membership-plans` | redesigned; price and benefits remain API-owned |
+| Buy/Renew Membership | `/memberships/buy/:planId` | none | `POST /memberships/purchase` | redesigned; idempotency and billing/dashboard invalidation retained |
+| Member Dashboard | `/app/dashboard` | `/member` | payment and invoice summaries | redesigned; QR/classes are honest planned states |
+| Profile Settings | `/app/profile` | `/profile` | `GET /users/me`, `PATCH /users/me` | redesigned from Figma `1:4176`; blocked email edit preserved |
+| Payment and Invoice History | `/app/billing` | `/billing` | `GET /billing/me/payments`, `GET /billing/me/invoices`, invoice download | redesigned and connected |
+| My QR Code | `/app/qr` | none | attendance API not built | UI-only planned state; Day 30 |
+| Class Booking | `/app/classes` | none | class API not built | UI-only planned state; Day 33 |
+| Admin Dashboard | `/admin` | none | none | redesigned admin shell; no CRM mocks |
+| Admin Billing | `/admin/billing` | none | `GET /billing/admin/payments` | redesigned and role protected |
+| Member CRM | `/admin/members`, `/admin/members/:id` | none | CRM API not built | UI-only planned state; Day 26 |
+| Attendance Operations | `/admin/attendance` | none | attendance API not built | UI-only planned state; Day 30 |
+| Class Management | `/admin/classes` | none | class API not built | UI-only planned state; Day 33 |
+| PT Assignments | `/admin/pt-assignments` | none | PT API not built | UI-only planned state; Day 35 |
+| PT Dashboard | `/pt/dashboard` | `/pt` | PT API not built | redesigned safe placeholder; PT role only |
+| Permission Denied | `/permission-denied` | none | auth role state | implemented for blocked protected routes |
+| Not Found | `*` | none | none | implemented |
 
-## Mobile Screens
+## Shared Design System
 
-| Screen | Route | API dependencies | Shared components | Status |
-|---|---|---|---|---|
-| Mobile Member Dashboard | `mobile/app/(tabs)/dashboard` | dashboard summary endpoint | mobile top bar, cards, bottom nav | pending |
-| Mobile Membership Renewal Selection | `mobile/app/membership/renew` | plans, current membership | renewal card, plan cards, CTA | pending |
-| Mobile Renewal Success | `mobile/app/membership/success` | payment result | success state, dashboard CTA | pending |
-| Mobile QR Check-in | `mobile/app/(tabs)/qr` | QR token, attendance history | QR panel, timer, history link | pending |
-| Mobile Class Booking | `mobile/app/(tabs)/classes` | class list, booking, waitlist | search/filter, class cards, states | pending |
-| Mobile Member Profile | `mobile/app/(tabs)/profile` | profile, membership summary | profile header, menu rows, logout | pending |
+- `AppFrame`: public navigation, authenticated identity chip, keyboard skip link and logout action.
+- `AuthShell`: responsive authentication composition with real forms and inline API errors.
+- `MemberShell`: desktop sidebar and mobile bottom navigation, based on the Figma member-profile hierarchy.
+- `AdminShell`: distinct operations sidebar for current billing and future CRM/attendance/class/PT screens.
+- Visual foundations: forest green `--primary`, lime `--secondary`, cream background, Barlow Condensed display type and Manrope UI type.
 
-## Day 5-10 State Expectations
+## Intentional Differences And Gaps
 
-- Every route must define loading, empty, API-error and permission-denied states before feature completion.
-- The missing web Class Booking screenshot is an approved exception; derive it from mobile Class Booking and the web member layout.
-- Day 11-20 auth, profile, membership, and billing screens are now implemented or partial as listed above.
-- Exact exported screenshots for the Day 12-20 auth and billing screens were not available as standalone image files in this repository, so the implementation follows the existing YPGym sleek gym-style direction from the BRD/design notes and shared UI palette.
+- The accessible Figma file contains only the `Membership Policies` and `Member Profile` frames. Public auth, purchase, billing and admin routes use the same local design system rather than claiming unprovided Figma frame parity.
+- Figma MCP reached its Starter-plan call limit during the 2026-07-15 audit, preventing additional current screenshots, asset exports and frame inspection.
+- QR, crowdedness, classes, broadcasts, notifications, CRM and PT assignments are routes with explicit planned/unavailable states. They do not show simulated records or actions.
+- Mobile/Expo screens remain separate work; this pass covers responsive web only.

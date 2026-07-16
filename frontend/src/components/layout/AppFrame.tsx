@@ -1,55 +1,88 @@
 import type { PropsWithChildren } from "react";
-import { NavLink } from "react-router-dom";
+import { LogOut, Menu, Sparkles } from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthContext";
 
-export function AppFrame({ children }: PropsWithChildren) {
+type AppFrameProps = PropsWithChildren<{
+  compact?: boolean;
+}>;
+
+const publicLinks = [
+  { to: "/", label: "Overview" },
+  { to: "/memberships", label: "Memberships" },
+  { to: "/policies/membership", label: "Policies" },
+];
+
+export function AppFrame({ children, compact = false }: AppFrameProps) {
   const { user, logout } = useAuth();
-  const navItems = [
-    { to: "/", label: "Home", show: true },
-    { to: "/memberships", label: "Plans", show: true },
-    { to: "/member", label: "Member", show: Boolean(user) },
-    { to: "/profile", label: "Profile", show: Boolean(user) },
-    { to: "/billing", label: "Billing", show: Boolean(user) },
-    {
-      to: "/admin",
-      label: "Admin",
-      show: user ? ["admin", "manager", "staff"].includes(user.role) : false,
-    },
-    { to: "/login", label: "Login", show: !user },
-  ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <NavLink to="/" className="text-lg font-bold">
-            YPGym
-          </NavLink>
-          <nav className="flex flex-wrap gap-2">
-            {navItems.filter((item) => item.show).map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  [
-                    "rounded-md px-3 py-2 text-sm font-medium transition",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  ].join(" ")
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
+    <div className="min-h-screen bg-[hsl(var(--background))] text-foreground">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <header className="site-header">
+        <div className="site-header__inner">
+          <Link to="/" className="brand" aria-label="YPGym home">
+            <span className="brand__mark" aria-hidden>
+              YP
+            </span>
+            <span>YPGYM</span>
+          </Link>
+
+          {!compact ? (
+            <nav className="site-nav" aria-label="Main navigation">
+              {publicLinks.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `site-nav__link ${isActive ? "site-nav__link--active" : ""}`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          ) : null}
+
+          <div className="site-header__actions">
             {user ? (
-              <Button variant="ghost" className="min-h-9 px-3 py-2" onClick={logout}>
-                Logout
-              </Button>
-            ) : null}
-          </nav>
+              <>
+                <Link className="identity-chip" to="/app/profile">
+                  <span className="identity-chip__avatar" aria-hidden>
+                    {user.name.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="identity-chip__copy">
+                    <strong>{user.name.split(" ")[0]}</strong>
+                    <small>{user.role}</small>
+                  </span>
+                </Link>
+                <Button
+                  aria-label="Log out"
+                  className="site-header__logout"
+                  variant="ghost"
+                  onClick={logout}
+                >
+                  <LogOut className="size-4" aria-hidden />
+                  <span>Log out</span>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link className="header-login" to="/login">
+                  Log in
+                </Link>
+                <Link className="header-join" to="/register">
+                  <Sparkles className="size-4" aria-hidden />
+                  Join YPGym
+                </Link>
+              </>
+            )}
+            <Menu className="site-header__menu size-5" aria-hidden />
+          </div>
         </div>
       </header>
       {children}

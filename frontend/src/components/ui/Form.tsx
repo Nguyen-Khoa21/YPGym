@@ -1,9 +1,9 @@
-import type { InputHTMLAttributes, LabelHTMLAttributes, PropsWithChildren } from "react";
+import type { HTMLAttributes, InputHTMLAttributes, LabelHTMLAttributes, PropsWithChildren } from "react";
 
 import { cn } from "@/lib/utils";
 
-export function Field({ children }: PropsWithChildren) {
-  return <div className="space-y-2">{children}</div>;
+export function Field({ children, className }: PropsWithChildren<HTMLAttributes<HTMLDivElement>>) {
+  return <div className={cn("space-y-2", className)}>{children}</div>;
 }
 
 export function Label({

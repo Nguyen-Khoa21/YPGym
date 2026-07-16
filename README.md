@@ -11,6 +11,20 @@ This repository follows the revised PostgreSQL 60-day development plan in `YPGym
 - Architecture: Monorepo with feature-based frontend and layered backend
 - Local services: Docker Compose for PostgreSQL, Redis, backend, frontend and worker services
 
+## Current Web Routes
+
+The frontend now uses canonical application routes while preserving the Day 11-20 links:
+
+- Member dashboard: `/app/dashboard` (`/member` redirects here)
+- Profile: `/app/profile` (`/profile` redirects here)
+- Billing: `/app/billing` (`/billing` redirects here)
+- PT dashboard: `/pt/dashboard` (`/pt` redirects here)
+- Membership policies: `/policies/membership`
+- Future member routes: `/app/qr` and `/app/classes` are explicit planned states, not mocked features.
+- Future admin routes such as `/admin/members` and `/admin/attendance` use the shared admin shell but remain intentionally unconnected until their APIs are built.
+
+All protected routes wait for authentication resolution before rendering private content. A blocked role is sent to `/permission-denied`.
+
 ## Folder Structure
 
 ```text

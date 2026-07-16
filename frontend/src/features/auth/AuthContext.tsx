@@ -60,6 +60,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     void refreshUser();
   }, [refreshUser]);
 
+  useEffect(() => {
+    // API requests notify here so expired sessions are cleared consistently.
+    window.addEventListener("ypgym:unauthorized", clearAuth);
+    return () => window.removeEventListener("ypgym:unauthorized", clearAuth);
+  }, [clearAuth]);
+
   const login = useCallback(async (email: string, password: string) => {
     const response = await apiRequest<LoginResponse>("/auth/login", {
       method: "POST",

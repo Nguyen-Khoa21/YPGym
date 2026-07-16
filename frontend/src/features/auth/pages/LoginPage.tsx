@@ -1,12 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LogIn } from "lucide-react";
+import { ArrowRight, KeyRound } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { ErrorState } from "@/components/common/FeedbackState";
-import { AppFrame } from "@/components/layout/AppFrame";
+import { AuthShell } from "@/components/layout/AuthShell";
 import { Button } from "@/components/ui/Button";
 import { Field, FieldError, Input, Label } from "@/components/ui/Form";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -14,7 +14,7 @@ import { toUiError, type UiError } from "@/lib/apiErrors";
 import type { User } from "@/types/api";
 
 const schema = z.object({
-  email: z.string().email(),
+  email: z.string().email("Enter a valid email address."),
   password: z.string().min(1, "Password is required."),
 });
 
@@ -25,7 +25,6 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState<UiError | null>(null);
-
   const form = useForm<LoginForm>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
@@ -44,89 +43,40 @@ export function LoginPage() {
   }
 
   return (
-    <AppFrame>
-      <main className="mx-auto grid max-w-6xl gap-8 px-5 py-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-        <section className="space-y-4">
-          <p className="text-sm font-semibold uppercase tracking-wide text-primary">
-            Member access
-          </p>
-          <h1 className="text-4xl font-bold leading-tight md:text-5xl">
-            Login to YPGym
-          </h1>
-          <p className="max-w-xl text-base leading-7 text-muted-foreground">
-            Continue to billing, membership renewal, invoices, and profile
-            settings from the member workspace.
-          </p>
-        </section>
-
-        <section className="rounded-lg border border-border bg-card p-6 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <LogIn className="size-5" aria-hidden />
-            </span>
-            <div>
-              <h2 className="text-xl font-bold">Welcome back</h2>
-              <p className="text-sm text-muted-foreground">
-                Use your verified email and password.
-              </p>
-            </div>
-          </div>
-
-          {error ? (
-            <ErrorState
-              className="mb-5"
-              title={error.title}
-              message={error.message}
-            />
-          ) : null}
-
-          <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-            <Field>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" autoComplete="email" {...form.register("email")} />
-              <FieldError message={form.formState.errors.email?.message} />
-            </Field>
-
-            <Field>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                {...form.register("password")}
-              />
-              <FieldError message={form.formState.errors.password?.message} />
-            </Field>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={form.formState.isSubmitting}
-            >
-              {form.formState.isSubmitting ? "Signing in..." : "Sign in"}
-            </Button>
-          </form>
-
-          <div className="mt-5 flex flex-wrap justify-between gap-3 text-sm">
-            <Link className="font-semibold text-primary" to="/forgot-password">
-              Forgot password?
-            </Link>
-            <Link className="font-semibold text-primary" to="/register">
-              Create an account
-            </Link>
-          </div>
-        </section>
-      </main>
-    </AppFrame>
+    <AuthShell
+      eyebrow="Member access"
+      title={<>Back to your<br /><span className="text-secondary">training.</span></>}
+      description="Sign in to manage your membership, update your profile and keep your invoices in one place."
+      detail="Protected destinations only render after the current session has been resolved."
+    >
+      <section className="form-card p-6 sm:p-8">
+        <span className="grid size-11 place-items-center rounded-xl bg-secondary text-foreground"><KeyRound className="size-5" aria-hidden /></span>
+        <h2 className="mt-5 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none">Welcome back</h2>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">Use your verified YPGym email and password.</p>
+        {error ? <ErrorState className="mt-5" title={error.title} message={error.message} /> : null}
+        <form className="mt-6 space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <Field>
+            <Label htmlFor="email">Email address</Label>
+            <Input id="email" type="email" autoComplete="email" placeholder="you@example.com" {...form.register("email")} />
+            <FieldError message={form.formState.errors.email?.message} />
+          </Field>
+          <Field>
+            <div className="flex items-center justify-between gap-3"><Label htmlFor="password">Password</Label><Link className="text-xs font-extrabold text-primary underline-offset-4 hover:underline" to="/forgot-password">Forgot password?</Link></div>
+            <Input id="password" type="password" autoComplete="current-password" {...form.register("password")} />
+            <FieldError message={form.formState.errors.password?.message} />
+          </Field>
+          <Button type="submit" className="mt-2 w-full rounded-full" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? "Signing in..." : <>Sign in <ArrowRight className="size-4" aria-hidden /></>}
+          </Button>
+        </form>
+        <p className="mt-6 text-center text-sm text-muted-foreground">New to YPGym? <Link className="font-extrabold text-primary underline-offset-4 hover:underline" to="/register">Create an account</Link></p>
+      </section>
+    </AuthShell>
   );
 }
 
 function destinationForRole(user: User) {
-  if (["admin", "manager", "staff"].includes(user.role)) {
-    return "/admin";
-  }
-  if (user.role === "pt") {
-    return "/pt";
-  }
-  return "/member";
+  if (["admin", "manager", "staff"].includes(user.role)) return "/admin";
+  if (user.role === "pt") return "/pt/dashboard";
+  return "/app/dashboard";
 }

@@ -8,6 +8,7 @@ type RequestOptions = {
   body?: unknown;
   token?: string | null;
   headers?: HeadersInit;
+  signal?: AbortSignal;
 };
 
 export function apiUrl(path: string) {
@@ -33,6 +34,7 @@ export async function apiRequest<T>(
     method: options.method ?? "GET",
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    signal: options.signal,
   });
 
   const contentType = response.headers.get("content-type") ?? "";
@@ -41,6 +43,9 @@ export async function apiRequest<T>(
     : await response.text();
 
   if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new Event("ypgym:unauthorized"));
+    }
     if (isApiErrorPayload(data)) {
       throw data;
     }

@@ -1,13 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, UserPlus } from "lucide-react";
+import { ArrowRight, BadgeCheck, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { z } from "zod";
 
 import { ErrorState } from "@/components/common/FeedbackState";
-import { AppFrame } from "@/components/layout/AppFrame";
-import { Button, ButtonLink } from "@/components/ui/Button";
+import { AuthShell } from "@/components/layout/AuthShell";
+import { Button } from "@/components/ui/Button";
 import { Field, FieldError, Input, Label } from "@/components/ui/Form";
 import { apiRequest } from "@/lib/apiClient";
 import { toUiError, type UiError } from "@/lib/apiErrors";
@@ -15,17 +15,13 @@ import type { User } from "@/types/api";
 
 const schema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
-  email: z.string().email(),
+  email: z.string().email("Enter a valid email address."),
   phone: z.string().min(7, "Phone number is too short."),
   password: z.string().min(8, "Password must be at least 8 characters."),
 });
 
 type RegisterForm = z.infer<typeof schema>;
-
-type RegisterResponse = {
-  message: string;
-  user: User;
-};
+type RegisterResponse = { message: string; user: User };
 
 export function RegisterPage() {
   const [error, setError] = useState<UiError | null>(null);
@@ -39,10 +35,7 @@ export function RegisterPage() {
     setError(null);
     setRegistered(null);
     try {
-      const response = await apiRequest<RegisterResponse>("/auth/register", {
-        method: "POST",
-        body: values,
-      });
+      const response = await apiRequest<RegisterResponse>("/auth/register", { method: "POST", body: values });
       setRegistered(response);
       form.reset();
     } catch (caught) {
@@ -51,92 +44,27 @@ export function RegisterPage() {
   }
 
   return (
-    <AppFrame>
-      <main className="mx-auto grid max-w-6xl gap-8 px-5 py-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-        <section className="space-y-4">
-          <p className="text-sm font-semibold uppercase tracking-wide text-primary">
-            Start training
-          </p>
-          <h1 className="text-4xl font-bold leading-tight md:text-5xl">
-            Register for YPGym
-          </h1>
-          <p className="max-w-xl text-base leading-7 text-muted-foreground">
-            Create a member account, verify email, then choose a membership
-            plan that fits your schedule.
-          </p>
-        </section>
-
-        <section className="rounded-lg border border-border bg-card p-6 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-md bg-secondary/10 text-secondary">
-              <UserPlus className="size-5" aria-hidden />
-            </span>
-            <div>
-              <h2 className="text-xl font-bold">Member details</h2>
-              <p className="text-sm text-muted-foreground">
-                Email and phone must be unique.
-              </p>
-            </div>
-          </div>
-
-          {registered ? (
-            <div className="rounded-lg border border-secondary/30 bg-secondary/10 p-5">
-              <CheckCircle2 className="size-6 text-secondary" aria-hidden />
-              <h2 className="mt-3 text-lg font-bold">Check your verification link</h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {registered.message} In local development, the verification
-                link is written to the backend logs.
-              </p>
-              <ButtonLink asChild className="mt-4">
-                <Link to="/login">Go to login</Link>
-              </ButtonLink>
-            </div>
-          ) : null}
-
-          {error ? (
-            <ErrorState
-              className="mb-5"
-              title={error.title}
-              message={error.message}
-            />
-          ) : null}
-
-          <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-            <Field>
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" autoComplete="name" {...form.register("name")} />
-              <FieldError message={form.formState.errors.name?.message} />
-            </Field>
-            <Field>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" autoComplete="email" {...form.register("email")} />
-              <FieldError message={form.formState.errors.email?.message} />
-            </Field>
-            <Field>
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" autoComplete="tel" {...form.register("phone")} />
-              <FieldError message={form.formState.errors.phone?.message} />
-            </Field>
-            <Field>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                {...form.register("password")}
-              />
-              <FieldError message={form.formState.errors.password?.message} />
-            </Field>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={form.formState.isSubmitting}
-            >
-              {form.formState.isSubmitting ? "Creating account..." : "Create account"}
-            </Button>
-          </form>
-        </section>
-      </main>
-    </AppFrame>
+    <AuthShell
+      eyebrow="New member"
+      title={<>Find your<br /><span className="text-secondary">pace.</span></>}
+      description="Start with a secure member account. Verify your email, then select a plan configured by the gym."
+      detail="Your email and phone are checked against the real account records before a profile is created."
+    >
+      <section className="form-card p-6 sm:p-8">
+        <span className="grid size-11 place-items-center rounded-xl bg-secondary text-foreground"><UserPlus className="size-5" aria-hidden /></span>
+        <h2 className="mt-5 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none">Create account</h2>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">Your email and phone number must be unique.</p>
+        {registered ? <div className="mt-5 rounded-2xl border border-secondary/50 bg-secondary/15 p-4"><BadgeCheck className="size-5 text-primary" aria-hidden /><h3 className="mt-3 text-xl font-bold">Check your verification link</h3><p className="mt-1 text-sm leading-6 text-muted-foreground">{registered.message} In development, the verification link is written to the backend logs.</p><Link className="mt-4 inline-flex items-center gap-2 text-sm font-extrabold text-primary underline-offset-4 hover:underline" to="/login">Go to login <ArrowRight className="size-4" aria-hidden /></Link></div> : null}
+        {error ? <ErrorState className="mt-5" title={error.title} message={error.message} /> : null}
+        {!registered ? <form className="mt-6 grid gap-4 sm:grid-cols-2" onSubmit={form.handleSubmit(onSubmit)}>
+          <Field className="sm:col-span-2"><Label htmlFor="name">Full name</Label><Input id="name" autoComplete="name" {...form.register("name")} /><FieldError message={form.formState.errors.name?.message} /></Field>
+          <Field className="sm:col-span-2"><Label htmlFor="email">Email address</Label><Input id="email" type="email" autoComplete="email" placeholder="you@example.com" {...form.register("email")} /><FieldError message={form.formState.errors.email?.message} /></Field>
+          <Field><Label htmlFor="phone">Phone number</Label><Input id="phone" autoComplete="tel" {...form.register("phone")} /><FieldError message={form.formState.errors.phone?.message} /></Field>
+          <Field><Label htmlFor="password">Password</Label><Input id="password" type="password" autoComplete="new-password" {...form.register("password")} /><FieldError message={form.formState.errors.password?.message} /></Field>
+          <Button type="submit" className="mt-2 w-full rounded-full sm:col-span-2" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Creating account..." : <>Create account <ArrowRight className="size-4" aria-hidden /></>}</Button>
+        </form> : null}
+        <p className="mt-6 text-center text-sm text-muted-foreground">Already registered? <Link className="font-extrabold text-primary underline-offset-4 hover:underline" to="/login">Log in</Link></p>
+      </section>
+    </AuthShell>
   );
 }

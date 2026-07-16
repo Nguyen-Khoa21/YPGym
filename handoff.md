@@ -16,6 +16,125 @@ The repo now contains the Day 5-10 PostgreSQL foundation plus the Day 11-20 auth
 
 The older Day 1-4 scaffold containers may still appear in Docker Desktop or `docker compose ps`. They were left untouched. The revised stack uses `5174`, `8001`, `5433`, and `6380` to avoid conflicts with the older scaffold.
 
+## 2026-07-15: Frontend Redesign And API Reintegration Pass
+
+- Branch: `main`
+- Baseline commit: `4b6f94c` (`Implement auth membership billing slice`)
+- Working tree status at handoff: redesign changes are uncommitted.
+- Figma references used: `Untitled` (`XQ3HBuKBg9NpLxCqoCwUb9`), Page 1, `Membership Policies` frame `1:2`, and `Member Profile` frame `1:4176`.
+
+### What Changed
+
+- Replaced the generic public chrome with a responsive `AppFrame`, a public hero, an authentication shell, policy content layout, custom not-found page, and a permission-denied route.
+- Added the Figma-informed `MemberShell`: desktop member sidebar plus mobile bottom navigation. The profile preserves the Figma settings/menu hierarchy and labels unconnected personalization and notification rows honestly.
+- Added `AdminShell` patterns for billing, CRM, attendance, classes and PT assignment routes. Only admin billing is connected; no CRM records or other admin data are mocked.
+- Redesigned register, login, forgot/reset password, email verification callback/success, plans, purchase/review/success, profile, member billing, member dashboard, admin dashboard/billing, and the PT safe placeholder.
+- Added `/policies/membership` using the Figma policy-table-of-contents structure and the sections: Renewal & Expiry, Freeze Eligibility, Cancellation, Refunds & Credits and QR Check-in Rules.
+- Added canonical application routes while retaining aliases:
+  - `/member` -> `/app/dashboard`
+  - `/profile` -> `/app/profile`
+  - `/billing` -> `/app/billing`
+  - `/pt` -> `/pt/dashboard`
+- Added explicit planned routes for QR, class booking, CRM, attendance, class administration and PT assignments. They show planned development days instead of simulated feature data.
+
+### API And State Details
+
+- `apiRequest` now accepts `AbortSignal` for route-query cancellation and broadcasts `ypgym:unauthorized` on `401`; `AuthProvider` centrally clears stale sessions.
+- Profile is now loaded with `GET /users/me` and persisted with `PATCH /users/me`; name/phone validation, blocked email editing, current-password validation and backend errors remain visible.
+- Purchase retains its one-per-page idempotency key. Successful purchases invalidate billing and dashboard query groups.
+- Purchase success distinguishes a renewal when the returned invoice coverage start differs from the membership start.
+- Invoice downloads now handle a failed request in-page instead of allowing an unhandled promise rejection.
+
+### Design System
+
+- Tokens: cream background, forest primary, lime secondary, coral accent, Barlow Condensed display typography and Manrope UI typography.
+- Reusable layouts: `AppFrame`, `AuthShell`, `MemberShell`, `AdminShell`.
+- Reusable route states: loading, error, permission denied, not found, and intentionally unavailable future features.
+
+### Files Modified Or Added
+
+Frontend:
+
+- `frontend/src/index.css`
+- `frontend/src/app/router.tsx`
+- `frontend/src/app/pages/*`
+- `frontend/src/components/layout/AppFrame.tsx`
+- `frontend/src/components/layout/AuthShell.tsx`
+- `frontend/src/components/layout/MemberShell.tsx`
+- `frontend/src/components/layout/AdminShell.tsx`
+- `frontend/src/components/ui/Form.tsx`
+- `frontend/src/lib/apiClient.ts`
+- `frontend/src/features/auth/*`
+- `frontend/src/features/member/pages/*`
+- `frontend/src/features/memberships/pages/*`
+- `frontend/src/features/billing/pages/PaymentHistoryPage.tsx`
+- `frontend/src/features/admin/pages/*`
+
+Documentation:
+
+- `docs/design/route-screen-map.md`
+- `README.md`
+- `handoff.md`
+
+Backend:
+
+- No backend source or schema changes. Day 11-20 API contracts were preserved.
+
+Dependencies:
+
+- None added or removed. TanStack Query was already installed and remains the query/mutation layer.
+
+### Verification Performed On 2026-07-15
+
+Passed:
+
+```powershell
+cd C:\Users\Admin\ypgym\frontend
+npm run lint
+npm run build
+
+cd C:\Users\Admin\ypgym
+docker compose --profile app up -d --build
+docker compose --profile app exec -T backend-api alembic -c alembic.ini current
+Invoke-RestMethod http://localhost:8001/api/v1/health
+Invoke-RestMethod http://localhost:8001/api/v1/health/dependencies
+python -m compileall backend\app
+```
+
+- Alembic reports `20260702_0003 (head)`.
+- Health returned `YPGym API is running`; database and Redis dependency health both returned `ok`.
+- The initial combined Docker/migration command exceeded the two-minute command timeout after containers started; rerunning migration, health and compile as separate commands passed.
+- Functional API flow passed with a new member account: registration, duplicate email/phone `409`, development-log verification, login and `/auth/me`, `GET/PATCH /users/me` with password change, six plans, purchase, duplicate idempotency replay, renewal, payment/invoice history, invoice PDF `200`, member token rejection from admin billing `403`, forgot/reset password, reset-token reuse `400`, and login with the new password.
+- Browser checks passed with no console errors: desktop home, 1280px policy layout, 390px member profile, refreshed `/app/profile` deep link, 768px profile/policy checks, and member navigation to `/admin/billing` redirecting to `/permission-denied`.
+
+Visual limitation:
+
+- Desktop home, desktop policy and mobile profile screenshots were captured in the in-app browser. The browser declined one narrow-policy screenshot capture; the 768px DOM layout and console state were still checked successfully.
+
+### Known Limitations
+
+- Figma MCP hit its Starter-plan call limit after the policy/profile structural inspection. No additional Figma asset export or frame-specific review was possible in this pass.
+- The accessible Figma file did not include supplied frames for the public/auth, purchase, billing, admin or PT routes. Those use the documented shared design system, not asserted pixel-perfect parity.
+- Google Fonts are loaded at runtime for the display/UI typography. The local system stack is used if the font request is unavailable.
+- The Vite production build passes with the existing warning that the main JavaScript chunk is over 500 kB.
+- The old Day 1-4 orphan containers remain visible, including a restarting `ypgym-backend`; the current stack is `ypgym-backend-api` and `ypgym-frontend-web`.
+- QR attendance, crowdedness, classes, broadcasts, notifications, CRM, cancellation/freeze approvals, full admin billing, PT assignments and Expo mobile remain deferred. No backend behavior was fabricated for them.
+
+### Manual Test Steps
+
+1. Start the stack with `docker compose --profile app up -d --build` and open `http://localhost:5174`.
+2. Register at `/register`; submit a duplicate email or phone to view inline backend errors.
+3. Use `docker compose --profile app logs backend-api` and open the `development_email_verification_link` at `/verify-email?token=...`.
+4. Log in at `/login`; member accounts land on `/app/dashboard`, while staff/admin/manager and PT accounts land on their role destinations.
+5. Open `/app/profile`, update name/phone, then supply the current and new password to verify the account-security path. Email remains read-only.
+6. Open `/memberships`, choose a plan, confirm the mock payment once, then open `/app/billing` to download its invoice.
+7. Refresh `/app/profile` or paste it into a new tab while signed in; the profile remains protected and loads after auth resolution.
+8. As a member, paste `/admin/billing`; the app should show `/permission-denied`.
+
+### Recommended Next Development Day
+
+Start Day 21: membership lifecycle, freeze eligibility/approval and expiry worker. The policy screen and planned states now provide an honest UI foundation for that work.
+
 ## What Was Implemented Today
 
 ### Day 11: Core PostgreSQL Models and Migrations
