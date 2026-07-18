@@ -13,7 +13,7 @@ import { AppFrame } from "@/components/layout/AppFrame";
 const highlights = [
   { title: "Choose your rhythm", copy: "Six real membership plans, with pricing calculated by the backend.", icon: ShieldCheck },
   { title: "Keep every receipt", copy: "Payments and downloadable invoices stay attached to your account.", icon: CreditCard },
-  { title: "Train with clarity", copy: "QR and class features are visible as planned work, never simulated data.", icon: QrCode },
+  { title: "Train with clarity", copy: "Rotating QR access, attendance history, live crowdedness and notifications are connected.", icon: QrCode },
 ];
 
 export function HomePage() {
@@ -33,8 +33,8 @@ export function HomePage() {
                 <span className="text-secondary">clearer plan.</span>
               </h1>
               <p className="mt-7 max-w-xl text-base leading-8 text-primary-foreground/75">
-                YPGym brings membership, account security, billing and invoices
-                into one deliberate member experience.
+                YPGym brings membership, account security, billing, rotating QR
+                attendance, notifications and invoices into one deliberate member experience.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 text-sm font-extrabold text-foreground transition hover:-translate-y-0.5" to="/memberships">
@@ -68,7 +68,7 @@ export function HomePage() {
                   <div className="rounded-xl border border-border p-3">
                     <CalendarDays className="size-4 text-primary" aria-hidden />
                     <p className="mt-3 text-xs font-bold">Class booking</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">Planned Day 33+</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">Planned Day 40</p>
                   </div>
                 </div>
               </div>

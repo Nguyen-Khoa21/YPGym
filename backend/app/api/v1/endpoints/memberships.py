@@ -10,6 +10,12 @@ from app.schemas.membership_schema import (
     PurchaseMembershipRequest,
     PurchaseMembershipResponse,
 )
+from app.schemas.operations_schema import (
+    CancellationRequestCreate,
+    FreezeRequestCreate,
+    MembershipRequestItem,
+)
+from app.services.lifecycle_service import MembershipLifecycleService
 from app.services.membership_service import MembershipService
 
 router = APIRouter(prefix="/memberships", tags=["memberships"])
@@ -25,3 +31,29 @@ async def purchase_membership(
         current_user=current_user,
         payload=payload,
     )
+
+
+@router.post("/freeze-requests", response_model=MembershipRequestItem)
+async def request_freeze(
+    payload: FreezeRequestCreate,
+    current_user: Annotated[User, Depends(require_roles("member"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> MembershipRequestItem:
+    return await MembershipLifecycleService(session).create_freeze_request(user=current_user, payload=payload)
+
+
+@router.post("/cancellation-requests", response_model=MembershipRequestItem)
+async def request_cancellation(
+    payload: CancellationRequestCreate,
+    current_user: Annotated[User, Depends(require_roles("member"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> MembershipRequestItem:
+    return await MembershipLifecycleService(session).create_cancellation_request(user=current_user, payload=payload)
+
+
+@router.get("/requests/me", response_model=list[MembershipRequestItem])
+async def list_my_membership_requests(
+    current_user: Annotated[User, Depends(require_roles("member"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> list[MembershipRequestItem]:
+    return await MembershipLifecycleService(session).list_my_requests(current_user)

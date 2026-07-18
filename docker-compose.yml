@@ -51,6 +51,8 @@ services:
       QR_TOKEN_TTL_SECONDS: 60
       ATTENDANCE_TIMEOUT_MINUTES: 180
       GYM_CAPACITY: 150
+      IOT_DEVICE_API_KEY: ${IOT_DEVICE_API_KEY:-local-iot-key}
+      DEVELOPMENT_SEED_PASSWORD: ${DEVELOPMENT_SEED_PASSWORD:-YPGymDemo123!}
     ports:
       - "${BACKEND_HOST_PORT:-8001}:8000"
     volumes:
@@ -89,6 +91,7 @@ services:
       ENVIRONMENT: development
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ypgym}:${POSTGRES_PASSWORD:-ypgym_dev_password}@postgres-db:5432/${POSTGRES_DB:-ypgym}
       REDIS_URL: redis://redis-cache:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-local-secret}
     volumes:
       - ./backend:/app
     depends_on:
@@ -108,6 +111,7 @@ services:
       ENVIRONMENT: development
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ypgym}:${POSTGRES_PASSWORD:-ypgym_dev_password}@postgres-db:5432/${POSTGRES_DB:-ypgym}
       REDIS_URL: redis://redis-cache:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-local-secret}
     volumes:
       - ./backend:/app
     depends_on:

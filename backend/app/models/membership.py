@@ -1,8 +1,8 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, Date, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -70,7 +70,17 @@ class UserMembership(TimestampMixin, Base):
     )
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     expiry_date: Mapped[date] = mapped_column(Date, nullable=False)
+    frozen_from: Mapped[date | None] = mapped_column(Date, nullable=True)
+    frozen_until: Mapped[date | None] = mapped_column(Date, nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_by_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    revoked_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    user = relationship("User", back_populates="memberships")
+    user = relationship("User", back_populates="memberships", foreign_keys=[user_id])
+    revoked_by = relationship("User", foreign_keys=[revoked_by_id])
     plan = relationship("MembershipPlan", back_populates="memberships")
     payments = relationship("Payment", back_populates="membership")

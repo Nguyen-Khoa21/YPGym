@@ -6,8 +6,17 @@ import { NotFoundPage } from "@/app/pages/NotFoundPage";
 import { PermissionDeniedPage } from "@/app/pages/PermissionDeniedPage";
 import { PlannedFeaturePage } from "@/app/pages/PlannedFeaturePage";
 import { VerificationSuccessPage } from "@/app/pages/VerificationSuccessPage";
+import { AdminAttendancePage } from "@/features/attendance/pages/AdminAttendancePage";
+import { MemberAttendancePage } from "@/features/attendance/pages/MemberAttendancePage";
+import { MemberQrPage } from "@/features/attendance/pages/MemberQrPage";
+import { AdminAuditPage } from "@/features/admin/pages/AdminAuditPage";
 import { AdminBillingPage } from "@/features/admin/pages/AdminBillingPage";
+import { AdminBroadcastsPage } from "@/features/admin/pages/AdminBroadcastsPage";
 import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage";
+import { AdminMemberDetailPage } from "@/features/admin/pages/AdminMemberDetailPage";
+import { AdminMembershipApprovalsPage } from "@/features/admin/pages/AdminMembershipApprovalsPage";
+import { AdminMembersPage } from "@/features/admin/pages/AdminMembersPage";
+import { AdminSettingsPage } from "@/features/admin/pages/AdminSettingsPage";
 import { ForgotPasswordPage } from "@/features/auth/pages/ForgotPasswordPage";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
@@ -15,13 +24,18 @@ import { RegisterPage } from "@/features/auth/pages/RegisterPage";
 import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
 import { VerifyEmailPage } from "@/features/auth/pages/VerifyEmailPage";
 import { PaymentHistoryPage } from "@/features/billing/pages/PaymentHistoryPage";
+import { AdminClassesPage } from "@/features/classes/pages/AdminClassesPage";
 import { MemberDashboardPage } from "@/features/member/pages/MemberDashboardPage";
+import { MembershipRequestsPage } from "@/features/member/pages/MembershipRequestsPage";
+import { NotificationPreferencesPage } from "@/features/member/pages/NotificationPreferencesPage";
+import { NotificationsPage } from "@/features/member/pages/NotificationsPage";
 import { ProfileSettingsPage } from "@/features/member/pages/ProfileSettingsPage";
 import { PtDashboardPage } from "@/features/member/pages/PtDashboardPage";
 import { BuyMembershipPage } from "@/features/memberships/pages/BuyMembershipPage";
 import { MembershipPlansPage } from "@/features/memberships/pages/MembershipPlansPage";
 
-const adminRoles = ["admin", "manager", "staff"] as const;
+const operationsRoles = ["admin", "manager", "staff"] as const;
+const managerRoles = ["admin", "manager"] as const;
 
 export const router = createBrowserRouter([
   { path: "/", element: <HomePage /> },
@@ -51,39 +65,71 @@ export const router = createBrowserRouter([
   },
   {
     path: "/app/qr",
-    element: <ProtectedRoute roles={["member"]}><PlannedFeaturePage title="My QR code" description="Attendance QR token generation and scan validation have not been implemented yet." plannedDay="Day 30: QR attendance foundation" scope="member" kind="qr" /></ProtectedRoute>,
+    element: <ProtectedRoute roles={["member"]}><MemberQrPage /></ProtectedRoute>,
+  },
+  {
+    path: "/app/attendance",
+    element: <ProtectedRoute roles={["member"]}><MemberAttendancePage /></ProtectedRoute>,
+  },
+  {
+    path: "/app/membership-requests",
+    element: <ProtectedRoute roles={["member"]}><MembershipRequestsPage /></ProtectedRoute>,
+  },
+  {
+    path: "/app/notifications",
+    element: <ProtectedRoute roles={["member"]}><NotificationsPage /></ProtectedRoute>,
+  },
+  {
+    path: "/app/notifications/preferences",
+    element: <ProtectedRoute roles={["member"]}><NotificationPreferencesPage /></ProtectedRoute>,
   },
   {
     path: "/app/classes",
-    element: <ProtectedRoute roles={["member"]}><PlannedFeaturePage title="Class booking" description="Class schedules, booking and waitlists are planned after the current membership and billing work." plannedDay="Day 33: Class booking and schedules" scope="member" kind="classes" /></ProtectedRoute>,
+    element: <ProtectedRoute roles={["member"]}><PlannedFeaturePage title="Class booking" description="The Day 37 schema and Day 38 admin schedule are ready, but member booking and waitlist behavior remain later scope." plannedDay="Day 40: member class booking" scope="member" kind="classes" /></ProtectedRoute>,
   },
   {
     path: "/admin",
-    element: <ProtectedRoute roles={[...adminRoles]}><AdminDashboardPage /></ProtectedRoute>,
+    element: <ProtectedRoute roles={[...operationsRoles]}><AdminDashboardPage /></ProtectedRoute>,
   },
   {
     path: "/admin/billing",
-    element: <ProtectedRoute roles={[...adminRoles]}><AdminBillingPage /></ProtectedRoute>,
+    element: <ProtectedRoute roles={["admin"]}><AdminBillingPage /></ProtectedRoute>,
   },
   {
     path: "/admin/members",
-    element: <ProtectedRoute roles={[...adminRoles]}><PlannedFeaturePage title="Member CRM" description="Member search, profile records and relationship management need their planned backend APIs before this screen can be connected." plannedDay="Day 26: Member CRM" scope="admin" /></ProtectedRoute>,
+    element: <ProtectedRoute roles={["admin"]}><AdminMembersPage /></ProtectedRoute>,
   },
   {
     path: "/admin/members/:id",
-    element: <ProtectedRoute roles={[...adminRoles]}><PlannedFeaturePage title="Member detail" description="No member detail data is loaded here because the CRM API has not been built yet." plannedDay="Day 26: Member CRM" scope="admin" /></ProtectedRoute>,
+    element: <ProtectedRoute roles={["admin"]}><AdminMemberDetailPage /></ProtectedRoute>,
   },
   {
     path: "/admin/attendance",
-    element: <ProtectedRoute roles={[...adminRoles]}><PlannedFeaturePage title="Attendance operations" description="Attendance dashboards depend on QR scan and occupancy data that does not exist in this release." plannedDay="Day 30: QR attendance foundation" scope="admin" /></ProtectedRoute>,
+    element: <ProtectedRoute roles={[...operationsRoles]}><AdminAttendancePage /></ProtectedRoute>,
   },
   {
     path: "/admin/classes",
-    element: <ProtectedRoute roles={[...adminRoles]}><PlannedFeaturePage title="Class management" description="Class CRUD and schedule administration are intentionally deferred until class APIs are available." plannedDay="Day 33: Class booking and schedules" scope="admin" kind="classes" /></ProtectedRoute>,
+    element: <ProtectedRoute roles={["admin"]}><AdminClassesPage /></ProtectedRoute>,
+  },
+  {
+    path: "/admin/audit",
+    element: <ProtectedRoute roles={[...managerRoles]}><AdminAuditPage /></ProtectedRoute>,
+  },
+  {
+    path: "/admin/approvals",
+    element: <ProtectedRoute roles={[...managerRoles]}><AdminMembershipApprovalsPage /></ProtectedRoute>,
+  },
+  {
+    path: "/admin/settings",
+    element: <ProtectedRoute roles={[...managerRoles]}><AdminSettingsPage /></ProtectedRoute>,
+  },
+  {
+    path: "/admin/broadcasts",
+    element: <ProtectedRoute roles={[...managerRoles]}><AdminBroadcastsPage /></ProtectedRoute>,
   },
   {
     path: "/admin/pt-assignments",
-    element: <ProtectedRoute roles={[...adminRoles]}><PlannedFeaturePage title="PT assignments" description="Trainer assignments are a future admin workflow and no local CRM records are being fabricated for it." plannedDay="Day 35: PT assignment workflows" scope="admin" /></ProtectedRoute>,
+    element: <ProtectedRoute roles={["admin"]}><PlannedFeaturePage title="PT assignments" description="Trainer assignment management is a future admin workflow; Day 37 includes only the trainer relationship needed by class scheduling." plannedDay="Day 39+: PT management and assignment" scope="admin" /></ProtectedRoute>,
   },
   {
     path: "/pt/dashboard",

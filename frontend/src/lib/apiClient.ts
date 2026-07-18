@@ -61,6 +61,19 @@ export async function apiRequest<T>(
   return data as T;
 }
 
+export async function downloadApiFile(path: string, token?: string | null): Promise<Blob> {
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(apiUrl(path), { headers });
+  if (!response.ok) {
+    if (response.status === 401) window.dispatchEvent(new Event("ypgym:unauthorized"));
+    const data = await response.json().catch(() => null);
+    if (isApiErrorPayload(data)) throw data;
+    throw { error: { code: "HTTP_ERROR", message: "The file could not be downloaded.", details: null } } satisfies ApiErrorPayload;
+  }
+  return response.blob();
+}
+
 function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
   if (!value || typeof value !== "object") {
     return false;

@@ -2,26 +2,37 @@ import type { PropsWithChildren } from "react";
 import {
   BarChart3,
   CalendarDays,
+  ClipboardCheck,
   ClipboardList,
   CreditCard,
   Dumbbell,
   LayoutDashboard,
+  Megaphone,
+  Settings2,
+  ShieldCheck,
   UsersRound,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { AppFrame } from "@/components/layout/AppFrame";
+import { useAuth } from "@/features/auth/AuthContext";
 
 const adminNav = [
-  { to: "/admin", label: "Overview", icon: LayoutDashboard },
-  { to: "/admin/billing", label: "Billing", icon: CreditCard },
-  { to: "/admin/members", label: "Members", icon: UsersRound, future: true },
-  { to: "/admin/attendance", label: "Attendance", icon: ClipboardList, future: true },
-  { to: "/admin/classes", label: "Classes", icon: CalendarDays, future: true },
-  { to: "/admin/pt-assignments", label: "PT assignments", icon: Dumbbell, future: true },
+  { to: "/admin", label: "Overview", icon: LayoutDashboard, roles: ["staff", "manager", "admin"] },
+  { to: "/admin/members", label: "Members", icon: UsersRound, roles: ["admin"] },
+  { to: "/admin/billing", label: "Billing", icon: CreditCard, roles: ["admin"] },
+  { to: "/admin/attendance", label: "Attendance", icon: ClipboardList, roles: ["staff", "manager", "admin"] },
+  { to: "/admin/classes", label: "Classes", icon: CalendarDays, roles: ["admin"] },
+  { to: "/admin/approvals", label: "Approvals", icon: ClipboardCheck, roles: ["manager", "admin"] },
+  { to: "/admin/broadcasts", label: "Broadcasts", icon: Megaphone, roles: ["manager", "admin"] },
+  { to: "/admin/audit", label: "Audit log", icon: ShieldCheck, roles: ["manager", "admin"] },
+  { to: "/admin/settings", label: "Settings", icon: Settings2, roles: ["manager", "admin"] },
+  { to: "/admin/pt-assignments", label: "PT assignments", icon: Dumbbell, roles: ["admin"], future: true },
 ];
 
 export function AdminShell({ children }: PropsWithChildren) {
+  const { user } = useAuth();
+  const visibleNav = adminNav.filter((item) => user && item.roles.includes(user.role));
   return (
     <AppFrame>
       <div className="admin-shell">
@@ -30,7 +41,7 @@ export function AdminShell({ children }: PropsWithChildren) {
             <BarChart3 className="size-4" aria-hidden /> Operations
           </p>
           <nav className="admin-nav">
-            {adminNav.map((item) => (
+            {visibleNav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -45,7 +56,7 @@ export function AdminShell({ children }: PropsWithChildren) {
             ))}
           </nav>
           <p className="admin-sidebar__footnote">
-            Only the billing ledger is connected in the current release.
+            Navigation is limited to the operations approved for your role.
           </p>
         </aside>
         <main id="main-content" className="admin-content">

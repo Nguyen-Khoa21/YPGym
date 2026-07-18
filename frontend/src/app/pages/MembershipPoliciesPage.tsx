@@ -4,11 +4,11 @@ import { Link } from "react-router-dom";
 import { AppFrame } from "@/components/layout/AppFrame";
 
 const sections = [
-  { id: "renewal", title: "Renewal & expiry", body: "Membership duration, configured price and expiry are confirmed on the purchase receipt and invoice. A future renewal extends from the current expiry when the membership is still active." },
-  { id: "freeze", title: "Freeze eligibility", body: "Membership freeze requests and approvals are planned for the Day 21 membership lifecycle work. Until then, this portal cannot accept or approve a freeze request." },
-  { id: "cancellation", title: "Cancellation", body: "Cancellation workflows are not connected in this release. Contact the gym directly for account support; this screen does not alter membership records." },
-  { id: "refunds", title: "Refunds & credits", body: "Invoices are immutable billing records. Refunds and account credits require a future staff-admin workflow and are not simulated in the member portal." },
-  { id: "qr", title: "QR check-in rules", body: "QR check-in is planned after the current billing slice. QR availability, validation windows and attendance eligibility will be enforced by the backend when that feature is released." },
+  { id: "renewal", title: "Renewal & expiry", connected: true, body: "Membership duration, configured price and expiry are confirmed on the purchase receipt and invoice. Renewal extends from the current expiry while a membership remains eligible." },
+  { id: "freeze", title: "Freeze eligibility", connected: true, body: "Verified members with active or expiring-soon access can submit a dated freeze request for up to 90 days. An administrator must approve it before the freeze takes effect." },
+  { id: "cancellation", title: "Cancellation", connected: true, body: "Members can submit a reasoned cancellation request. An administrator records the decision and the approved financial outcome—refund, account credit or forfeit—in the audit trail." },
+  { id: "refunds", title: "Refunds & credits", connected: false, body: "The administration workflow records an approved financial outcome, but automated payment-gateway refunds and account-credit settlement remain outside this release. Invoices remain immutable records." },
+  { id: "qr", title: "QR check-in rules", connected: true, body: "Eligible verified members receive a short-lived rotating QR token. The scanner API rejects expired, superseded, invalid or ineligible tokens and guards duplicate scans." },
 ];
 
 export function MembershipPoliciesPage() {
@@ -32,7 +32,7 @@ export function MembershipPoliciesPage() {
             <div className="rounded-[1.5rem] bg-primary p-6 text-primary-foreground sm:p-9">
               <span className="eyebrow-chip"><CheckCircle2 className="size-3.5" aria-hidden /> Current portal policy</span>
               <h2 className="mt-5 max-w-2xl font-['Barlow_Condensed'] text-5xl font-bold uppercase leading-[0.86] sm:text-6xl">Clear terms. Honest feature status.</h2>
-              <p className="mt-5 max-w-xl text-sm leading-7 text-primary-foreground/75">This policy screen follows the Figma desktop content structure. It reflects the connected Day 11-20 system and clearly labels lifecycle features that are scheduled next.</p>
+              <p className="mt-5 max-w-xl text-sm leading-7 text-primary-foreground/75">This handbook reflects the connected membership, notification and attendance workflows through Day 38 and labels the remaining payment-settlement boundary explicitly.</p>
               <Link className="mt-6 inline-flex items-center gap-2 text-sm font-extrabold text-secondary" to="/memberships">View membership plans <ArrowUpRight className="size-4" aria-hidden /></Link>
             </div>
 
@@ -44,7 +44,7 @@ export function MembershipPoliciesPage() {
                     <div>
                       <h2 className="text-3xl font-bold">{section.title}</h2>
                       <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">{section.body}</p>
-                      {index > 0 ? <p className="mt-4 inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-accent"><Clock3 className="size-3.5" aria-hidden /> Planned workflow, not connected yet</p> : null}
+                      <p className={`mt-4 inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide ${section.connected ? "text-primary" : "text-accent"}`}>{section.connected ? <CheckCircle2 className="size-3.5" aria-hidden /> : <Clock3 className="size-3.5" aria-hidden />}{section.connected ? "Connected workflow" : "Recorded outcome; settlement planned"}</p>
                     </div>
                   </div>
                 </section>
@@ -52,7 +52,7 @@ export function MembershipPoliciesPage() {
             </div>
             <div className="mt-6 flex gap-3 rounded-2xl border border-accent/30 bg-accent/10 p-5 text-sm leading-6">
               <ShieldAlert className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
-              <p><strong>Need account help?</strong> Use the gym's existing support channel for cancellation, refunds or freezes while those authenticated workflows are not yet available in the app.</p>
+              <p><strong>Need account help?</strong> Use the authenticated membership-request page for freezes or cancellations. Contact the gym directly when an approved refund or account credit must be settled outside the portal.</p>
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import AppError
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
+from app.repositories.operations_repository import AuditRepository
 from app.schemas.auth_schema import UserPublic
 from app.schemas.user_schema import UserProfileUpdateRequest
 from app.utils.security import hash_password, verify_password
@@ -13,6 +14,7 @@ class UserService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.users = UserRepository(session)
+        self.audit = AuditRepository(session)
 
     async def update_profile(
         self,
@@ -20,6 +22,7 @@ class UserService:
         current_user: User,
         payload: UserProfileUpdateRequest,
     ) -> UserPublic:
+        before = {"name": current_user.name, "phone": current_user.phone}
         if payload.email and payload.email.lower() != current_user.email.lower():
             raise AppError(
                 "EMAIL_CHANGE_NOT_ENABLED",
@@ -52,7 +55,20 @@ class UserService:
                 )
             current_user.password_hash = hash_password(payload.new_password)
 
-        # TODO: write a profile-change audit log once the audit table is introduced.
+        after = {"name": current_user.name, "phone": current_user.phone}
+        if before != after or payload.new_password:
+            await self.audit.create(
+                actor_user_id=current_user.id,
+                target_user_id=current_user.id,
+                action="profile.updated",
+                entity_type="user",
+                entity_id=str(current_user.id),
+                reason="Member self-service profile update",
+                outcome="updated",
+                summary="Member updated profile or account security details.",
+                before_data=before,
+                after_data={**after, "password_changed": bool(payload.new_password)},
+            )
         try:
             await self.session.commit()
         except IntegrityError as exc:

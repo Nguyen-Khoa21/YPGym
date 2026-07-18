@@ -1,51 +1,59 @@
 # Design Architecture Route-Screen Map
 
-Primary references:
+Primary UI references are the BRD Design Architecture document and its embedded My QR, Member CRM, Admin Member Details, Class Schedule, and Attendance Dashboard screenshots. The repository's shared forest/lime/cream design system supplies responsive web behavior where a live Figma frame is unavailable.
 
-- `FYP Brief BRD - Anh Khoa - Design Architecture.docx`, section `10. Design Architecture`.
-- Figma `Untitled` (`XQ3HBuKBg9NpLxCqoCwUb9`), Page 1.
-- Figma frame `Membership Policies` (`1:2`) and mobile `Member Profile` (`1:4176`).
+## Member and public routes
 
-## Current Web Routes
-
-| Screen | Canonical route | Existing alias | API dependencies | Status |
+| Screen | Route | Role | API dependencies | Status through Day 38 |
 |---|---|---|---|---|
-| YPGym Home | `/` | none | none | redesigned; public shell and no mocked feature data |
-| Register | `/register` | none | `POST /auth/register` | redesigned and connected |
-| Login | `/login` | none | `POST /auth/login`, `GET /auth/me` | redesigned and connected; redirects by role |
-| Forgot Password | `/forgot-password` | none | `POST /auth/forgot-password` | redesigned and connected |
-| Reset Password | `/reset-password?token=...` | none | `POST /auth/reset-password` | redesigned and query-token compatible |
-| Email verification callback | `/verify-email?token=...` | none | `GET /auth/verify-email` | redesigned and connected |
-| Email verification success | `/verify-email/success` | none | callback outcome | redesigned success destination |
-| Membership Policies | `/policies/membership` | none | none | implemented from Figma `1:2`; lifecycle-only sections marked as planned |
-| Membership Plans | `/memberships` | none | `GET /membership-plans` | redesigned; price and benefits remain API-owned |
-| Buy/Renew Membership | `/memberships/buy/:planId` | none | `POST /memberships/purchase` | redesigned; idempotency and billing/dashboard invalidation retained |
-| Member Dashboard | `/app/dashboard` | `/member` | payment and invoice summaries | redesigned; QR/classes are honest planned states |
-| Profile Settings | `/app/profile` | `/profile` | `GET /users/me`, `PATCH /users/me` | redesigned from Figma `1:4176`; blocked email edit preserved |
-| Payment and Invoice History | `/app/billing` | `/billing` | `GET /billing/me/payments`, `GET /billing/me/invoices`, invoice download | redesigned and connected |
-| My QR Code | `/app/qr` | none | attendance API not built | UI-only planned state; Day 30 |
-| Class Booking | `/app/classes` | none | class API not built | UI-only planned state; Day 33 |
-| Admin Dashboard | `/admin` | none | none | redesigned admin shell; no CRM mocks |
-| Admin Billing | `/admin/billing` | none | `GET /billing/admin/payments` | redesigned and role protected |
-| Member CRM | `/admin/members`, `/admin/members/:id` | none | CRM API not built | UI-only planned state; Day 26 |
-| Attendance Operations | `/admin/attendance` | none | attendance API not built | UI-only planned state; Day 30 |
-| Class Management | `/admin/classes` | none | class API not built | UI-only planned state; Day 33 |
-| PT Assignments | `/admin/pt-assignments` | none | PT API not built | UI-only planned state; Day 35 |
-| PT Dashboard | `/pt/dashboard` | `/pt` | PT API not built | redesigned safe placeholder; PT role only |
-| Permission Denied | `/permission-denied` | none | auth role state | implemented for blocked protected routes |
-| Not Found | `*` | none | none | implemented |
+| Home/auth/verification/reset | `/`, `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` | Public | `/auth/*` | Connected |
+| Membership plans/policy/purchase | `/memberships`, `/policies/membership`, `/memberships/buy/:planId` | Public/member | `/membership-plans`, `/memberships/purchase` | Connected; payment is explicitly mock-only |
+| Member dashboard | `/app/dashboard` | Member | active broadcasts, crowdedness, billing summary | Connected |
+| Profile | `/app/profile` | Authenticated | `/users/me`, notification preference link | Connected |
+| Billing history | `/app/billing` | Authenticated | `/billing/me/payments`, `/billing/me/invoices`, PDF download | Connected |
+| My QR | `/app/qr` | Member | `/attendance/qr-token/me`, `/attendance/crowdedness`, `/attendance/me` | Connected rotating QR, countdown, refresh, blocked/error states |
+| Attendance history | `/app/attendance` | Member | `/attendance/me` | Connected paginated history and event/source context |
+| Freeze/cancel requests | `/app/membership-requests` | Member | `/memberships/freeze-requests`, `/memberships/cancellation-requests`, `/memberships/requests/me` | Connected |
+| Notifications | `/app/notifications` | Member | `/notifications/me`, read-one/read-all | Connected and paginated |
+| Notification preferences | `/app/notifications/preferences` | Member | `/notifications/preferences/me` | Connected |
+| Member class booking | `/app/classes` | Member | Day 40 APIs | Deliberate planned state; not mocked |
 
-## Shared Design System
+Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/*` routes.
 
-- `AppFrame`: public navigation, authenticated identity chip, keyboard skip link and logout action.
-- `AuthShell`: responsive authentication composition with real forms and inline API errors.
-- `MemberShell`: desktop sidebar and mobile bottom navigation, based on the Figma member-profile hierarchy.
-- `AdminShell`: distinct operations sidebar for current billing and future CRM/attendance/class/PT screens.
-- Visual foundations: forest green `--primary`, lime `--secondary`, cream background, Barlow Condensed display type and Manrope UI type.
+## Operations routes
 
-## Intentional Differences And Gaps
+| Screen | Route | Role | API dependencies | Status through Day 38 |
+|---|---|---|---|---|
+| Role-specific operations home | `/admin` | Staff/manager/admin | Auth role | Connected navigation only to permitted areas |
+| Member CRM | `/admin/members` | Admin | `/admin/members`, filtered CSV | Connected search, role/tier/status/expiry filters, KPI cards, table, pagination |
+| Admin Member Details | `/admin/members/:id` | Admin | detail composite, decisions, revocation | Connected profile, membership, billing, attendance, booking summary, requests, audit, reasoned actions |
+| Membership approvals | `/admin/approvals` | Manager/admin | `/admin/membership-requests`, decision endpoints | Connected limited queue without full CRM/billing exposure |
+| Billing ledger | `/admin/billing` | Admin | `/admin/billing/payments`, `/invoices`, exact-filter CSV | Connected member/status/date/plan/tier filters |
+| Attendance dashboard | `/admin/attendance` | Staff/manager/admin | attendance admin list, manual close, crowdedness; analytics for manager/admin | Connected table, filters, KPI cards, manual-close dialog, accessible 7x24 heatmap |
+| Class schedule | `/admin/classes` | Admin | class list/trainers/create/update/cancel | Connected table, filters, side card, create/edit dialog, cancellation confirmation |
+| Broadcasts | `/admin/broadcasts` | Manager/admin | broadcast list/create/update | Connected |
+| Audit log | `/admin/audit` | Manager/admin | `/admin/audit-logs` | Connected date/action/actor/target/entity filters and pagination |
+| Configuration | `/admin/settings` | Manager/admin | `/admin/configuration` | Connected validated editing and cache invalidation |
+| PT assignments | `/admin/pt-assignments` | Admin | Day 39+ APIs | Deliberate planned state |
+| PT dashboard | `/pt/dashboard` | PT | Day 39 APIs | Limited placeholder, role protected |
 
-- The accessible Figma file contains only the `Membership Policies` and `Member Profile` frames. Public auth, purchase, billing and admin routes use the same local design system rather than claiming unprovided Figma frame parity.
-- Figma MCP reached its Starter-plan call limit during the 2026-07-15 audit, preventing additional current screenshots, asset exports and frame inspection.
-- QR, crowdedness, classes, broadcasts, notifications, CRM and PT assignments are routes with explicit planned/unavailable states. They do not show simulated records or actions.
-- Mobile/Expo screens remain separate work; this pass covers responsive web only.
+## Attendance field mapping
+
+| UI region | Server fields |
+|---|---|
+| QR pass | token, issued/expiry timestamps, TTL, effective membership status |
+| Facility status | active count, configured capacity, percentage, threshold label, calculated timestamp |
+| Member history | check-in/close timestamps, session status, source, device ID, ordered events |
+| Operations log | member identity, date/status/member filters, source/device, manual-close reason |
+| Analytics heatmap | 168 weekday/hour cells, visits today, busiest hour, current occupancy, selected range |
+
+## Shared states and responsive behavior
+
+- `AppFrame`, `MemberShell`, and role-filtered `AdminShell` provide skip links, identity/logout, desktop navigation, and member mobile bottom navigation.
+- Operations pages share header, metrics, panels, status badges, pagination, dialogs, loading, empty, error, validation, and confirmation patterns.
+- Protected routes wait for authentication resolution and redirect denied roles to `/permission-denied` without rendering protected data.
+- Tables remain horizontally scrollable on narrow viewports; core member actions are reachable from mobile navigation.
+
+## Explicit scope boundaries
+
+The Day 37 database includes bookings and waitlists as relational foundations. Member listing/booking, capacity enrollment, configurable cancellation-window enforcement, promotion, PT profile management/assignment, Expo/mobile apps, and real hardware firmware remain Day 39+ work.

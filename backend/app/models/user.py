@@ -55,6 +55,10 @@ class User(TimestampMixin, Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
-    memberships = relationship("UserMembership", back_populates="user")
+    memberships = relationship(
+        "UserMembership",
+        back_populates="user",
+        foreign_keys="UserMembership.user_id",
+    )
     payments = relationship("Payment", back_populates="user")
     invoices = relationship("Invoice", back_populates="user")

@@ -53,7 +53,7 @@ async def download_my_invoice(
 
 @router.get("/admin/payments", response_model=list[AdminBillingItem])
 async def list_admin_payments(
-    current_user: Annotated[User, Depends(require_roles("admin", "manager", "staff"))],
+    current_user: Annotated[User, Depends(require_roles("admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> list[AdminBillingItem]:
     return await BillingService(session).list_admin_billing(current_user)

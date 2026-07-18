@@ -1,9 +1,12 @@
 import type { PropsWithChildren } from "react";
 import {
+  Bell,
   CalendarDays,
   ChevronRight,
   CircleUserRound,
+  ClipboardList,
   LayoutDashboard,
+  PauseCircle,
   QrCode,
   ReceiptText,
 } from "lucide-react";
@@ -16,10 +19,15 @@ const memberNav = [
   { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/memberships", label: "Membership", icon: ReceiptText },
   { to: "/app/billing", label: "Billing", icon: ReceiptText },
-  { to: "/app/qr", label: "My QR code", icon: QrCode, future: true },
+  { to: "/app/qr", label: "My QR code", icon: QrCode },
+  { to: "/app/attendance", label: "Attendance", icon: ClipboardList },
+  { to: "/app/membership-requests", label: "Freeze / cancel", icon: PauseCircle },
+  { to: "/app/notifications", label: "Notifications", icon: Bell },
   { to: "/app/classes", label: "Classes", icon: CalendarDays, future: true },
   { to: "/app/profile", label: "Profile", icon: CircleUserRound },
 ];
+
+const mobileNav = [memberNav[0], memberNav[3], memberNav[4], memberNav[6], memberNav[8]];
 
 export function MemberShell({ children }: PropsWithChildren) {
   const { user } = useAuth();
@@ -48,14 +56,14 @@ export function MemberShell({ children }: PropsWithChildren) {
               >
                 <item.icon className="size-[18px]" aria-hidden />
                 <span>{item.label}</span>
-                {item.future ? <small>Day 30+</small> : null}
+                {item.future ? <small>Day 40</small> : null}
                 <ChevronRight className="workspace-nav__chevron size-4" aria-hidden />
               </NavLink>
             ))}
           </nav>
           <div className="workspace-sidebar__note">
             <strong>Member portal</strong>
-            <p>Profile, memberships and billing are connected today.</p>
+            <p>Membership, notifications, QR access, attendance and billing are connected.</p>
           </div>
         </aside>
         <main id="main-content" className="workspace-content">
@@ -63,7 +71,7 @@ export function MemberShell({ children }: PropsWithChildren) {
         </main>
       </div>
       <nav className="member-bottom-nav" aria-label="Member mobile navigation">
-        {memberNav.slice(0, 5).map((item) => (
+        {mobileNav.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
