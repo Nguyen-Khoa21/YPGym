@@ -1,4 +1,4 @@
-# PostgreSQL ERD through Day 38
+# PostgreSQL ERD through Day 42
 
 ```mermaid
 erDiagram
@@ -41,9 +41,10 @@ erDiagram
 20260702_0003
   -> 20260716_0004 membership operations, notification, broadcast, audit
   -> 20260716_0005 attendance, devices, trainers, classes, bookings, waitlists
+  -> 20260722_0006 trainer bio and availability summary
 ```
 
-The database and SQLAlchemy metadata are aligned at `20260716_0005`; `alembic check` reports no pending operations.
+The database and SQLAlchemy metadata are aligned at `20260722_0006`; `alembic check` reports no pending operations.
 
 ## Integrity and query notes
 
@@ -53,4 +54,6 @@ The database and SQLAlchemy metadata are aligned at `20260716_0005`; `alembic ch
 - QR JWTs are not stored as permanent rows; current JTI state lives in Redis with TTL.
 - Payments enforce `(user_id, idempotency_key)` uniqueness; invoices are one-to-one with payments.
 - Class capacity and time order use check constraints. Booking and waitlist uniqueness prevent duplicate enrollment, and trainer/location overlap is enforced in the class service under a locked update flow.
+- Capacity-changing booking, waitlist, cancellation, and promotion operations serialize on the class row. Waitlist order uses stored position, creation timestamp, and UUID; promotion and notification records commit with the freed slot.
+- Trainer bio and availability are nullable profile fields; assigned/upcoming classes remain derived from `classes` rather than duplicated on the trainer row.
 - Audit indexes cover timestamp, action, actor, target, and entity lookup.

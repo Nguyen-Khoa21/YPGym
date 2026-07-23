@@ -23,11 +23,12 @@ const memberNav = [
   { to: "/app/attendance", label: "Attendance", icon: ClipboardList },
   { to: "/app/membership-requests", label: "Freeze / cancel", icon: PauseCircle },
   { to: "/app/notifications", label: "Notifications", icon: Bell },
-  { to: "/app/classes", label: "Classes", icon: CalendarDays, future: true },
+  { to: "/app/classes", label: "Classes", icon: CalendarDays },
+  { to: "/app/bookings", label: "My bookings", icon: CalendarDays },
   { to: "/app/profile", label: "Profile", icon: CircleUserRound },
 ];
 
-const mobileNav = [memberNav[0], memberNav[3], memberNav[4], memberNav[6], memberNav[8]];
+const mobileNav = [memberNav[0], memberNav[3], memberNav[7], memberNav[8], memberNav[9]];
 
 export function MemberShell({ children }: PropsWithChildren) {
   const { user } = useAuth();
@@ -56,14 +57,13 @@ export function MemberShell({ children }: PropsWithChildren) {
               >
                 <item.icon className="size-[18px]" aria-hidden />
                 <span>{item.label}</span>
-                {item.future ? <small>Day 40</small> : null}
                 <ChevronRight className="workspace-nav__chevron size-4" aria-hidden />
               </NavLink>
             ))}
           </nav>
           <div className="workspace-sidebar__note">
             <strong>Member portal</strong>
-            <p>Membership, notifications, QR access, attendance and billing are connected.</p>
+            <p>Membership, classes, notifications, QR access, attendance and billing are connected.</p>
           </div>
         </aside>
         <main id="main-content" className="workspace-content">

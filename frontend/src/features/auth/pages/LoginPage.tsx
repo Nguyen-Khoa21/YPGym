@@ -10,8 +10,8 @@ import { AuthShell } from "@/components/layout/AuthShell";
 import { Button } from "@/components/ui/Button";
 import { Field, FieldError, Input, Label } from "@/components/ui/Form";
 import { useAuth } from "@/features/auth/AuthContext";
+import { workspacePathForRole } from "@/features/auth/workspace";
 import { toUiError, type UiError } from "@/lib/apiErrors";
-import type { User } from "@/types/api";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email address."),
@@ -34,9 +34,9 @@ export function LoginPage() {
     setError(null);
     try {
       const user = await login(values.email, values.password);
-      const fallback = destinationForRole(user);
+      const fallback = workspacePathForRole(user.role);
       const from = (location.state as { from?: string } | null)?.from;
-      navigate(from || fallback, { replace: true });
+      navigate(user.role === "member" && from ? from : fallback, { replace: true });
     } catch (caught) {
       setError(toUiError(caught));
     }
@@ -73,10 +73,4 @@ export function LoginPage() {
       </section>
     </AuthShell>
   );
-}
-
-function destinationForRole(user: User) {
-  if (["admin", "manager", "staff"].includes(user.role)) return "/admin";
-  if (user.role === "pt") return "/pt/dashboard";
-  return "/app/dashboard";
 }

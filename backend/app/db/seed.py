@@ -22,7 +22,7 @@ PLAN_SEEDS = [
         "name": "1 Month",
         "duration_months": 1,
         "duration_days": 30,
-        "base_price": Decimal("120.00"),
+        "base_price": Decimal("720000.00"),
         "discount_percent": Decimal("0.00"),
         "benefits": "Gym floor access\nMember dashboard\nInvoice history",
         "display_order": 1,
@@ -31,7 +31,7 @@ PLAN_SEEDS = [
         "name": "3 Months",
         "duration_months": 3,
         "duration_days": 90,
-        "base_price": Decimal("330.00"),
+        "base_price": Decimal("1980000.00"),
         "discount_percent": Decimal("5.00"),
         "benefits": "Gym floor access\nMember dashboard\nPriority renewal reminder",
         "display_order": 2,
@@ -40,7 +40,7 @@ PLAN_SEEDS = [
         "name": "6 Months",
         "duration_months": 6,
         "duration_days": 180,
-        "base_price": Decimal("600.00"),
+        "base_price": Decimal("3600000.00"),
         "discount_percent": Decimal("10.00"),
         "benefits": "Gym floor access\nMember dashboard\nRenewal savings",
         "display_order": 3,
@@ -49,7 +49,7 @@ PLAN_SEEDS = [
         "name": "1 Year",
         "duration_months": 12,
         "duration_days": 365,
-        "base_price": Decimal("1080.00"),
+        "base_price": Decimal("6480000.00"),
         "discount_percent": Decimal("15.00"),
         "benefits": "Gym floor access\nBest annual value\nInvoice history",
         "display_order": 4,
@@ -58,7 +58,7 @@ PLAN_SEEDS = [
         "name": "2 Years",
         "duration_months": 24,
         "duration_days": 730,
-        "base_price": Decimal("1980.00"),
+        "base_price": Decimal("11880000.00"),
         "discount_percent": Decimal("20.00"),
         "benefits": "Long-term membership rate\nMember dashboard\nRenewal savings",
         "display_order": 5,
@@ -67,7 +67,7 @@ PLAN_SEEDS = [
         "name": "3 Years",
         "duration_months": 36,
         "duration_days": 1095,
-        "base_price": Decimal("2700.00"),
+        "base_price": Decimal("16200000.00"),
         "discount_percent": Decimal("25.00"),
         "benefits": "Largest plan discount\nMember dashboard\nInvoice history",
         "display_order": 6,
@@ -207,8 +207,8 @@ async def seed_development_data() -> None:
                 membership_id=membership.id,
                 plan_id=plans["1 Year"].id,
                 idempotency_key="development-seed-payment-v1",
-                amount=Decimal("918.00"),
-                discount_amount=Decimal("162.00"),
+                amount=Decimal("5508000.00"),
+                discount_amount=Decimal("972000.00"),
                 status="succeeded",
                 mock_reference="MOCK-DEVELOPMENT-SEED",
             )
@@ -287,11 +287,16 @@ async def seed_development_data() -> None:
             trainer = PersonalTrainer(
                 user_id=users["pt"].id,
                 display_name=users["pt"].name,
+                bio="A practical coach focused on safe, repeatable progress for every experience level.",
                 specialty="Strength and mobility",
+                availability_summary="Weekday mornings and selected evening classes",
                 is_active=True,
             )
             session.add(trainer)
             await session.flush()
+        else:
+            trainer.bio = trainer.bio or "A practical coach focused on safe, repeatable progress for every experience level."
+            trainer.availability_summary = trainer.availability_summary or "Weekday mornings and selected evening classes"
 
         broadcast = (
             await session.execute(
@@ -370,6 +375,10 @@ async def seed_development_data() -> None:
                     location="Studio A",
                 ),
             )
+        elif gym_class.status == "scheduled" and gym_class.start_at <= datetime.now(UTC):
+            start_at = datetime.now(UTC) + timedelta(days=2)
+            gym_class.start_at = start_at
+            gym_class.end_at = start_at + timedelta(minutes=60)
 
         await session.commit()
 

@@ -178,7 +178,27 @@ export type PeakHours = {
   date_to: string;
 };
 
-export type Trainer = { id: string; display_name: string; specialty: string | null; is_active: boolean };
+export type TrainerClassSummary = {
+  id: string;
+  title: string;
+  class_type: string;
+  start_at: string;
+  end_at: string;
+  location: string;
+};
+
+export type Trainer = {
+  id: string;
+  display_name: string;
+  bio: string | null;
+  specialty: string | null;
+  availability_summary: string | null;
+  is_active: boolean;
+  upcoming_classes: TrainerClassSummary[];
+  user_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
 
 export type GymClass = {
   id: string;
@@ -198,3 +218,76 @@ export type GymClass = {
 };
 
 export type ClassPage = { items: GymClass[]; page: PageInfo; scheduled_count: number; cancelled_count: number };
+
+export type MemberClass = {
+  id: string;
+  title: string;
+  class_type: string;
+  description: string | null;
+  start_at: string;
+  end_at: string;
+  capacity: number;
+  status: string;
+  location: string;
+  confirmed_booking_count: number;
+  remaining_capacity: number;
+  trainer: Trainer | null;
+  member_booking_id: string | null;
+  member_booking_status: string | null;
+  member_waitlist_status: string | null;
+  waitlist_position: number | null;
+  member_state: "available" | "booked" | "full" | "waitlisted" | "cancelled" | "ineligible";
+};
+
+export type MemberClassList = {
+  items: MemberClass[];
+  booking_eligible: boolean;
+  eligibility_status: string;
+  eligibility_reason: string | null;
+};
+
+export type ClassBooking = {
+  id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  cancellation_cutoff: string;
+  can_cancel: boolean;
+  gym_class: MemberClass;
+};
+
+export type ClassWaitlist = {
+  id: string;
+  status: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+  gym_class: MemberClass;
+};
+
+export type MemberBookings = {
+  bookings: ClassBooking[];
+  waitlists: ClassWaitlist[];
+  cancellation_window_hours: number;
+};
+
+export type MemberDashboardPayload = {
+  member: { id: string; name: string; tier: string };
+  membership: {
+    id: string;
+    plan_name: string;
+    status: string;
+    start_date: string;
+    expiry_date: string;
+    days_remaining: number;
+    message: string;
+  } | null;
+  qr_access: { eligible: boolean; reason: string | null; target: string };
+  crowdedness: Crowdedness;
+  upcoming_bookings: ClassBooking[];
+  active_waitlists: ClassWaitlist[];
+  unread_notification_count: number;
+  recent_notifications: NotificationItem[];
+  active_broadcasts: Broadcast[];
+  quick_actions: { key: string; label: string; target: string; enabled: boolean; reason: string | null }[];
+};

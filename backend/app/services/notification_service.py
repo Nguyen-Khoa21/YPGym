@@ -59,6 +59,10 @@ class NotificationService:
             unread_count=unread,
         )
 
+    async def list_recent_unread(self, *, user: User, limit: int) -> tuple[list[NotificationItem], int]:
+        items, unread = await self.notifications.list_recent_unread(user.id, limit)
+        return [NotificationItem.model_validate(item) for item in items], unread
+
     async def mark_read(self, *, user: User, notification_id: UUID) -> OperationMessage:
         item = await self.notifications.get_notification_for_user(notification_id, user.id)
         if not item:
@@ -192,4 +196,44 @@ class NotificationService:
                         logger.info("development_expiry_email user_id=%s days=%s", user.id, days)
                         created += 1
         await self.session.commit()
+        return created
+
+    async def queue_class_promotion(
+        self,
+        *,
+        user: User,
+        class_id: UUID,
+        class_title: str,
+        class_start: datetime,
+        waitlist_id: UUID,
+        waitlist_position: int,
+    ) -> int:
+        preferences = await self.notifications.get_or_create_preferences(user.id)
+        created = 0
+        now = datetime.now(UTC)
+        title = f"You're booked for {class_title}"
+        message = f"A place opened and your waitlist entry was promoted. The class starts at {class_start.isoformat()}."
+        channels = []
+        if preferences.in_app_enabled:
+            channels.append("in_app")
+        if preferences.email_enabled:
+            channels.append("email")
+        for channel in channels:
+            dedupe_key = f"class-promotion:{class_id}:{waitlist_id}:{waitlist_position}:{channel}"
+            if await self.notifications.notification_exists(dedupe_key):
+                continue
+            await self.notifications.create_notification(
+                user_id=user.id,
+                category="class_booking",
+                notification_type="waitlist_promoted",
+                title=title,
+                message=message,
+                channel=channel,
+                delivery_state="delivered",
+                delivered_at=now,
+                dedupe_key=dedupe_key,
+            )
+            if channel == "email":
+                logger.info("development_class_promotion_email user_id=%s class_id=%s", user.id, class_id)
+            created += 1
         return created

@@ -1,8 +1,9 @@
-# Business Rules through Day 38
+# Business Rules through Day 42
 
 ## Membership and billing
 
 - Plans, duration, discounts, prices, and benefits come from PostgreSQL.
+- VND is the single application billing currency. Seeded plans range from 720,000 VND for one month to 16,200,000 VND for three years; web amounts use Vietnamese currency formatting and invoice PDFs use the ASCII `VND` prefix.
 - Purchase is development/mock payment only and is idempotent per user and idempotency key.
 - A successful payment has one immutable invoice record and downloadable PDF.
 - Lifecycle rules are defined in `membership-lifecycle.md`; approved refund/credit outcomes are records, not real settlement.
@@ -35,8 +36,16 @@ Values are persisted, centrally validated, cached in Redis, invalidated on updat
 - PostgreSQL active-session count is authoritative. Redis caches the derived response for 30 seconds and is reconciled after session changes.
 - Thresholds: Low <=30%, Moderate <=60%, Busy <=85%, Very Crowded >85%.
 
-## Classes and later booking boundary
+## Trainers, classes, booking, and waitlist
 
 - Admin class creation/update requires timezone-aware future start, end after start, capacity 1-500, valid active trainer when assigned, and no trainer/location overlap.
 - Cancellation is a reasoned, audited status transition; rows are not hard-deleted.
-- Day 37 provides booking/waitlist tables and integrity constraints. Member booking, capacity enrollment, cancellation-window enforcement, promotion, and PT management are explicitly Day 39-41 scope.
+- Manager/admin trainer profile changes are audited. Public/member responses expose only name, bio, specialty, availability, active state, and bounded upcoming classes.
+- Trainer deactivation is blocked while a scheduled future class is assigned; historical rows are never deleted.
+- An active or expiring-soon effective membership is required to book or join a waitlist. Frozen, pending-verification, expired, cancelled, revoked, and absent memberships are ineligible.
+- Booking, waitlist allocation, cancellation, and promotion lock the class row, so concurrent requests cannot overbook capacity or allocate the same queue position.
+- A member cannot hold both a confirmed booking and a waiting entry for one class. Existing cancelled rows are safely reactivated instead of bypassing database uniqueness.
+- Waitlist join is available only when the class is full and the configured `waitlist_size` is not exhausted.
+- Cancellation is allowed at the exact configured cutoff and rejected after it. Started, completed, or administratively cancelled classes cannot use member cancellation.
+- Cancellation frees capacity and automatically promotes the earliest eligible waiting entry in the same transaction. Ineligible entries transition to cancelled and the scan continues.
+- Promotion notifications respect general in-app/email preferences and use channel-specific dedupe keys.

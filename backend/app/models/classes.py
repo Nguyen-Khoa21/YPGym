@@ -18,7 +18,9 @@ class PersonalTrainer(TimestampMixin, Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     display_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    bio: Mapped[str | None] = mapped_column(Text)
     specialty: Mapped[str | None] = mapped_column(String(180))
+    availability_summary: Mapped[str | None] = mapped_column(String(500))
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
 
 

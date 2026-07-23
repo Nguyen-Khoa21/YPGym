@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import admin, attendance, auth, billing, classes, health, membership_plans, memberships, notifications, users
+from app.api.v1.endpoints import admin, attendance, auth, billing, classes, dashboard, health, membership_plans, memberships, notifications, users
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
@@ -14,3 +14,8 @@ api_router.include_router(admin.router)
 api_router.include_router(attendance.router)
 api_router.include_router(attendance.analytics_router)
 api_router.include_router(classes.router)
+api_router.include_router(classes.trainer_router)
+api_router.include_router(classes.admin_trainer_router)
+api_router.include_router(classes.member_class_router)
+api_router.include_router(classes.booking_router)
+api_router.include_router(dashboard.router)

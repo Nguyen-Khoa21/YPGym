@@ -149,6 +149,15 @@ class MembershipOperationsRepository:
         )
         return result.scalars().first()
 
+    async def get_latest(self, user_id: UUID) -> UserMembership | None:
+        result = await self.session.execute(
+            select(UserMembership)
+            .options(selectinload(UserMembership.plan))
+            .where(UserMembership.user_id == user_id)
+            .order_by(UserMembership.expiry_date.desc(), UserMembership.created_at.desc()),
+        )
+        return result.scalars().first()
+
     async def list_lifecycle_candidates(self) -> list[tuple[UserMembership, bool]]:
         rows = (
             await self.session.execute(
@@ -622,6 +631,27 @@ class NotificationRepository:
             ).scalars().all(),
         )
         return items, total, unread
+
+    async def list_recent_unread(self, user_id: UUID, limit: int) -> tuple[list[Notification], int]:
+        conditions = (
+            Notification.user_id == user_id,
+            Notification.channel == "in_app",
+            Notification.read_at.is_(None),
+        )
+        unread = int(
+            (await self.session.execute(select(func.count(Notification.id)).where(*conditions))).scalar_one(),
+        )
+        items = list(
+            (
+                await self.session.execute(
+                    select(Notification)
+                    .where(*conditions)
+                    .order_by(Notification.created_at.desc(), Notification.id.desc())
+                    .limit(limit),
+                )
+            ).scalars().all(),
+        )
+        return items, unread
 
     async def get_notification_for_user(self, notification_id: UUID, user_id: UUID) -> Notification | None:
         return (

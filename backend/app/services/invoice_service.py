@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from uuid import UUID
 
@@ -7,6 +8,10 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from app.core.config import get_settings
+
+
+def format_vnd(amount: Decimal) -> str:
+    return f"VND {amount:,.0f}"
 
 
 class InvoicePdfService:
@@ -75,15 +80,15 @@ class InvoicePdfService:
         )
         document.drawString(24 * mm, y - 12 * mm, plan_name)
         document.drawString(92 * mm, y - 12 * mm, coverage)
-        document.drawRightString(width - 24 * mm, y - 12 * mm, f"RM {amount:.2f}")
+        document.drawRightString(width - 24 * mm, y - 12 * mm, format_vnd(amount))
 
         y -= 34 * mm
         document.setFont("Helvetica", 10)
         document.drawRightString(width - 58 * mm, y, "Discount")
-        document.drawRightString(width - 24 * mm, y, f"RM {discount_amount:.2f}")
+        document.drawRightString(width - 24 * mm, y, format_vnd(discount_amount))
         document.setFont("Helvetica-Bold", 12)
         document.drawRightString(width - 58 * mm, y - 10 * mm, "Paid")
-        document.drawRightString(width - 24 * mm, y - 10 * mm, f"RM {amount:.2f}")
+        document.drawRightString(width - 24 * mm, y - 10 * mm, format_vnd(amount))
 
         document.setFont("Helvetica", 9)
         document.setFillColorRGB(0.35, 0.35, 0.35)

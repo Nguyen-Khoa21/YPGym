@@ -3,11 +3,12 @@ import { Link, useLocation } from "react-router-dom";
 
 import { AppFrame } from "@/components/layout/AppFrame";
 import { useAuth } from "@/features/auth/AuthContext";
+import { workspacePathForRole } from "@/features/auth/workspace";
 
 export function PermissionDeniedPage() {
   const { user } = useAuth();
   const location = useLocation();
-  const home = user?.role === "pt" ? "/pt/dashboard" : ["admin", "manager", "staff"].includes(user?.role ?? "") ? "/admin" : "/app/dashboard";
+  const home = user ? workspacePathForRole(user.role) : "/app/dashboard";
   const from = (location.state as { from?: string } | null)?.from;
 
   return (

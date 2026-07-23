@@ -4,7 +4,6 @@ import { HomePage } from "@/app/pages/HomePage";
 import { MembershipPoliciesPage } from "@/app/pages/MembershipPoliciesPage";
 import { NotFoundPage } from "@/app/pages/NotFoundPage";
 import { PermissionDeniedPage } from "@/app/pages/PermissionDeniedPage";
-import { PlannedFeaturePage } from "@/app/pages/PlannedFeaturePage";
 import { VerificationSuccessPage } from "@/app/pages/VerificationSuccessPage";
 import { AdminAttendancePage } from "@/features/attendance/pages/AdminAttendancePage";
 import { MemberAttendancePage } from "@/features/attendance/pages/MemberAttendancePage";
@@ -25,6 +24,9 @@ import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
 import { VerifyEmailPage } from "@/features/auth/pages/VerifyEmailPage";
 import { PaymentHistoryPage } from "@/features/billing/pages/PaymentHistoryPage";
 import { AdminClassesPage } from "@/features/classes/pages/AdminClassesPage";
+import { AdminTrainersPage } from "@/features/classes/pages/AdminTrainersPage";
+import { MemberClassesPage } from "@/features/classes/pages/MemberClassesPage";
+import { MyBookingsPage } from "@/features/classes/pages/MyBookingsPage";
 import { MemberDashboardPage } from "@/features/member/pages/MemberDashboardPage";
 import { MembershipRequestsPage } from "@/features/member/pages/MembershipRequestsPage";
 import { NotificationPreferencesPage } from "@/features/member/pages/NotificationPreferencesPage";
@@ -85,7 +87,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/app/classes",
-    element: <ProtectedRoute roles={["member"]}><PlannedFeaturePage title="Class booking" description="The Day 37 schema and Day 38 admin schedule are ready, but member booking and waitlist behavior remain later scope." plannedDay="Day 40: member class booking" scope="member" kind="classes" /></ProtectedRoute>,
+    element: <ProtectedRoute roles={["member"]}><MemberClassesPage /></ProtectedRoute>,
+  },
+  {
+    path: "/app/bookings",
+    element: <ProtectedRoute roles={["member"]}><MyBookingsPage /></ProtectedRoute>,
   },
   {
     path: "/admin",
@@ -129,7 +135,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/admin/pt-assignments",
-    element: <ProtectedRoute roles={["admin"]}><PlannedFeaturePage title="PT assignments" description="Trainer assignment management is a future admin workflow; Day 37 includes only the trainer relationship needed by class scheduling." plannedDay="Day 39+: PT management and assignment" scope="admin" /></ProtectedRoute>,
+    element: <ProtectedRoute roles={[...managerRoles]}><AdminTrainersPage /></ProtectedRoute>,
   },
   {
     path: "/pt/dashboard",

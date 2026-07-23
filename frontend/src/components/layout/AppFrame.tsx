@@ -1,9 +1,10 @@
 import type { PropsWithChildren } from "react";
-import { LogOut, Menu, Sparkles } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, Sparkles } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthContext";
+import { workspacePathForRole } from "@/features/auth/workspace";
 
 type AppFrameProps = PropsWithChildren<{
   compact?: boolean;
@@ -51,6 +52,10 @@ export function AppFrame({ children, compact = false }: AppFrameProps) {
           <div className="site-header__actions">
             {user ? (
               <>
+                <Link className="header-join" to={workspacePathForRole(user.role)}>
+                  <LayoutDashboard className="size-4" aria-hidden />
+                  Workspace
+                </Link>
                 <Link className="identity-chip" to="/app/profile">
                   <span className="identity-chip__avatar" aria-hidden>
                     {user.name.slice(0, 1).toUpperCase()}

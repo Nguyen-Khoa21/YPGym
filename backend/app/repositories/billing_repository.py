@@ -114,7 +114,9 @@ class InvoiceRepository:
 
     async def get_for_user(self, *, user_id: UUID, invoice_id: UUID) -> Invoice | None:
         result = await self.session.execute(
-            select(Invoice).where(Invoice.user_id == user_id, Invoice.id == invoice_id),
+            select(Invoice)
+            .options(selectinload(Invoice.user))
+            .where(Invoice.user_id == user_id, Invoice.id == invoice_id),
         )
         return result.scalar_one_or_none()
 

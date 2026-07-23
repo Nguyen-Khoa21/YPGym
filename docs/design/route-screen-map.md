@@ -4,11 +4,11 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 
 ## Member and public routes
 
-| Screen | Route | Role | API dependencies | Status through Day 38 |
+| Screen | Route | Role | API dependencies | Status through Day 42 |
 |---|---|---|---|---|
 | Home/auth/verification/reset | `/`, `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` | Public | `/auth/*` | Connected |
 | Membership plans/policy/purchase | `/memberships`, `/policies/membership`, `/memberships/buy/:planId` | Public/member | `/membership-plans`, `/memberships/purchase` | Connected; payment is explicitly mock-only |
-| Member dashboard | `/app/dashboard` | Member | active broadcasts, crowdedness, billing summary | Connected |
+| Member dashboard | `/app/dashboard` | Member | `/dashboard/me` | Connected composite with membership/QR, crowdedness, bookings/waitlists, notifications, broadcasts, quick actions, and complete account states |
 | Profile | `/app/profile` | Authenticated | `/users/me`, notification preference link | Connected |
 | Billing history | `/app/billing` | Authenticated | `/billing/me/payments`, `/billing/me/invoices`, PDF download | Connected |
 | My QR | `/app/qr` | Member | `/attendance/qr-token/me`, `/attendance/crowdedness`, `/attendance/me` | Connected rotating QR, countdown, refresh, blocked/error states |
@@ -16,13 +16,14 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 | Freeze/cancel requests | `/app/membership-requests` | Member | `/memberships/freeze-requests`, `/memberships/cancellation-requests`, `/memberships/requests/me` | Connected |
 | Notifications | `/app/notifications` | Member | `/notifications/me`, read-one/read-all | Connected and paginated |
 | Notification preferences | `/app/notifications/preferences` | Member | `/notifications/preferences/me` | Connected |
-| Member class booking | `/app/classes` | Member | Day 40 APIs | Deliberate planned state; not mocked |
+| Member class booking | `/app/classes` | Member | `/classes/upcoming`, `/classes/{id}/book`, waitlist join/leave | Connected responsive class cards, PT cards, capacity, eligible/ineligible, booked/full/waitlisted/cancelled states |
+| My bookings | `/app/bookings` | Member | `/bookings/me`, booking cancel, waitlist leave | Connected confirmed/cancelled/promoted/waiting states and configured cancellation cutoff |
 
 Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/*` routes.
 
 ## Operations routes
 
-| Screen | Route | Role | API dependencies | Status through Day 38 |
+| Screen | Route | Role | API dependencies | Status through Day 42 |
 |---|---|---|---|---|
 | Role-specific operations home | `/admin` | Staff/manager/admin | Auth role | Connected navigation only to permitted areas |
 | Member CRM | `/admin/members` | Admin | `/admin/members`, filtered CSV | Connected search, role/tier/status/expiry filters, KPI cards, table, pagination |
@@ -34,8 +35,8 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 | Broadcasts | `/admin/broadcasts` | Manager/admin | broadcast list/create/update | Connected |
 | Audit log | `/admin/audit` | Manager/admin | `/admin/audit-logs` | Connected date/action/actor/target/entity filters and pagination |
 | Configuration | `/admin/settings` | Manager/admin | `/admin/configuration` | Connected validated editing and cache invalidation |
-| PT assignments | `/admin/pt-assignments` | Admin | Day 39+ APIs | Deliberate planned state |
-| PT dashboard | `/pt/dashboard` | PT | Day 39 APIs | Limited placeholder, role protected |
+| PT profiles | `/admin/pt-assignments` | Manager/admin | `/admin/trainers`, `/admin/classes/trainers` | Connected create/edit/deactivate, active/inactive filters, assigned-class deactivation guard, confirmation, and audit |
+| PT dashboard | `/pt/dashboard` | PT | Auth role | Intentionally lightweight protected landing page; payroll/client-programming scope is not fabricated |
 
 ## Attendance field mapping
 
@@ -49,11 +50,13 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 
 ## Shared states and responsive behavior
 
-- `AppFrame`, `MemberShell`, and role-filtered `AdminShell` provide skip links, identity/logout, desktop navigation, and member mobile bottom navigation.
+- `AppFrame`, `MemberShell`, and role-filtered `AdminShell` provide skip links, identity/logout, a role-aware Workspace shortcut, desktop navigation, and member mobile bottom navigation.
 - Operations pages share header, metrics, panels, status badges, pagination, dialogs, loading, empty, error, validation, and confirmation patterns.
 - Protected routes wait for authentication resolution and redirect denied roles to `/permission-denied` without rendering protected data.
 - Tables remain horizontally scrollable on narrow viewports; core member actions are reachable from mobile navigation.
+- Class, booking, and dashboard pages use card grids that collapse to one column at mobile width; trainer management uses the same responsive operations shell.
+- The BRD Member Dashboard, PT Assignment Management, Personal Trainer Dashboard, and mobile Class Booking exports were inspected. The current forest/lime/cream web system was preserved instead of copying the screenshots' unrelated chrome.
 
 ## Explicit scope boundaries
 
-The Day 37 database includes bookings and waitlists as relational foundations. Member listing/booking, capacity enrollment, configurable cancellation-window enforcement, promotion, PT profile management/assignment, Expo/mobile apps, and real hardware firmware remain Day 39+ work.
+Days 39-42 are connected. Expo/mobile delivery begins at Day 43. Personalization, recommendations, AI chatbot expansion, live payment settlement, physical hardware firmware, and advanced PT business workflows remain outside this milestone.

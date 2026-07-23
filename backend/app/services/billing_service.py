@@ -11,12 +11,14 @@ from app.schemas.billing_schema import (
     InvoiceHistoryItem,
     PaymentHistoryItem,
 )
+from app.services.invoice_service import InvoicePdfService
 
 
 class BillingService:
     def __init__(self, session: AsyncSession) -> None:
         self.payments = PaymentRepository(session)
         self.invoices = InvoiceRepository(session)
+        self.invoice_pdf = InvoicePdfService()
 
     async def list_my_payments(self, user: User) -> list[PaymentHistoryItem]:
         payments = await self.payments.list_for_user(user.id)
@@ -42,11 +44,19 @@ class BillingService:
         if not invoice:
             raise ResourceNotFoundError("Invoice was not found.")
 
-        path = Path(invoice.pdf_path)
-        if not path.exists():
-            raise ResourceNotFoundError("Invoice PDF was not found on disk.")
-
-        return path
+        return Path(
+            self.invoice_pdf.generate_pdf(
+                invoice_number=invoice.invoice_number,
+                member_name=invoice.user.name,
+                member_email=invoice.user.email,
+                plan_name=invoice.plan_name,
+                amount=invoice.amount,
+                discount_amount=invoice.discount_amount,
+                transaction_date=invoice.transaction_date,
+                membership_start_date=invoice.membership_start_date,
+                membership_expiry_date=invoice.membership_expiry_date,
+            ),
+        )
 
     async def list_admin_billing(self, user: User) -> list[AdminBillingItem]:
         if user.role not in {"admin", "manager", "staff"}:

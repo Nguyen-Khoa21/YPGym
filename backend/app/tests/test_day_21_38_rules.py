@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -12,11 +13,16 @@ from app.schemas.operations_schema import FreezeRequestCreate, RequestDecision
 from app.services.attendance_service import crowdedness_status
 from app.services.class_service import ClassService, validate_class_times
 from app.services.configuration_service import CONFIGURATION_RULES, validate_configuration_value
+from app.services.invoice_service import format_vnd
 from app.services.lifecycle_service import derive_membership_status, membership_access_message
 from app.services.notification_service import NotificationService
 
 
 TODAY = date(2026, 7, 18)
+
+
+def test_vnd_invoice_amount_has_grouping_and_no_fraction() -> None:
+    assert format_vnd(Decimal("5508000.00")) == "VND 5,508,000"
 
 
 def membership_status(**overrides: object) -> str:

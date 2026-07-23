@@ -27,7 +27,7 @@ const adminNav = [
   { to: "/admin/broadcasts", label: "Broadcasts", icon: Megaphone, roles: ["manager", "admin"] },
   { to: "/admin/audit", label: "Audit log", icon: ShieldCheck, roles: ["manager", "admin"] },
   { to: "/admin/settings", label: "Settings", icon: Settings2, roles: ["manager", "admin"] },
-  { to: "/admin/pt-assignments", label: "PT assignments", icon: Dumbbell, roles: ["admin"], future: true },
+  { to: "/admin/pt-assignments", label: "PT profiles", icon: Dumbbell, roles: ["manager", "admin"] },
 ];
 
 export function AdminShell({ children }: PropsWithChildren) {
@@ -51,7 +51,6 @@ export function AdminShell({ children }: PropsWithChildren) {
               >
                 <item.icon className="size-[18px]" aria-hidden />
                 <span>{item.label}</span>
-                {item.future ? <small>Planned</small> : null}
               </NavLink>
             ))}
           </nav>

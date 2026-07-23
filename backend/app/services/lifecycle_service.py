@@ -93,6 +93,21 @@ class MembershipLifecycleService:
             raise AppError("MEMBERSHIP_INELIGIBLE", membership_access_message(status), 403, {"status": status})
         return membership
 
+    async def access_snapshot(self, user: User) -> tuple[UserMembership | None, str, bool, str | None]:
+        membership = await self.operations.get_latest(user.id)
+        if not membership:
+            return None, "none", False, "Buy a membership before booking a class."
+        status = derive_membership_status(
+            stored_status=membership.status,
+            is_email_verified=user.is_email_verified,
+            expiry_date=membership.expiry_date,
+            today=date.today(),
+            frozen_from=membership.frozen_from,
+            frozen_until=membership.frozen_until,
+        )
+        eligible = status in ELIGIBLE_MEMBERSHIP_STATUSES
+        return membership, status, eligible, None if eligible else membership_access_message(status)
+
     async def create_freeze_request(
         self,
         *,
