@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { EmptyState, ErrorState, LoadingState, PermissionState } from "@/components/common/FeedbackState";
 import { MemberShell } from "@/components/layout/MemberShell";
-import { StatusBadge } from "@/components/operations/OperationsUi";
+import { Modal, StatusBadge } from "@/components/operations/OperationsUi";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { PTCard } from "@/features/classes/components/PTCard";
@@ -19,15 +19,16 @@ export function MemberClassesPage() {
   const { token } = useAuth();
   const [search, setSearch] = useState("");
   const [day, setDay] = useState("all");
+  const [confirmation, setConfirmation] = useState<{ item: MemberClass; action: "book" | "join" | "leave" } | null>(null);
   const classes = useQuery({ queryKey: ["classes", "upcoming"], queryFn: ({ signal }) => apiRequest<MemberClassList>("/classes/upcoming", { token, signal }) });
   const book = useMutation({
     mutationFn: (classId: string) => apiRequest<ClassBooking>(`/classes/${classId}/book`, { method: "POST", token }),
-    onSuccess: async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ["classes"] }), queryClient.invalidateQueries({ queryKey: ["bookings"] }), queryClient.invalidateQueries({ queryKey: ["dashboard"] })]); toast.success("Class booked"); },
+    onSuccess: async () => { setConfirmation(null); await Promise.all([queryClient.invalidateQueries({ queryKey: ["classes"] }), queryClient.invalidateQueries({ queryKey: ["bookings"] }), queryClient.invalidateQueries({ queryKey: ["dashboard"] })]); toast.success("Class booked"); },
     onError: (error) => toast.error(toUiError(error).message),
   });
   const waitlist = useMutation({
     mutationFn: ({ classId, leave }: { classId: string; leave: boolean }) => apiRequest<ClassWaitlist>(`/classes/${classId}/waitlist`, { method: leave ? "DELETE" : "POST", token }),
-    onSuccess: async (_, variables) => { await Promise.all([queryClient.invalidateQueries({ queryKey: ["classes"] }), queryClient.invalidateQueries({ queryKey: ["bookings"] }), queryClient.invalidateQueries({ queryKey: ["dashboard"] })]); toast.success(variables.leave ? "Left waitlist" : "Joined waitlist"); },
+    onSuccess: async (_, variables) => { setConfirmation(null); await Promise.all([queryClient.invalidateQueries({ queryKey: ["classes"] }), queryClient.invalidateQueries({ queryKey: ["bookings"] }), queryClient.invalidateQueries({ queryKey: ["dashboard"] })]); toast.success(variables.leave ? "Left waitlist" : "Joined waitlist"); },
     onError: (error) => toast.error(toUiError(error).message),
   });
   const visible = useMemo(() => (classes.data?.items ?? []).filter((item) => {
@@ -47,7 +48,8 @@ export function MemberClassesPage() {
     {classes.isError ? <ErrorState className="mt-5" title={toUiError(classes.error).title} message={toUiError(classes.error).message} action={<Button variant="outline" onClick={() => classes.refetch()}>Retry</Button>} /> : null}
     {classes.data && !classes.data.booking_eligible ? <PermissionState className="mt-5" title="Booking unavailable" message={classes.data.eligibility_reason ?? "An eligible membership is required."} /> : null}
     {classes.data && visible.length === 0 ? <EmptyState className="mt-5" title="No upcoming classes match" message="Change the search or day filter and try again." /> : null}
-    {visible.length ? <section className="mt-5 grid gap-5 lg:grid-cols-2">{visible.map((item) => <ClassCard item={item} eligible={classes.data?.booking_eligible ?? false} pending={(book.isPending && book.variables === item.id) || (waitlist.isPending && waitlist.variables?.classId === item.id)} onBook={() => { if (window.confirm(`Book ${item.title}?`)) book.mutate(item.id); }} onWaitlist={() => { const leave = item.member_state === "waitlisted"; if (window.confirm(`${leave ? "Leave the waitlist for" : "Join the waitlist for"} ${item.title}?`)) waitlist.mutate({ classId: item.id, leave }); }} key={item.id} />)}</section> : null}
+    {visible.length ? <section className="mt-5 grid gap-5 lg:grid-cols-2">{visible.map((item) => <ClassCard item={item} eligible={classes.data?.booking_eligible ?? false} pending={(book.isPending && book.variables === item.id) || (waitlist.isPending && waitlist.variables?.classId === item.id)} onBook={() => setConfirmation({ item, action: "book" })} onWaitlist={() => setConfirmation({ item, action: item.member_state === "waitlisted" ? "leave" : "join" })} key={item.id} />)}</section> : null}
+    {confirmation ? <Modal error={(confirmation.action === "book" ? book : waitlist).isError ? toUiError((confirmation.action === "book" ? book : waitlist).error).message : undefined} title={`${confirmation.action === "book" ? "Book" : confirmation.action === "join" ? "Join waitlist for" : "Leave waitlist for"} ${confirmation.item.title}?`} onClose={() => setConfirmation(null)}><div className="ops-modal__body"><p className="text-sm text-muted-foreground">{formatDateTime(confirmation.item.start_at)} / {confirmation.item.location}</p><div className="ops-modal__actions"><Button variant="outline" onClick={() => setConfirmation(null)}>Keep unchanged</Button><Button disabled={book.isPending || waitlist.isPending} onClick={() => confirmation.action === "book" ? book.mutate(confirmation.item.id) : waitlist.mutate({ classId: confirmation.item.id, leave: confirmation.action === "leave" })}>{book.isPending || waitlist.isPending ? "Updating..." : "Confirm"}</Button></div></div></Modal> : null}
   </div></MemberShell>;
 }
 

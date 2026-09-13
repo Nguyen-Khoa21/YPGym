@@ -1,4 +1,4 @@
-import type { PropsWithChildren, ReactNode } from "react";
+import { useEffect, useId, useRef, type PropsWithChildren, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
@@ -44,13 +44,21 @@ export function Panel({ title, detail, actions, children, className }: PropsWith
   );
 }
 
-export function Modal({ title, description, onClose, children }: PropsWithChildren<{ title: string; description?: string; onClose: () => void }>) {
+export function Modal({ title, description, error, onClose, children }: PropsWithChildren<{ title: string; description?: string; error?: string; onClose: () => void }>) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  useEffect(() => {
+    const dialog = ref.current;
+    dialog?.showModal();
+    return () => dialog?.close();
+  }, []);
   return (
-    <div className="ops-modal" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="ops-modal__panel" role="dialog" aria-modal="true" aria-labelledby="ops-modal-title">
-        <header><div><h2 id="ops-modal-title">{title}</h2>{description ? <p>{description}</p> : null}</div><button type="button" aria-label="Close dialog" onClick={onClose}><X className="size-5" /></button></header>
+    <dialog ref={ref} className="ops-modal" aria-labelledby={titleId} onCancel={(event) => { event.preventDefault(); onClose(); }} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section className="ops-modal__panel">
+        <header><div><h2 id={titleId}>{title}</h2>{description ? <p>{description}</p> : null}</div><button type="button" aria-label="Close dialog" onClick={onClose}><X className="size-5" /></button></header>
+        {error ? <p role="alert" className="mx-4 mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
         {children}
       </section>
-    </div>
+    </dialog>
   );
 }

@@ -34,7 +34,7 @@ export function AdminShell({ children }: PropsWithChildren) {
   const { user } = useAuth();
   const visibleNav = adminNav.filter((item) => user && item.roles.includes(user.role));
   return (
-    <AppFrame>
+    <AppFrame navigation={visibleNav}>
       <div className="admin-shell">
         <aside className="admin-sidebar" aria-label="Admin navigation">
           <p className="admin-sidebar__eyebrow">
@@ -45,6 +45,7 @@ export function AdminShell({ children }: PropsWithChildren) {
               <NavLink
                 key={item.to}
                 to={item.to}
+                end={item.to === "/admin"}
                 className={({ isActive }) =>
                   `admin-nav__link ${isActive ? "admin-nav__link--active" : ""}`
                 }

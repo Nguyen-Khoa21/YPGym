@@ -40,6 +40,10 @@ The initial working tree contained one user-owned modified plan file and two use
 
 This file will be updated with final evidence after each day is integrated and verified.
 
+## September 13 addendum: interactive gate completed
+
+The July statement that browser QA was unavailable remains historical. On September 7 and 13, the four required routes were exercised in the local in-app browser at desktop, tablet, and phone widths. The screenshots, source and viewport notes, interaction coverage, and exceptions are indexed in `docs/design/evidence/day-42/README.md`. Booking/cancellation, trainer maintenance/conflict, mobile navigation, role denial, loading, empty, error and retry states were observed against the real development API. A dashboard tablet-card overlap and unreliable browser confirmation were fixed. The final three-width checks found no document-width overflow. Day 42 is verified for its functional responsive gate; pixel parity is tracked separately.
+
 ## Final evidence matrix
 
 | Day | Status | Final evidence | Remaining gap |

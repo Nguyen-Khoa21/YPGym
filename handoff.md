@@ -474,3 +474,75 @@ Both returned `200 OK`.
 Start Day 21 from the revised plan.
 
 Likely next direction: attendance and QR foundation, only if that matches Day 21 in the plan. Do not jump to AI chatbot, full CRM, class booking, notifications, or cancellation approval unless explicitly requested.
+
+## 2026-07-22: Days 39-42 Continuation
+
+This root file remains historical context; `docs/HANDOFF.md` is the current handoff.
+
+- Starting branch/commit: `main` at `de64c1e`; initial user-owned plan/instruction changes were preserved and backed up outside the repository.
+- Day 37 schema and Day 38 admin class CRUD passed migration, test, live API, permission, seed, and deep-link prerequisite checks without repair.
+- Migration `20260722_0006` adds only the proven missing trainer `bio` and `availability_summary` fields.
+- Day 39 adds audited manager/admin trainer profile maintenance, member-safe cards, batched upcoming assignments, and blocked deactivation until future classes are reassigned.
+- Day 40 adds membership-aware upcoming classes and class-row-locked booking; a real concurrent capacity race produced one `200`, one `409`, and one confirmed booking.
+- Day 41 adds configured inclusive cancellation, My Bookings, deterministic waitlist join/leave, atomic earliest-eligible promotion, ineligible-entry skipping, and deduplicated preference-aware notifications. Concurrent repeat cancellation produced one promoted booking.
+- Day 42 adds the typed member-only `/api/v1/dashboard/me` composite and replaces the prior multi-query dashboard with real membership/QR, crowdedness, bookings/waitlists, notification, broadcast, and quick-action states. Its bounded preview now returns the three most recent unread in-app notifications and the live PostgreSQL/API parity check passes. Final acceptance is still partial only because interactive responsive QA remains unavailable.
+- Final focused verification: 58 backend tests pass, compileall passes, Alembic is at clean head `20260722_0006`, frontend lint has zero errors/one known warning, and the production build passes.
+- Final broad live regression also passed registration/conflicts/verification/reset/profile, purchase/renewal/idempotency/invoices, role boundaries, rotating QR and scanner check-in/out/duplicate protection, crowdedness reconciliation, the 168-cell heatmap, CRM/billing CSV exports, and eight protected SPA deep links. The timeout task ran successfully with zero stale sessions.
+- Interactive browser screenshots were not possible because no browser backend was available; this limitation is not represented as a pass.
+
+Run and demo instructions are in `README.md` and `docs/demo/day-39-42-demo.md`; contracts and business rules are in `docs/api/classes-booking-dashboard.md`.
+
+Resume with interactive responsive QA for `/app/dashboard`, `/app/classes`, `/app/bookings`, and `/admin/pt-assignments` when a browser backend is available. The 2026-07-23 retry returned no available browsers. Start Day 43 only after this checkpoint passes.
+
+## 2026-07-23: VND Billing Localization
+
+- Migration `20260723_0007` converts the six plan prices and existing mock payment/invoice values using the fixed project rate of 6,000 VND per former RM unit.
+- The shared web formatter now uses `vi-VN`/`VND`, new seeds use VND prices, and invoice downloads regenerate PDFs with grouped `VND` amounts.
+- Database backup before conversion: `C:\Users\Admin\.codex\backups\ypgym-vnd-20260723\ypgym-before-vnd.dump`.
+- Verification: 59 backend tests pass, frontend lint/build pass with the existing warnings, Alembic is clean at `20260723_0007`, and the downloaded invoice contains VND values with no RM label.
+
+## 2026-09-07: Day 42 gate continuation
+
+The September continuation is tracked in `docs/HANDOFF.md` and `docs/progress/day-43-60-tracker.md`; this section keeps the root handoff resumable as historical context.
+
+- Starting state was preserved at `main`/`69dcb8b`. No reset, clean, stash, commit, tag, push, or destructive database cleanup was performed. Existing user-owned edits and deletions remain in the working tree.
+- Docker Desktop was restarted without removing existing containers or volumes. The revised Compose stack is running on the documented ports (web `5174`, API `8001`, PostgreSQL `5433`, Redis `6380`).
+- Fresh verification completed: Compose configuration, Alembic current/check, the backend suite (`59 passed`), frontend lint (zero errors plus the existing TanStack warning), frontend production build (existing bundle-size warning), VND plan values, and authenticated invoice PDF regeneration with no RM label.
+- The in-app browser became available and the Day 42 responsive checkpoint was exercised across `/app/dashboard`, `/app/classes`, `/app/bookings`, and `/admin/pt-assignments` at desktop, tablet, and phone widths. Evidence is stored under `docs/design/evidence/day-42/`.
+- Browser checks covered real dashboard membership/QR states, class search and empty state, booking and cancellation confirmation, My Bookings empty/populated states, role denial, trainer creation/edit/validation/deactivation, loading states, API failure/retry states, and mobile navigation. Disposable QA records are named `QA Empty September`, `Day 42 Browser QA September`, and `QA Trainer September` so they can be identified and removed later without touching seeded records.
+- Defects fixed during the checkpoint: dashboard cards now stack until the wide breakpoint, native confirmation dialogs replace unreliable `window.confirm` calls, modal errors render inside the dialog, trainer form labels are associated with controls, and signed-in mobile navigation exposes the role-appropriate workspace links. Auth login/logout now clears user-specific TanStack Query data to prevent account leakage.
+- Day 43 remains gated until the rendered checkpoint evidence is indexed and marked verified in the tracker. The next implementation boundary is the Expo/TypeScript member app using the existing shared API; FR39 chatbot, personalization, and recommendations remain explicitly deferred.
+- A Playwright development dependency was added for repeatable UI regression coverage; its browser install was started, but the automated suite has not yet been recorded as passing in this handoff. Do not claim Day 43 or final release readiness until that test slice and the remaining Day 43–60 gates are complete.
+
+## 2026-09-13: Mobile member app continuation
+
+This entry records today's continuation from the Day 42 gate. Existing user-owned edits, deletions, Docker volumes, QA records, and the uncommitted working tree were preserved. No commit, reset, clean, stash, push, or destructive database operation was performed.
+
+- Day 42 is verified and indexed in `docs/design/evidence/day-42/README.md`. The four web routes were exercised at desktop, tablet, and phone widths with real member/manager data and loading, empty, error, authorization, booking, cancellation, and trainer-management states. The latest browser checks found no document-width overflow.
+- A new Expo SDK 57 member app now lives in `mobile/`. It uses the existing FastAPI contracts and TanStack Query rather than a second backend. The app has secure native token storage with a web fallback, member-only login and role rejection, session restoration, account-switch cache clearing, and 401 logout behavior.
+- Implemented member UI and functions: live dashboard, membership status and eligibility, server-issued expiring QR check-in with foreground/background and expiry guards, class search/day filters, booking and waitlist confirmation, bookings and waitlist cancellation, attendance history, notifications/read-all, notification preferences, profile and password update, invoices, plan selection, explicitly simulated mock renewal with an idempotency key, server-verified renewal success, logout, and native dark/lime tab navigation.
+- Added a branded YPGym icon and splash assets, web favicon/manifest/theme metadata, and updated `README.md` and `mobile/README.md` with Windows PowerShell setup instructions for an Android emulator and a physical phone. The emulator uses `10.0.2.2:8001`; a phone uses the computer's LAN IPv4 address.
+- Mobile verification completed: `npm run typecheck` passed; `npm run lint` passed after adding the Expo ESLint configuration; `npm test` passed with 2 QR safety tests; `npx expo-doctor` passed all 21 checks; `npx expo install --check` passed; and `npx expo export --platform android` produced an Android bundle. The Expo SDK 57 reference was checked against the official versioned documentation.
+- The Android AVD `Medium_Phone_API_36.1` is running with Expo Go `57.0.9`. Native launch reached the branded login screen and displayed `Gym API online`; screenshots are in `docs/design/evidence/day-47-mobile/`. Automated credential entry returned the backend's invalid-email-or-password response, so the authenticated native dashboard/QR flow is still unverified and must be repeated with a manually entered or otherwise confirmed seed credential.
+- The existing web checks remain green: backend suite `59 passed`, frontend production build passed, and frontend lint has zero errors with the existing TanStack React Compiler warning. The web build retains its existing large-bundle warning. Mobile `npm audit --omit=dev` reports 14 moderate transitive advisories; no forced upgrade was applied because it would risk the Expo SDK 57 dependency set.
+- No database models, migrations, constraints, or stored data were changed for the mobile work. Mobile renewal remains a local mock-payment path; no live settlement, store publishing, physical scanner firmware, chatbot, recommendations, or personalization was added.
+
+### Exact resume checkpoint
+
+1. Confirm the seeded member credential manually in the running Android emulator and complete native login, dashboard, check-in QR, class, and profile screenshots. If the seed password has changed, rerun the idempotent seed or use a disposable verified member account; do not use a real payment account for QA.
+2. Update `docs/progress/day-43-60-tracker.md` with the completed Day 43–45 work and mark Day 47 only after the authenticated native screens are captured and reviewed.
+3. Continue the remaining Day 46–60 release gates; mobile completion does not establish final release readiness.
+
+### Mobile run entry point
+
+Follow `mobile/README.md`. The shortest emulator path is:
+
+```powershell
+docker compose --profile app up -d --build
+docker compose exec -T backend-api alembic upgrade head
+docker compose exec -T backend-api python -m app.db.seed
+cd mobile
+Copy-Item .env.example .env
+npm ci
+npm run android
+```

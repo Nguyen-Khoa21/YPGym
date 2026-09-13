@@ -28,9 +28,9 @@ erDiagram
   iot_devices ||--o{ attendance_sessions : records
   attendance_sessions ||--o{ attendance_events : contains
 
-  personal_trainers ||--o{ gym_classes : leads
-  gym_classes ||--o{ class_bookings : contains
-  gym_classes ||--o{ class_waitlists : contains
+  personal_trainers ||--o{ classes : leads
+  classes ||--o{ class_bookings : contains
+  classes ||--o{ class_waitlists : contains
 
   users ||--o{ broadcast_announcements : creates
 ```
@@ -42,9 +42,17 @@ erDiagram
   -> 20260716_0004 membership operations, notification, broadcast, audit
   -> 20260716_0005 attendance, devices, trainers, classes, bookings, waitlists
   -> 20260722_0006 trainer bio and availability summary
+  -> 20260723_0007 VND billing localization
 ```
 
-The database and SQLAlchemy metadata are aligned at `20260722_0006`; `alembic check` reports no pending operations.
+The database and SQLAlchemy metadata are aligned at `20260723_0007`; `alembic check` reports no pending operations.
+
+## Editable Draw.io diagrams
+
+- [`ypgym-domain-relationships.drawio`](../diagrams/ypgym-domain-relationships.drawio) gives a proposal-ready domain relationship overview.
+- [`ypgym-erd.drawio`](../diagrams/ypgym-erd.drawio) contains the detailed implemented PostgreSQL ERD with key attributes, foreign keys and cardinalities.
+
+The diagrams intentionally exclude proposal or later-plan concepts that are not persisted through Day 42: chatbot logs, fitness forms, mobile-only entities and permanent QR-token rows.
 
 ## Integrity and query notes
 

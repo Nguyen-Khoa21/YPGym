@@ -34,7 +34,7 @@ export function MemberShell({ children }: PropsWithChildren) {
   const { user } = useAuth();
 
   return (
-    <AppFrame>
+    <AppFrame navigation={memberNav}>
       <div className="workspace-shell">
         <aside className="workspace-sidebar" aria-label="Member navigation">
           <div className="workspace-profile">

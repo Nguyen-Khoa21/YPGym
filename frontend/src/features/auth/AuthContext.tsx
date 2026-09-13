@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { apiRequest } from "@/lib/apiClient";
+import { queryClient } from "@/lib/queryClient";
 import type { LoginResponse, User } from "@/types/api";
 
 const TOKEN_KEY = "ypgym_access_token";
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(Boolean(token));
 
   const clearAuth = useCallback(() => {
+    queryClient.clear();
     window.localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
@@ -71,6 +73,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       method: "POST",
       body: { email, password },
     });
+    queryClient.clear();
     window.localStorage.setItem(TOKEN_KEY, response.access_token);
     setToken(response.access_token);
     setUser(response.user);

@@ -1,6 +1,24 @@
 # YPGym Handoff
 
-Last updated: 2026-07-23, after role-aware Workspace navigation.
+Last updated: 2026-09-13, mobile continuation in progress.
+
+## September 13 resume update
+
+- The Day 42 interactive responsive gate is now verified. The real-browser evidence index is `docs/design/evidence/day-42/README.md`; the four routes were checked at desktop, tablet, and phone widths with interactions and loading/empty/error/role states. The latest 1440/768/390 checks found no document-width overflow. This clears the Day 43 start condition, while BRD pixel parity remains a separate Day 46/47 check.
+- Fresh backend health and all 59 backend tests passed. The frontend lint/build are being rerun for the accumulated responsive fixes. No user-owned changes, volumes, or existing QA records were discarded.
+- The user asked to finish mobile UI and functions, then give Windows run instructions. `mobile/` did not exist at entry. The Day 43 Expo scaffold is being created; completion and native launch are not yet claimed.
+- `docs/progress/day-43-60-tracker.md` records milestone status. This update supersedes the stale September 7 baseline lines below.
+
+## Active continuation — 2026-09-07
+
+- User authorized continued implementation through Day 60, preserving the Day 42 interactive responsive gate before Day 43. Scope/evidence tracker: `docs/progress/day-43-60-tracker.md`.
+- Actual starting HEAD is `69dcb8b` on `main`; the July starting-commit statements below are historical. No new commit/tag has been created. The final local release commit/tag is authorized only after required verification; no remote push/public deployment is authorized.
+- Pre-existing modified/deleted/untracked files are inventoried in the tracker and remain untouched. New work so far: tracker and original BRD images extracted into `docs/design/references/`; temporary text extraction is `tmp/brd-extracted.txt`.
+- Frontend baseline `npm run lint` passes with the known TanStack warning; `npm run build` passes with the known 730.67 kB bundle warning. `docker compose config --quiet` passes. Docker Desktop was stopped, then launched hidden; the first build attempt failed during daemon startup. Server `29.4.3` subsequently responded and the second Compose build is running. Existing volumes and old containers are preserved.
+- Browser tooling now discovers the in-app browser, including viewport and screenshots. No rendered checkpoint is yet claimed. The full local revised plan and historical/current handoffs were read; the named proposal was not found in the repository and its path has been requested. FR identifiers must not be fabricated.
+- Next: finish Compose build; run backend tests, Alembic current/check and live VND/invoice checks; complete the four-route Day 42 desktop/tablet/phone checkpoint with screenshots and observed-defect fixes. Start Day 43 only after the checkpoint passes.
+
+The remaining sections preserve the July baseline until fresh evidence supersedes each claim.
 
 ## Current milestone
 

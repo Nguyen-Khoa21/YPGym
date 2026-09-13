@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CalendarDays, Clock3, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/FeedbackState";
 import { MemberShell } from "@/components/layout/MemberShell";
-import { StatusBadge } from "@/components/operations/OperationsUi";
+import { Modal, StatusBadge } from "@/components/operations/OperationsUi";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { apiRequest } from "@/lib/apiClient";
@@ -15,15 +16,16 @@ import type { ClassBooking, ClassWaitlist, MemberBookings } from "@/types/operat
 
 export function MyBookingsPage() {
   const { token } = useAuth();
+  const [confirmation, setConfirmation] = useState<{ id: string; title: string; action: "cancel" | "leave" } | null>(null);
   const query = useQuery({ queryKey: ["bookings", "me"], queryFn: ({ signal }) => apiRequest<MemberBookings>("/bookings/me", { token, signal }) });
   const cancel = useMutation({
     mutationFn: (bookingId: string) => apiRequest<ClassBooking>(`/bookings/${bookingId}/cancel`, { method: "POST", token }),
-    onSuccess: async () => { await refreshBookingQueries(); toast.success("Booking cancelled"); },
+    onSuccess: async () => { setConfirmation(null); await refreshBookingQueries(); toast.success("Booking cancelled"); },
     onError: (error) => toast.error(toUiError(error).message),
   });
   const leave = useMutation({
     mutationFn: (classId: string) => apiRequest<ClassWaitlist>(`/classes/${classId}/waitlist`, { method: "DELETE", token }),
-    onSuccess: async () => { await refreshBookingQueries(); toast.success("Left waitlist"); },
+    onSuccess: async () => { setConfirmation(null); await refreshBookingQueries(); toast.success("Left waitlist"); },
     onError: (error) => toast.error(toUiError(error).message),
   });
   const hasItems = Boolean(query.data?.bookings.length || query.data?.waitlists.length);
@@ -33,8 +35,9 @@ export function MyBookingsPage() {
     {query.isLoading ? <LoadingState className="mt-7" title="Loading your bookings" /> : null}
     {query.isError ? <ErrorState className="mt-7" title={toUiError(query.error).title} message={toUiError(query.error).message} action={<Button variant="outline" onClick={() => query.refetch()}>Retry</Button>} /> : null}
     {query.data && !hasItems ? <EmptyState className="mt-7" title="No bookings yet" message="Browse upcoming classes to book a place or join a full-class waitlist." action={<Button onClick={() => window.location.assign("/app/classes")}>Browse classes</Button>} /> : null}
-    {query.data?.bookings.length ? <section className="mt-7"><h2 className="text-xl font-bold">Bookings</h2><p className="mt-1 text-sm text-muted-foreground">Cancellation closes {query.data.cancellation_window_hours} hours before a class starts.</p><div className="mt-4 grid gap-4 lg:grid-cols-2">{query.data.bookings.map((booking) => <BookingCard booking={booking} pending={cancel.isPending && cancel.variables === booking.id} onCancel={() => { if (window.confirm(`Cancel your booking for ${booking.gym_class.title}?`)) cancel.mutate(booking.id); }} key={booking.id} />)}</div></section> : null}
-    {query.data?.waitlists.length ? <section className="mt-8"><h2 className="text-xl font-bold">Waitlists</h2><div className="mt-4 grid gap-4 lg:grid-cols-2">{query.data.waitlists.map((entry) => <WaitlistCard entry={entry} pending={leave.isPending && leave.variables === entry.gym_class.id} onLeave={() => { if (window.confirm(`Leave the waitlist for ${entry.gym_class.title}?`)) leave.mutate(entry.gym_class.id); }} key={entry.id} />)}</div></section> : null}
+    {query.data?.bookings.length ? <section className="mt-7"><h2 className="text-xl font-bold">Bookings</h2><p className="mt-1 text-sm text-muted-foreground">Cancellation closes {query.data.cancellation_window_hours} hours before a class starts.</p><div className="mt-4 grid gap-4 lg:grid-cols-2">{query.data.bookings.map((booking) => <BookingCard booking={booking} pending={cancel.isPending && cancel.variables === booking.id} onCancel={() => setConfirmation({ id: booking.id, title: booking.gym_class.title, action: "cancel" })} key={booking.id} />)}</div></section> : null}
+    {query.data?.waitlists.length ? <section className="mt-8"><h2 className="text-xl font-bold">Waitlists</h2><div className="mt-4 grid gap-4 lg:grid-cols-2">{query.data.waitlists.map((entry) => <WaitlistCard entry={entry} pending={leave.isPending && leave.variables === entry.gym_class.id} onLeave={() => setConfirmation({ id: entry.gym_class.id, title: entry.gym_class.title, action: "leave" })} key={entry.id} />)}</div></section> : null}
+    {confirmation ? <Modal error={(confirmation.action === "cancel" ? cancel : leave).isError ? toUiError((confirmation.action === "cancel" ? cancel : leave).error).message : undefined} title={`${confirmation.action === "cancel" ? "Cancel booking for" : "Leave waitlist for"} ${confirmation.title}?`} description="A cancelled place may be offered to the next eligible waitlisted member." onClose={() => setConfirmation(null)}><div className="ops-modal__body"><div className="ops-modal__actions"><Button variant="outline" onClick={() => setConfirmation(null)}>Keep unchanged</Button><Button variant="danger" disabled={cancel.isPending || leave.isPending} onClick={() => confirmation.action === "cancel" ? cancel.mutate(confirmation.id) : leave.mutate(confirmation.id)}>{cancel.isPending || leave.isPending ? "Updating..." : "Confirm"}</Button></div></div></Modal> : null}
   </div></MemberShell>;
 }
 

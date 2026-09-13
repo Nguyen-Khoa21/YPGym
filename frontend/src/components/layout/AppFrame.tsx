@@ -8,6 +8,7 @@ import { workspacePathForRole } from "@/features/auth/workspace";
 
 type AppFrameProps = PropsWithChildren<{
   compact?: boolean;
+  navigation?: { to: string; label: string }[];
 }>;
 
 const publicLinks = [
@@ -16,7 +17,7 @@ const publicLinks = [
   { to: "/policies/membership", label: "Policies" },
 ];
 
-export function AppFrame({ children, compact = false }: AppFrameProps) {
+export function AppFrame({ children, compact = false, navigation }: AppFrameProps) {
   const { user, logout } = useAuth();
 
   return (
@@ -56,7 +57,7 @@ export function AppFrame({ children, compact = false }: AppFrameProps) {
                   <LayoutDashboard className="size-4" aria-hidden />
                   Workspace
                 </Link>
-                <Link className="identity-chip" to="/app/profile">
+                <Link className="identity-chip" to="/app/profile" aria-label="Your profile">
                   <span className="identity-chip__avatar" aria-hidden>
                     {user.name.slice(0, 1).toUpperCase()}
                   </span>
@@ -86,7 +87,13 @@ export function AppFrame({ children, compact = false }: AppFrameProps) {
                 </Link>
               </>
             )}
-            <Menu className="site-header__menu size-5" aria-hidden />
+            <details className="site-header__menu relative">
+              <summary className="grid size-9 cursor-pointer list-none place-items-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" aria-label="Navigation menu"><Menu className="size-5" aria-hidden /></summary>
+              <nav aria-label="Mobile main navigation" className="absolute right-0 top-11 z-50 grid max-h-[75dvh] min-w-48 gap-1 overflow-y-auto rounded-xl border border-border bg-card p-2 shadow-lg">
+                {(navigation ?? publicLinks).map((item) => <Link key={item.to} to={item.to} className="rounded-md px-3 py-2 text-sm font-semibold hover:bg-muted">{item.label}</Link>)}
+                {user ? <Button variant="ghost" className="justify-start" onClick={logout}><LogOut className="size-4" aria-hidden />Log out</Button> : <Link className="rounded-md px-3 py-2 text-sm font-semibold hover:bg-muted" to="/login">Log in</Link>}
+              </nav>
+            </details>
           </div>
         </div>
       </header>

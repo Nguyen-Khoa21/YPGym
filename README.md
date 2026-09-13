@@ -1,6 +1,6 @@
 # YPGym
 
-YPGym is a PostgreSQL/FastAPI/React gym-operations application. The connected web scope now covers the revised 60-day plan through Day 42: authentication and billing, membership lifecycle decisions, CRM, notifications, audited exports, system configuration, rotating QR attendance, occupancy analytics, trainer profiles, transaction-safe class booking/waitlists, and an integrated member dashboard.
+YPGym is a PostgreSQL/FastAPI/React gym-operations application. The connected web scope covers the revised 60-day plan through Day 42: authentication and billing, membership lifecycle decisions, CRM, notifications, audited exports, system configuration, rotating QR attendance, occupancy analytics, trainer profiles, transaction-safe class booking/waitlists, and an integrated member dashboard. A Day 43–47 Expo member app is under verification in `mobile/`.
 
 The implementation follows `YPGym_60_Day_Development_Plan_Revised_PostgreSQL (1).md`. Detailed recovery evidence is in `docs/recovery/day-22-38-recovery-audit.md`; the current continuation contract is in `docs/HANDOFF.md`.
 
@@ -11,6 +11,7 @@ The implementation follows `YPGym_60_Day_Development_Plan_Revised_PostgreSQL (1)
 - Redis for rotating QR state, occupancy/configuration caches, and Celery transport
 - Celery worker/beat for membership status, expiry reminder, and attendance-timeout jobs
 - Optional hardware-agnostic IoT scanner simulator
+- Expo/React Native member app in `mobile/` (see `mobile/README.md` for Android emulator and phone setup)
 
 ## Connected routes
 
@@ -89,4 +90,4 @@ The scanner contract and simulator scenarios are documented in `docs/api/iot-sca
 - Protected UI routes mirror backend role checks, and sensitive mutations/exports create audit records.
 - The BRD Design Architecture, `docs/design/route-screen-map.md`, and the shared local design system are the UI authority used for this recovery.
 - Days 39-42 preserve the same layering and serialize every class-capacity change on the PostgreSQL class row.
-- Day 43+ Expo/mobile delivery, real payment-gateway settlement, physical-device firmware, advanced PT workflows, and AI/personalization remain outside the completed scope.
+- Real payment-gateway settlement, physical-device firmware, advanced PT workflows, and AI/personalization remain outside the completed scope.
