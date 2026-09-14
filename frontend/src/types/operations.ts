@@ -178,6 +178,41 @@ export type PeakHours = {
   date_to: string;
 };
 
+export type AnalyticsSummary = {
+  date_from: string;
+  date_to: string;
+  generated_at: string;
+  cache_hit: boolean;
+  cache_ttl_seconds: number;
+  membership_trends: {
+    period: string;
+    active: number;
+    expiring_soon: number;
+    frozen: number;
+    expired: number;
+    cancelled: number;
+    revoked: number;
+    pending_verification: number;
+    total: number;
+  }[];
+  class_popularity: {
+    class_type: string;
+    class_count: number;
+    bookings: number;
+    unique_members: number;
+    capacity: number;
+    utilization_percent: number;
+  }[];
+  attendance: {
+    check_ins: number;
+    unique_members: number;
+    average_visit_minutes: number | null;
+    busiest_slot: string | null;
+    current_occupancy: Crowdedness;
+  };
+  revenue: { successful_payments: number; gross_amount: string; discounts: string };
+};
+
 export type TrainerClassSummary = {
   id: string;
   title: string;

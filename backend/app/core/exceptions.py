@@ -103,6 +103,7 @@ async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
         content=jsonable_encoder(error_payload(exc.code, exc.message, exc.details)),
+        headers={"Retry-After": str(exc.details["retry_after_seconds"])} if exc.code == "RATE_LIMITED" else None,
     )
 
 
@@ -132,17 +133,18 @@ async def validation_error_handler(
         content=jsonable_encoder(error_payload(
             code="VALIDATION_ERROR",
             message="The request could not be validated.",
-            details=exc.errors(),
+            details=[{key: error[key] for key in ("type", "loc", "msg")} for error in exc.errors()],
         )),
     )
 
 
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.exception(
-        "unhandled_api_exception method=%s path=%s",
+    # Exception text and SQL parameters can contain credentials or personal data.
+    logger.error(
+        "unhandled_api_exception method=%s path=%s exception_type=%s",
         request.method,
         request.url.path,
-        exc_info=(type(exc), exc, exc.__traceback__),
+        type(exc).__name__,
     )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

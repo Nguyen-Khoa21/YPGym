@@ -43,6 +43,7 @@ services:
       ENVIRONMENT: development
       API_V1_PREFIX: /api/v1
       FRONTEND_URL: http://localhost:${FRONTEND_HOST_PORT:-5174}
+      CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-http://localhost:8081,http://localhost:8082,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:8082,http://127.0.0.1:19006}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ypgym}:${POSTGRES_PASSWORD:-ypgym_dev_password}@postgres-db:5432/${POSTGRES_DB:-ypgym}
       REDIS_URL: redis://redis-cache:6379/0
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-local-secret}

@@ -187,8 +187,9 @@ class AttendanceRepository:
         return grouped
 
     async def peak_hours(self, *, date_from: datetime, date_to: datetime) -> list[tuple[int, int, int]]:
-        weekday = func.extract("dow", AttendanceEvent.event_at).cast(Integer)
-        hour = func.extract("hour", AttendanceEvent.event_at).cast(Integer)
+        utc_event_at = func.timezone("UTC", AttendanceEvent.event_at)
+        weekday = func.extract("dow", utc_event_at).cast(Integer)
+        hour = func.extract("hour", utc_event_at).cast(Integer)
         rows = (
             await self.session.execute(
                 select(weekday, hour, func.count(AttendanceEvent.id))

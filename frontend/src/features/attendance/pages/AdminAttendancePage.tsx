@@ -12,9 +12,9 @@ import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { apiRequest } from "@/lib/apiClient";
 import { toUiError } from "@/lib/apiErrors";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatMoney } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
-import type { AttendancePage, AttendanceSession, Crowdedness, PeakHours } from "@/types/operations";
+import type { AnalyticsSummary, AttendancePage, AttendanceSession, Crowdedness, PeakHours } from "@/types/operations";
 
 type AttendanceFilters = { member: string; status: string; dateFrom: string; dateTo: string };
 
@@ -36,9 +36,10 @@ export function AdminAttendancePage() {
   const crowdedness = useQuery({ queryKey: ["attendance", "crowdedness"], queryFn: ({ signal }) => apiRequest<Crowdedness>("/attendance/crowdedness", { token, signal }), refetchInterval: 30_000 });
   const canViewAnalytics = user?.role === "manager" || user?.role === "admin";
   const analytics = useQuery({ queryKey: ["attendance", "peak-hours"], queryFn: ({ signal }) => apiRequest<PeakHours>("/admin/analytics/peak-hours", { token, signal }), enabled: canViewAnalytics });
+  const summary = useQuery({ queryKey: ["attendance", "analytics-summary"], queryFn: ({ signal }) => apiRequest<AnalyticsSummary>("/admin/analytics/summary", { token, signal }), enabled: canViewAnalytics, staleTime: 60_000, refetchInterval: 60_000 });
   const manualClose = useMutation({
     mutationFn: ({ id, closeReason }: { id: string; closeReason: string }) => apiRequest<AttendanceSession>(`/attendance/admin/${id}/manual-close`, { method: "POST", token, body: { reason: closeReason } }),
-    onSuccess: async () => { setClosing(null); setReason(""); await Promise.all([queryClient.invalidateQueries({ queryKey: ["attendance", "admin"] }), queryClient.invalidateQueries({ queryKey: ["attendance", "crowdedness"] }), queryClient.invalidateQueries({ queryKey: ["attendance", "peak-hours"] })]); toast.success("Attendance session closed"); },
+    onSuccess: async () => { setClosing(null); setReason(""); await Promise.all([queryClient.invalidateQueries({ queryKey: ["attendance", "admin"] }), queryClient.invalidateQueries({ queryKey: ["attendance", "crowdedness"] }), queryClient.invalidateQueries({ queryKey: ["attendance", "peak-hours"] }), queryClient.invalidateQueries({ queryKey: ["attendance", "analytics-summary"] })]); toast.success("Attendance session closed"); },
     onError: (error) => toast.error(toUiError(error).message),
   });
   const columns: ColumnDef<AttendanceSession>[] = [
@@ -60,8 +61,23 @@ export function AdminAttendancePage() {
       <Panel title="Peak-hours heatmap" detail={canViewAnalytics ? "Weekday-by-hour check-ins for the last 30 days." : "Manager/admin analytics are intentionally hidden from staff."}>{analytics.isLoading ? <LoadingState className="m-4" title="Aggregating peak hours" /> : null}{analytics.isError ? <ErrorState className="m-4" title={toUiError(analytics.error).title} message={toUiError(analytics.error).message} /> : null}{analytics.data ? <PeakHoursGrid data={analytics.data} /> : null}{!canViewAnalytics ? <EmptyState className="m-4" title="Operational access only" message="Staff can manage attendance sessions but cannot view manager analytics." /> : null}</Panel>
       <Panel title="Control boundaries" detail="Role-aware operational safeguards."><div className="grid gap-3 p-4"><Control icon={UsersRound} title="Member isolation" detail="Members can retrieve only their own attendance history." /><Control icon={ShieldCheck} title="Reason required" detail="Staff, managers, and admins can close abnormal active sessions only with an audit reason." /><Control icon={Clock3} title="Timeout worker" detail="Celery Beat reconciles sessions older than the configured timeout." /><Control icon={Activity} title="Database truth" detail="Occupancy is rebuilt from active PostgreSQL sessions when the cache is absent or stale." /></div></Panel>
     </div>
+    {canViewAnalytics ? <AnalyticsSummaryPanel query={summary} /> : null}
     {closing ? <Modal error={(manualClose).isError ? toUiError((manualClose).error).message : undefined} title="Manually close attendance session" description={`${closing.member_name ?? "Member"} checked in ${formatDateTime(closing.checked_in_at)}.`} onClose={() => { setClosing(null); setReason(""); }}><div className="ops-modal__body"><label>Mandatory closure reason<textarea value={reason} onChange={(event) => setReason(event.target.value)} /></label><div className="ops-modal__actions"><Button variant="outline" onClick={() => { setClosing(null); setReason(""); }}>Cancel</Button><Button variant="danger" disabled={reason.trim().length < 10 || manualClose.isPending} onClick={() => manualClose.mutate({ id: closing.id, closeReason: reason.trim() })}>Close active session</Button></div></div></Modal> : null}
   </div></AdminShell>;
+}
+
+function AnalyticsSummaryPanel({ query }: { query: ReturnType<typeof useQuery<AnalyticsSummary>> }) {
+  if (query.isLoading) return <Panel className="mt-5" title="Manager summary" detail="Membership, class, attendance, and revenue aggregates are calculated from persisted records."><LoadingState className="m-4" title="Aggregating manager summary" /></Panel>;
+  if (query.isError) return <Panel className="mt-5" title="Manager summary" detail="The analytics summary could not be loaded."><ErrorState className="m-4" title={toUiError(query.error).title} message={toUiError(query.error).message} action={<Button variant="outline" onClick={() => query.refetch()}>Retry</Button>} /></Panel>;
+  if (!query.data) return null;
+  const data = query.data;
+  return <Panel className="mt-5" title="Manager summary" detail={`Last 30 days through ${formatDateTime(data.date_to)}. Checks for updates every minute; generated ${formatDateTime(data.generated_at)}.`}>
+    <div className="ops-metrics p-4"><MetricCard label="Check-ins" value={data.attendance.check_ins} tone="forest" detail={`${data.attendance.unique_members} unique members`} /><MetricCard label="Average visit" value={data.attendance.average_visit_minutes === null ? "-" : `${data.attendance.average_visit_minutes} min`} tone="lime" detail={data.attendance.busiest_slot ?? "No peak slot"} /><MetricCard label="Successful mock payments" value={data.revenue.successful_payments} tone="coral" detail={formatMoney(data.revenue.gross_amount)} /><MetricCard label="Discounts" value={formatMoney(data.revenue.discounts)} /></div>
+    <div className="grid gap-5 border-t border-border p-4 xl:grid-cols-2">
+      <div><h3 className="text-sm font-semibold">Memberships created by month (UTC)</h3><p className="mt-1 text-xs text-muted-foreground">Current status of memberships created in each month; renewals update the existing membership.</p><div className="mt-3 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b border-border text-muted-foreground"><th className="pb-2">Month</th><th className="pb-2">Total</th><th className="pb-2">Active</th><th className="pb-2">Frozen</th><th className="pb-2">Expired</th></tr></thead><tbody>{data.membership_trends.map((point) => <tr className="border-b border-border/60" key={point.period}><td className="py-2">{new Intl.DateTimeFormat("en-MY", { month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${point.period}T00:00:00Z`))}</td><td>{point.total}</td><td>{point.active}</td><td>{point.frozen}</td><td>{point.expired}</td></tr>)}</tbody></table></div></div>
+      <div><h3 className="text-sm font-semibold">Class popularity</h3><div className="mt-3 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b border-border text-muted-foreground"><th className="pb-2">Type</th><th className="pb-2">Bookings</th><th className="pb-2">Unique members</th><th className="pb-2">Use</th></tr></thead><tbody>{data.class_popularity.map((point) => <tr className="border-b border-border/60" key={point.class_type}><td className="py-2">{point.class_type}</td><td>{point.bookings}</td><td>{point.unique_members}</td><td>{point.utilization_percent}%</td></tr>)}</tbody></table>{data.class_popularity.length === 0 ? <p className="mt-3 text-xs text-muted-foreground">No classes were scheduled in this range.</p> : null}</div></div>
+    </div>
+  </Panel>;
 }
 
 function PeakHoursGrid({ data }: { data: PeakHours }) {

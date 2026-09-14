@@ -1,11 +1,14 @@
-import logging
+import asyncio
 from datetime import UTC, datetime, timedelta
+from email.message import EmailMessage
+from mailbox import Maildir
+from pathlib import Path
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.exceptions import AppError
+from app.core.exceptions import AppError, DependencyUnavailableError
 from app.models.enums import MemberTier, UserRole
 from app.models.user import User
 from app.repositories.auth_repository import AuthTokenRepository
@@ -26,8 +29,6 @@ from app.utils.security import (
     hash_token,
     verify_password,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -65,7 +66,7 @@ class AuthService:
                 tier=MemberTier.NORMAL.value,
                 is_email_verified=False,
             )
-            await self._create_email_verification(user)
+            verification_token = await self._create_email_verification(user)
             await self.session.commit()
         except IntegrityError as exc:
             await self.session.rollback()
@@ -75,6 +76,7 @@ class AuthService:
                 status_code=409,
             ) from exc
 
+        await self._prepare_development_email(user.email, "Email verification", "/verify-email", verification_token)
         return RegisterResponse(
             message="Registration successful. Please verify your email before logging in.",
             user=UserPublic.model_validate(user),
@@ -162,7 +164,7 @@ class AuthService:
                 expires_at=expires_at,
             )
             await self.session.commit()
-            self._log_dev_link("password reset", "/reset-password", token)
+            await self._prepare_development_email(user.email, "Password reset", "/reset-password", token)
 
         return ForgotPasswordResponse(
             message="If this email is registered, a password reset link has been prepared.",
@@ -188,7 +190,7 @@ class AuthService:
 
         return ResetPasswordResponse(message="Password reset successful. You can log in now.")
 
-    async def _create_email_verification(self, user: User) -> None:
+    async def _create_email_verification(self, user: User) -> str:
         token = generate_url_token()
         expires_at = datetime.now(UTC) + timedelta(
             hours=self.settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS,
@@ -198,11 +200,26 @@ class AuthService:
             token_hash=hash_token(token),
             expires_at=expires_at,
         )
-        self._log_dev_link("email verification", "/verify-email", token)
+        return token
 
-    def _log_dev_link(self, label: str, route: str, token: str) -> None:
+    async def _prepare_development_email(self, recipient: str, label: str, route: str, token: str) -> None:
         if self.settings.ENVIRONMENT != "development":
             return
+        message = EmailMessage()
+        message["To"] = recipient
+        message["Subject"] = f"YPGym: {label}"
+        message.set_content(f"{self.settings.FRONTEND_URL}{route}?token={token}\n")
 
-        link = f"{self.settings.FRONTEND_URL}{route}?token={token}"
-        logger.info("development_%s_link=%s", label.replace(" ", "_"), link)
+        def write_message():
+            directory = Path(self.settings.DEVELOPMENT_MAIL_DIR)
+            directory.parent.mkdir(parents=True, exist_ok=True)
+            outbox = Maildir(directory, create=True)
+            try:
+                outbox.add(message)
+            finally:
+                outbox.close()
+
+        try:
+            await asyncio.to_thread(write_message)
+        except OSError as exc:
+            raise DependencyUnavailableError("EMAIL_PREPARATION_UNAVAILABLE", "The local email could not be prepared. Check the development outbox configuration.") from exc

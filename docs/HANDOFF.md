@@ -1,6 +1,52 @@
 # YPGym Handoff
 
-Last updated: 2026-09-13, mobile continuation in progress.
+Last updated: 2026-09-14, isolated release verification continuation in progress.
+
+## September 14 session closeout — mobile, release verification, and handoff
+
+- Mobile work is implemented under `mobile/src/app/`, `mobile/src/lib/`, and `mobile/src/components/`: Expo Router member navigation, SecureStore session persistence, member-role guards, dashboard, rotating QR, classes/booking/waitlist, My Bookings, attendance, notifications/preferences, profile editing, invoices, and simulated renewal. `mobile/README.md` contains Android emulator, physical-phone, and Expo web instructions.
+- Expo web networking was fixed at the end of the session. The local ignored `mobile/.env` uses `http://localhost:8001/api/v1`; Android emulators use `10.0.2.2`; physical phones use the computer LAN address. `backend/app/main.py` now accepts explicit local Expo origins through `CORS_EXTRA_ORIGINS`, while unknown origins remain denied. Focused CORS tests pass 2/2.
+- Fresh mobile checks passed: `npm run typecheck`, `npm run lint`, `npm test` (2 QR safety tests), and `npx expo export --platform android`. The prior Expo Doctor check passed 21/21. Native authenticated dashboard/QR/classes/profile screenshots are still unavailable because no emulator app was available to the computer-use surface.
+- Backend functionality added or hardened today includes real manager analytics, UTC-safe/unique analytics aggregates, atomic Redis Lua rate limits with IP guards and `Retry-After`, access-token purpose separation from QR tokens, revoked-membership renewal denial, error/validation/request-log privacy, and ignored development Maildir handling for one-time verification/reset links.
+- Isolated verification uses `compose.test.yml`: temporary PostgreSQL/Redis, no host ports, read-only source mount, and guarded cleanup. The latest isolated run passed 94 tests with 4 deprecation warnings; focused CORS checks added 2 more passing tests. The normal development suite passed 64 tests and skipped 27 intentionally outside the isolated environment. No normal development volumes or stored records were reset.
+- Day54 benchmark stored 1,000 users, 1,000 memberships, 100 classes, 2,000 bookings, 1,000 attendance sessions, and 1,000 check-in events. Crowdedness and class-list waves returned 1,000/1,000 HTTP 200s; login returned 60 HTTP 200 and 940 intentional HTTP 429 results under the IP limit. This remains a bounded local measurement, not a production capacity claim.
+- Alembic remains at `20260723_0007 (head)` with no drift. Frontend lint/build pass with the known TanStack compiler and bundle-size warnings. The last pushed commit is `bcec6b9`; all current release work is uncommitted.
+- Suggested commit title for this session: `feat: add analytics security hardening and Expo web connectivity`. Do not include the commit title in a release claim until the remaining native/release gates are reviewed.
+
+## September 14 resume update — isolated verification and security fixes
+
+- The last pushed commit remains `bcec6b9` on `main` and `origin/main`. Current release work is uncommitted; preserve all modified and untracked files. No normal application database, Redis volume, invoice directory, or Celery schedule was reset.
+- Added a standalone `compose.test.yml` stack with temporary PostgreSQL/Redis and a read-only backend mount. The final isolated run migrated through `20260723_0007` and passed **94 tests with 4 Starlette deprecation warnings**. The ordinary development suite is **64 passed, 27 skipped** because integration fixtures intentionally skip outside `ENVIRONMENT=test`. Coverage is recorded in `docs/release/integration-report.md`.
+- Real-storage coverage now proves registration/verification/reset, five persisted roles and ownership, JWT/access-token versus QR purpose separation, Redis rate-limit races/expiry/outage, scanner limits, QR rotation/expiry, check-in/out races, timeout idempotency, UTC analytics, booking/waitlist races, billing/invoice ownership, freeze/cancellation/revocation decisions and audit records.
+- The revoked-membership renewal bypass was fixed in `backend/app/services/membership_service.py` and `membership_repository.py`; terminal revoked memberships can no longer be renewed through self-service.
+- `backend/scripts/registered_load.py` created and measured an isolated dataset of 1,000 users, 1,000 memberships, 100 classes, 2,000 bookings, and 1,000 attendance sessions. Crowdedness and class-list waves returned 1,000/1,000 HTTP 200s with no transport errors. Login returned 60/200 and 940/429 because the documented IP rate limit remained enabled. Full conditions/results are in `docs/release/performance-report.md`; this is a bounded local result, not a production-capacity claim.
+- Sensitive-link handling now writes development verification/reset messages to an ignored Maildir (`DEVELOPMENT_MAIL_DIR`) instead of logs. JWT access tokens carry `type=access`; QR tokens sharing the signing key are rejected by account authentication. Error/request logging and validation responses no longer expose exception values, query tokens, credentials, or rejected input. Metrics documentation now states UTC bounds, cohort semantics, inclusivity, cache freshness, and VND payment meaning.
+- Frontend `npm run lint` passes with the existing TanStack compiler warning; `npm run build` passes with the existing large-bundle warning. `alembic current` is `20260723_0007 (head)` and `alembic check` reports no operations.
+- Expo web connectivity was corrected: `mobile/.env` now uses `http://localhost:8001/api/v1`, while physical phones must use the computer LAN address and Android emulators must use `10.0.2.2`. Backend CORS now accepts explicit local Expo web origins on ports 8081, 8082, and 19006 (localhost and loopback); unknown origins remain denied. `backend/app/tests/test_cors.py` passes 2 tests. Restart Metro after changing `.env`.
+
+### Current exact checkpoint
+
+1. Native authenticated evidence is still open: use the normal API (`8001`) and seeded member account to capture dashboard, rotating QR, classes, and profile in the Android emulator. The computer-use inventory previously had no emulator app, so no native authenticated claim is made.
+2. Finish Day53 configuration/export checks, Day54 query-plan/index review, Day55 final proxy/CORS and secret inventory review, Day56 rendered accessibility/offline/error review, Day58 full seed/examiner sequence, and Day59 native/shared-backend rehearsal.
+3. Only after those gates pass, review the archive, create the authorized local release commit and annotated tag. Do not push remotely. Keep proposal FR1–FR39, UAT, interviews, survey, sources, competitors, and FR39 chatbot variance explicitly unavailable/deferred unless supplied.
+
+## September 14 resume update — Day 49 analytics
+
+- The last pushed commit is `bcec6b9` on `main` and `origin/main` after the user's explicit push request. This analytics batch is currently uncommitted; the untracked temporary `tmp/` extraction directory is also present.
+- Manager/admin analytics now has a real `/api/v1/admin/analytics/summary` endpoint. The established repository/service/API layers aggregate persisted membership statuses, class bookings/utilization, attendance check-ins/unique members/visit duration, and successful payment totals for a bounded 366-day range.
+- The summary uses a 60-second Redis cache keyed by the normalized date range and exposes `generated_at`, `cache_hit`, and `cache_ttl_seconds`. A live manager request returned persisted data; a repeat request returned `cache_hit=true`; a staff token returned HTTP 403.
+- The attendance operations page renders the summary beside the existing 168-cell peak-hours heatmap. The route-screen map now records the endpoint, fields, cache freshness, and native mobile evidence status.
+- Validation for this batch: Docker backend suite `62 passed`; `alembic check` reports no new upgrade operations; frontend `npm run build` passes; backend compileall passes. No models, migrations, constraints, or stored records changed.
+- The next security slice adds Redis fixed-window limits before login (10/minute per hashed IP+email scope), forgot-password (5/15 minutes per hashed IP+email scope), and scanner check-in/out (60/minute per hashed device scope). It fails closed on Redis errors. Unit coverage now totals 62 passing tests; live login returned ten `401`s then `429`, forgot-password five `200`s then `429`, and scanner `401` then `429` on request 61.
+- Day50/57/58 release artifacts now exist: `docs/release/feature-freeze.md`, `bug-list.md`, `requirements-traceability.md`, `uat-checklist.md`, `research-evidence-inventory.md`, `viva-notes.md`, `docs/policies/security.md`, and `docs/demo/demo-script.md`. They intentionally mark unavailable proposal/UAT/research evidence as unavailable.
+- A repeatable Day54 probe is now `backend/scripts/load_smoke.py`, documented in `docs/release/performance-report.md`. The development-stack run measured 1,000 synthetic login requests plus 100-request authenticated crowdedness/class-list probes at concurrency 10; it recorded median/p95/max values and one login transport error rather than hiding it. This is a baseline, not a capacity claim, until repeated on a disposable stack.
+- Day59 disposable rehearsal passed with a separate Compose project and ports: images rebuilt, empty PostgreSQL migrated through `20260723_0007`, seed applied, API/web health, manager analytics cache, and member dashboard checks passed. The temporary volumes/network were removed and the normal stack remained running. Expo was not pointed at that temporary port, so native/shared-backend rehearsal remains open.
+- The September 14 computer-use inventory exposed no native emulator app (`apps: []`), so no authenticated Android screenshot claim was added. The existing launch/login/API-health captures remain the latest native evidence.
+
+### Exact resume checkpoint
+
+1. Confirm the seeded member credential manually in the running Android emulator and capture authenticated dashboard, rotating QR, classes, and profile evidence; current native evidence only proves branded launch/login/API health.
+2. Continue Days 50–60: dedicated database/performance/QA checks, isolated rebuild rehearsal, and a reviewed local archive/tag. Keep research/UAT outputs explicitly labelled as unavailable unless supplied.
 
 ## September 13 resume update
 

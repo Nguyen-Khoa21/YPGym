@@ -9,11 +9,16 @@ from app.core.logging import add_request_logging, configure_logging
 settings = get_settings()
 configure_logging()
 
+
+def cors_origins() -> list[str]:
+    configured = [settings.FRONTEND_URL, *settings.CORS_EXTRA_ORIGINS.split(",")]
+    return list(dict.fromkeys(origin.strip().rstrip("/") for origin in configured if origin.strip()))
+
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    allow_origins=cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

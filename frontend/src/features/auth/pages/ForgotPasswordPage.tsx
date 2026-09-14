@@ -38,7 +38,7 @@ export function ForgotPasswordPage() {
         <span className="grid size-11 place-items-center rounded-xl bg-secondary text-foreground"><MailCheck className="size-5" aria-hidden /></span>
         <h2 className="mt-5 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none">Forgot password?</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">Enter your account email and we will prepare a reset link if appropriate.</p>
-        {success ? <div className="mt-5 rounded-2xl border border-secondary/50 bg-secondary/15 p-4 text-sm leading-6"><strong className="block text-foreground">Request received.</strong><span className="text-muted-foreground">{success} In development, check the backend logs for the reset link.</span></div> : null}
+        {success ? <div className="mt-5 rounded-2xl border border-secondary/50 bg-secondary/15 p-4 text-sm leading-6"><strong className="block text-foreground">Request received.</strong><span className="text-muted-foreground">{success} Check the email inbox configured for this environment.</span></div> : null}
         {error ? <ErrorState className="mt-5" title={error.title} message={error.message} /> : null}
         {!success ? <form className="mt-6 space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
           <Field><Label htmlFor="email">Email address</Label><Input id="email" type="email" autoComplete="email" placeholder="you@example.com" {...form.register("email")} /><FieldError message={form.formState.errors.email?.message} /></Field>

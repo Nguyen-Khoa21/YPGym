@@ -1,4 +1,4 @@
-# PostgreSQL ERD through Day 42
+# PostgreSQL ERD for the current release schema
 
 ```mermaid
 erDiagram

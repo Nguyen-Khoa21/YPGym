@@ -2,6 +2,20 @@
 
 The Expo/React Native app uses the existing YPGym FastAPI backend. It includes member sign-in and session restoration, a live dashboard and rotating check-in QR, class booking and waitlists, attendance, notifications, profile editing, preferences, invoices, and simulated membership renewal. The operations workspace remains in the web app.
 
+## Run in Expo web on this computer
+
+Use `http://localhost:8001/api/v1` for Expo web. The Android emulator address `10.0.2.2` is only for an Android emulator.
+
+```powershell
+cd C:\Users\Admin\ypgym\mobile
+Copy-Item .env.example .env
+# Keep EXPO_PUBLIC_API_URL=http://localhost:8001/api/v1 for this mode.
+npm ci
+npx expo start --web
+```
+
+Restart Expo after changing `.env`. The API allows the local Expo web origins on ports 8081, 8082, and 19006.
+
 ## Run on an Android emulator (Windows PowerShell)
 
 Install Node.js 22.13 or newer and Android Studio with an Android SDK emulator. Create and start an Android Virtual Device in Android Studio. From the repository root:

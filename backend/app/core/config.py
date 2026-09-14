@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     API_V1_PREFIX: str = "/api/v1"
     FRONTEND_URL: str = "http://localhost:5174"
+    CORS_EXTRA_ORIGINS: str = ""
     DATABASE_URL: str = "postgresql+asyncpg://ypgym:ypgym_dev_password@localhost:5433/ypgym"
     REDIS_URL: str = "redis://localhost:6380/0"
     JWT_SECRET_KEY: str = "change-this-secret-in-production"
@@ -24,6 +25,7 @@ class Settings(BaseSettings):
     DEVELOPMENT_SEED_PASSWORD: str = "YPGymDemo123!"
     EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 60
+    DEVELOPMENT_MAIL_DIR: str = "storage/mail"
     INVOICE_STORAGE_DIR: str = "storage/invoices"
 
     model_config = SettingsConfigDict(

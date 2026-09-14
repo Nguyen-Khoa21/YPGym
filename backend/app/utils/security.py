@@ -43,6 +43,7 @@ def create_access_token(
         "sub": str(user_id),
         "role": role,
         "tier": tier,
+        "type": "access",
         "exp": expires_at,
     }
     token = jwt.encode(
@@ -56,10 +57,19 @@ def create_access_token(
 def decode_access_token(token: str) -> dict[str, Any]:
     settings = get_settings()
     try:
-        return jwt.decode(
+        payload = jwt.decode(
             token,
             settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],
         )
-    except JWTError as exc:
+        # Older access tokens predate the type claim; retain those until expiry.
+        # QR tokens share the signing key but must never authenticate API calls.
+        if (
+            payload.get("type") not in (None, "access")
+            or "exp" not in payload
+            or not all(isinstance(payload.get(claim), str) for claim in ("sub", "role", "tier"))
+        ):
+            raise JWTError("Invalid access token claims")
+        return payload
+    except (JWTError, TypeError, ValueError) as exc:
         raise AuthenticationError("The access token is invalid or expired.") from exc

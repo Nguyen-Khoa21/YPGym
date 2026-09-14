@@ -1,0 +1,42 @@
+# Standalone test stack; never combine with docker-compose.yml.
+services:
+  test-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ypgym_test
+      POSTGRES_USER: ypgym_test
+      POSTGRES_PASSWORD: isolated-test-only
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ypgym_test -d ypgym_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+  test-redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+  test-runner:
+    build: ./backend
+    environment:
+      ENVIRONMENT: test
+      DATABASE_URL: postgresql+asyncpg://ypgym_test:isolated-test-only@test-postgres:5432/ypgym_test
+      REDIS_URL: redis://test-redis:6379/0
+      JWT_SECRET_KEY: isolated-test-signing-key-not-for-deployment
+      IOT_DEVICE_API_KEY: isolated-test-scanner-key
+      INVOICE_STORAGE_DIR: /tmp/ypgym-test-invoices
+    volumes:
+      - ./backend:/app:ro
+    tmpfs:
+      - /tmp
+    depends_on:
+      test-postgres:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    command: ["sh", "-c", "alembic upgrade head && pytest -q -p no:cacheprovider"]

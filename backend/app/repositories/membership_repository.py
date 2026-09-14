@@ -51,6 +51,15 @@ class UserMembershipRepository:
         )
         return result.scalars().first()
 
+    async def get_latest_for_user(self, user_id: UUID) -> UserMembership | None:
+        result = await self.session.execute(
+            select(UserMembership)
+            .where(UserMembership.user_id == user_id)
+            .order_by(UserMembership.expiry_date.desc(), UserMembership.created_at.desc())
+            .limit(1),
+        )
+        return result.scalar_one_or_none()
+
     async def create(
         self,
         *,

@@ -18,6 +18,7 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 | Notification preferences | `/app/notifications/preferences` | Member | `/notifications/preferences/me` | Connected |
 | Member class booking | `/app/classes` | Member | `/classes/upcoming`, `/classes/{id}/book`, waitlist join/leave | Connected responsive class cards, PT cards, capacity, eligible/ineligible, booked/full/waitlisted/cancelled states |
 | My bookings | `/app/bookings` | Member | `/bookings/me`, booking cancel, waitlist leave | Connected confirmed/cancelled/promoted/waiting states and configured cancellation cutoff |
+| Mobile member shell | `mobile/` (Expo Router) | Member | Shared `/api/v1` auth, dashboard, attendance, classes, bookings, notifications, profile, billing | Implemented dark/lime native shell; launch/login evidence indexed in `docs/design/evidence/day-47-mobile/`; authenticated native evidence pending |
 
 Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/*` routes.
 
@@ -31,6 +32,7 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 | Membership approvals | `/admin/approvals` | Manager/admin | `/admin/membership-requests`, decision endpoints | Connected limited queue without full CRM/billing exposure |
 | Billing ledger | `/admin/billing` | Admin | `/admin/billing/payments`, `/invoices`, exact-filter CSV | Connected member/status/date/plan/tier filters |
 | Attendance dashboard | `/admin/attendance` | Staff/manager/admin | attendance admin list, manual close, crowdedness; analytics for manager/admin | Connected table, filters, KPI cards, manual-close dialog, accessible 7x24 heatmap |
+| Manager analytics summary | `/admin/attendance` (manager/admin panel) | Manager/admin | `/admin/analytics/summary` | Connected persisted membership trends, class popularity, attendance patterns, successful revenue, 60-second Redis freshness window; staff is denied |
 | Class schedule | `/admin/classes` | Admin | class list/trainers/create/update/cancel | Connected table, filters, side card, create/edit dialog, cancellation confirmation |
 | Broadcasts | `/admin/broadcasts` | Manager/admin | broadcast list/create/update | Connected |
 | Audit log | `/admin/audit` | Manager/admin | `/admin/audit-logs` | Connected date/action/actor/target/entity filters and pagination |
@@ -47,6 +49,7 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 | Member history | check-in/close timestamps, session status, source, device ID, ordered events |
 | Operations log | member identity, date/status/member filters, source/device, manual-close reason |
 | Analytics heatmap | 168 weekday/hour cells, visits today, busiest hour, current occupancy, selected range |
+| Analytics summary | monthly membership status counts, class-type bookings/utilization, check-ins/unique members/visit duration, successful payment totals, generated timestamp/cache TTL |
 
 ## Shared states and responsive behavior
 

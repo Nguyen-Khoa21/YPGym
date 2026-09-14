@@ -2,12 +2,14 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Header, Query, Request
+from pydantic import AwareDatetime
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_roles
 from app.core.exceptions import AppError
+from app.core.rate_limit import rate_limits
 from app.db.redis import get_redis_client
 from app.db.session import get_db_session
 from app.models.user import User
@@ -21,7 +23,10 @@ from app.schemas.attendance_schema import (
     ScannerRequest,
     ScannerResponse,
 )
+from app.schemas.analytics_schema import AnalyticsSummaryResponse
+from app.services.analytics_service import AnalyticsService
 from app.services.attendance_service import AttendanceService, CrowdednessService, QrTokenService
+from app.utils.security import hash_token
 
 router = APIRouter(prefix="/attendance", tags=["attendance"])
 analytics_router = APIRouter(prefix="/admin/analytics", tags=["attendance analytics"])
@@ -39,10 +44,17 @@ async def qr_token(
 @router.post("/check-in", response_model=ScannerResponse)
 async def check_in(
     payload: ScannerRequest,
+    request: Request,
     device_api_key: Annotated[str, Header(alias="X-Device-Api-Key")],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     redis: Annotated[Redis, Depends(get_redis_client)],
 ) -> ScannerResponse:
+    await rate_limits.enforce(
+        redis,
+        key=f"ypgym:rate:scanner:ip:{hash_token(request.client.host if request.client else 'unknown')}",
+        limit=120,
+        window_seconds=60,
+    )
     return await AttendanceService(session, redis).check_in(
         device_id=payload.device_id,
         api_key=device_api_key,
@@ -53,10 +65,17 @@ async def check_in(
 @router.post("/check-out", response_model=ScannerResponse)
 async def check_out(
     payload: ScannerRequest,
+    request: Request,
     device_api_key: Annotated[str, Header(alias="X-Device-Api-Key")],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     redis: Annotated[Redis, Depends(get_redis_client)],
 ) -> ScannerResponse:
+    await rate_limits.enforce(
+        redis,
+        key=f"ypgym:rate:scanner:ip:{hash_token(request.client.host if request.client else 'unknown')}",
+        limit=120,
+        window_seconds=60,
+    )
     return await AttendanceService(session, redis).check_out(
         device_id=payload.device_id,
         api_key=device_api_key,
@@ -130,8 +149,8 @@ async def peak_hours(
     current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     redis: Annotated[Redis, Depends(get_redis_client)],
-    date_from: datetime | None = None,
-    date_to: datetime | None = None,
+    date_from: AwareDatetime | None = None,
+    date_to: AwareDatetime | None = None,
 ) -> PeakHoursResponse:
     end = date_to or datetime.now(UTC)
     start = date_from or end - timedelta(days=30)
@@ -140,3 +159,20 @@ async def peak_hours(
     if end - start > timedelta(days=366):
         raise AppError("ANALYTICS_RANGE_TOO_LARGE", "Peak-hours analytics are limited to 366 days.", 422)
     return await AttendanceService(session, redis).peak_hours(date_from=start, date_to=end)
+
+
+@analytics_router.get("/summary", response_model=AnalyticsSummaryResponse)
+async def analytics_summary(
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+    date_from: AwareDatetime | None = None,
+    date_to: AwareDatetime | None = None,
+) -> AnalyticsSummaryResponse:
+    end = date_to or datetime.now(UTC).replace(second=0, microsecond=0)
+    start = date_from or end - timedelta(days=30)
+    if end <= start:
+        raise AppError("ANALYTICS_RANGE_INVALID", "The analytics end time must be after the start time.", 422)
+    if end - start > timedelta(days=366):
+        raise AppError("ANALYTICS_RANGE_TOO_LARGE", "Analytics summaries are limited to 366 days.", 422)
+    return await AnalyticsService(session, redis).summary(date_from=start, date_to=end)

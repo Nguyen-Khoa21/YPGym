@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.exceptions import AppError, DependencyUnavailableError, ResourceNotFoundError
+from app.core.rate_limit import rate_limits
 from app.models.attendance import AttendanceEvent, AttendanceSession, IoTDevice
 from app.models.user import User
 from app.repositories.attendance_repository import AttendanceRepository
@@ -355,7 +356,7 @@ class AttendanceService:
             for hour in range(24)
         ]
         busiest = max(raw, key=lambda row: row[2]) if raw else None
-        today_start = datetime.combine(date.today(), time.min, tzinfo=UTC)
+        today_start = datetime.combine(datetime.now(UTC).date(), time.min, tzinfo=UTC)
         visits_today = await self.attendance.visits_between(
             date_from=today_start,
             date_to=today_start + timedelta(days=1),
@@ -375,6 +376,9 @@ class AttendanceService:
         device = await self.attendance.get_device_for_update(device_id)
         if not device or not device.is_active or not compare_digest(device.api_key_hash, hash_token(api_key)):
             raise AppError("INVALID_DEVICE", "Device credentials are invalid.", 401)
+        await rate_limits.enforce(
+            self.redis, key=f"ypgym:rate:scanner:{hash_token(device.device_id)}", limit=60, window_seconds=60,
+        )
         return device
 
     @staticmethod

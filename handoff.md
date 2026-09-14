@@ -1,5 +1,15 @@
 # YPGym Codex Handoff
 
+## 2026-09-14 session closeout
+
+The authoritative continuation handoff is [`docs/HANDOFF.md`](docs/HANDOFF.md). This root file records the closing summary for today.
+
+- Mobile implementation is present in `mobile/src/` with Expo Router, SecureStore sessions, dashboard, rotating QR, classes/booking/waitlist, bookings, attendance, notifications/preferences, profile, invoices, and simulated renewal. Mobile typecheck/lint/QR tests/Android export passed; native authenticated screenshots remain open because no emulator app was available.
+- Expo web connectivity was fixed: local web uses `http://localhost:8001/api/v1`, Android emulator uses `10.0.2.2`, and physical phones use the LAN address. Backend CORS explicitly allows local Expo web origins and focused CORS checks pass 2/2.
+- Backend work today added analytics, UTC/uniqueness corrections, atomic Redis rate limits, JWT/QR purpose separation, revoked-membership renewal denial, privacy-safe errors/logging, and ignored development mail outbox handling.
+- The isolated PostgreSQL/Redis run passed 94 tests with 4 warnings; the normal development suite passed 64 and skipped 27 integration cases outside the isolated environment. The benchmark stored 1,000 users and related membership/class/attendance data; read probes were 100% successful and login rate limits remained enabled.
+- Current release work is uncommitted after pushed baseline `bcec6b9`. Suggested session commit title: `feat: add analytics security hardening and Expo web connectivity`.
+
 Last updated: 2026-07-02
 
 ## Current Repo State
@@ -546,3 +556,29 @@ Copy-Item .env.example .env
 npm ci
 npm run android
 ```
+
+## 2026-09-14: Isolated release verification continuation
+
+The current authoritative handoff is `docs/HANDOFF.md`. This historical root file now records the latest checkpoint only.
+
+- Uncommitted release work remains on `main` after pushed commit `bcec6b9`; no normal volumes or development records were reset.
+- The isolated stack passed 94 tests with 4 warnings; the ordinary development suite is 64 passed, 27 skipped. Real coverage now includes auth/roles/membership, attendance/QR/device/timeout, booking/billing/audit, analytics, and security boundaries. See `docs/release/integration-report.md`.
+- A disposable benchmark stored 1,000 users, memberships, classes/bookings, and attendance records. Read probes were 100% HTTP 200; login was 60 HTTP 200 and 940 intentional HTTP 429 under the IP limiter. See `docs/release/performance-report.md`.
+- Remaining release gates are native authenticated screenshots/shared-backend rehearsal, Day53 export/config checks, Day54 query review, Day55 final security review, Day56 rendered QA, archive, local commit/tag, and missing academic/UAT evidence.
+
+## 2026-09-14: Manager analytics continuation
+
+This historical root handoff now points to the current `docs/HANDOFF.md` entry above and records the next development batch.
+
+- Last pushed commit: `bcec6b9` on `main`, already pushed to `origin/main` after explicit user authorization. The analytics batch is currently uncommitted; the untracked temporary `tmp/` extraction directory remains.
+- Added manager/admin-only `/api/v1/admin/analytics/summary`, using the existing FastAPI endpoint → service → repository pattern. It reads PostgreSQL membership, class booking, attendance, and successful payment records, limits ranges to 366 days, and caches normalized ranges in Redis for 60 seconds.
+- The web attendance operations screen now shows persisted manager summary cards and membership/class tables alongside the existing peak-hours heatmap. Staff receives 403 from the summary endpoint.
+- Live smoke evidence: manager summary returned data, a repeated request returned `cache_hit=true`, and staff access returned HTTP 403. Backend tests pass `60`, Alembic drift is clean, frontend build passes, and backend compileall passes.
+- Day55 security slice adds Redis fixed-window limits for login, password-reset requests, and scanner check-in/out. Unit tests cover 429 and Redis-unavailable behavior; live invalid-login, forgot-password, and scanner probes reached each documented 429 boundary. The security policy is in `docs/policies/security.md`.
+- Day50/57/58 release artifacts now include the feature-freeze/backlog, bug list, requirements traceability, blank UAT checklist, research-evidence inventory, viva notes, and examiner demo script. Missing proposal/UAT/research artifacts are explicitly recorded rather than inferred.
+- Day54 now has `backend/scripts/load_smoke.py` and `docs/release/performance-report.md`; the recorded run covered 1,000 synthetic logins and authenticated crowdedness/class-list probes with percentile metrics and one transport error documented.
+- Day59 disposable Compose rehearsal passed on separate ports and volumes; migrations, seed, health, web shell, manager analytics cache, and member dashboard checks all passed. Its resources were removed without touching the normal stack. The Expo client was not pointed at the temporary API port.
+- The current computer-use surface exposed no emulator app, so authenticated native screenshots were not claimed; the existing launch/login/API-health captures remain the latest evidence.
+- No database schema, migration, or stored data changed. The route map and Day43–60 tracker now record Day43 as verified, Days44–47 as in progress pending authenticated native evidence, and Day49 as verified.
+
+Next: manually confirm the emulator seed credential and capture authenticated mobile dashboard/QR/classes/profile screens, then run the isolated database/performance/rebuild gates before the final local archive/tag.

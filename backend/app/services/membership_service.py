@@ -52,6 +52,14 @@ class MembershipService:
                 400,
             )
 
+        latest_membership = await self.memberships.get_latest_for_user(current_user.id)
+        if latest_membership and latest_membership.status == MembershipStatus.REVOKED.value:
+            raise AppError(
+                "MEMBERSHIP_REVOKED",
+                "A revoked membership cannot be renewed through self-service.",
+                403,
+            )
+
         existing_payment = await self.payments.get_by_idempotency_key(
             user_id=current_user.id,
             idempotency_key=payload.idempotency_key,

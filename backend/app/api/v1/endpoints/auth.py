@@ -1,9 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
+from app.core.rate_limit import rate_limits
+from app.db.redis import get_redis_client
 from app.db.session import get_db_session
 from app.models.user import User
 from app.schemas.auth_schema import (
@@ -19,6 +22,7 @@ from app.schemas.auth_schema import (
     VerifyEmailResponse,
 )
 from app.services.auth_service import AuthService
+from app.utils.security import hash_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -42,8 +46,19 @@ async def verify_email(
 @router.post("/login", response_model=LoginResponse)
 async def login(
     payload: LoginRequest,
+    request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
 ) -> LoginResponse:
+    client = request.client.host if request.client else "unknown"
+    await rate_limits.enforce(redis, key=f"ypgym:rate:login:ip:{hash_token(client)}", limit=60, window_seconds=60)
+    rate_key = hash_token(f"{client}:{payload.email.lower()}")
+    await rate_limits.enforce(
+        redis,
+        key=f"ypgym:rate:login:{rate_key}",
+        limit=10,
+        window_seconds=60,
+    )
     return await AuthService(session).login(
         email=payload.email,
         password=payload.password,
@@ -58,8 +73,19 @@ async def me(current_user: Annotated[User, Depends(get_current_user)]) -> UserPu
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
 async def forgot_password(
     payload: ForgotPasswordRequest,
+    request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
 ) -> ForgotPasswordResponse:
+    client = request.client.host if request.client else "unknown"
+    await rate_limits.enforce(redis, key=f"ypgym:rate:forgot:ip:{hash_token(client)}", limit=20, window_seconds=900)
+    rate_key = hash_token(f"{client}:{payload.email.lower()}")
+    await rate_limits.enforce(
+        redis,
+        key=f"ypgym:rate:forgot:{rate_key}",
+        limit=5,
+        window_seconds=900,
+    )
     return await AuthService(session).forgot_password(payload.email)
 
 
