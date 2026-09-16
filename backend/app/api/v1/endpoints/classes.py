@@ -110,6 +110,14 @@ async def public_trainers(
     return await TrainerService(session).list_public()
 
 
+@trainer_router.get("/me", response_model=TrainerItem)
+async def own_trainer_profile(
+    current_user: Annotated[User, Depends(require_roles("pt"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> TrainerItem:
+    return await TrainerService(session).get_own(current_user)
+
+
 @trainer_router.get("/{trainer_id}", response_model=TrainerItem)
 async def public_trainer(
     trainer_id: UUID,

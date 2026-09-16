@@ -47,9 +47,9 @@ export function Busy({ label }: { label: string }) { return <View style={styles.
 export function Message({ title, detail, action, onAction }: { title: string; detail: string; action?: string; onAction?: () => void }) {
   return <View style={styles.message}><Text style={styles.subheading}>{title}</Text><Text style={[styles.muted, { textAlign: 'center' }]}>{detail}</Text>{action && onAction ? <Action label={action} onPress={onAction} outline /> : null}</View>;
 }
-export function Pill({ label, tone = 'lime' }: { label: string; tone?: 'lime' | 'amber' | 'coral' }) {
+export function Pill({ label, tone = 'lime', centered = false }: { label: string; tone?: 'lime' | 'amber' | 'coral'; centered?: boolean }) {
   const foreground = colors[tone];
-  return <View style={[styles.pill, { borderColor: foreground }]}><Text style={[styles.pillText, { color: foreground }]}>{label.toUpperCase()}</Text></View>;
+  return <View style={[styles.pill, { borderColor: foreground }, centered && { alignSelf: 'center' }]}><Text style={[styles.pillText, { color: foreground }]}>{label.toUpperCase()}</Text></View>;
 }
 
 const styles = StyleSheet.create({

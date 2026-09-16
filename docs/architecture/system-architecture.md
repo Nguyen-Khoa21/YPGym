@@ -59,4 +59,4 @@ See `docs/policies/security.md` for sensitive endpoint limits and `docs/release/
 
 ## UI authority
 
-The recovery used the BRD Design Architecture document, its embedded reference screenshots, `docs/design/route-screen-map.md`, and the repository design system as visual authority. No additional Figma file was available during recovery, and the in-app browser surface was unavailable for the final interactive screenshot pass; the production build and live Vite module graph were verified instead.
+The recovery used the BRD Design Architecture document, its embedded reference screenshots, `docs/design/route-screen-map.md`, and the repository design system as visual authority. No additional Figma file was available. Day42 web evidence and the Day47 Android evidence index record the responsive and native checks; full WCAG, physical-phone and iOS validation remain outside the recorded scope.

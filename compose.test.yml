@@ -29,6 +29,7 @@ services:
       REDIS_URL: redis://test-redis:6379/0
       JWT_SECRET_KEY: isolated-test-signing-key-not-for-deployment
       IOT_DEVICE_API_KEY: isolated-test-scanner-key
+      CORS_EXTRA_ORIGINS: http://localhost:8081
       INVOICE_STORAGE_DIR: /tmp/ypgym-test-invoices
     volumes:
       - ./backend:/app:ro

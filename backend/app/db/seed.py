@@ -1,14 +1,18 @@
+import argparse
 import asyncio
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from urllib.parse import urlsplit
+from uuid import NAMESPACE_URL, uuid5
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.db.session import AsyncSessionLocal
 from app.models.attendance import AttendanceEvent, AttendanceSession, IoTDevice
 from app.models.billing import Invoice, Payment
-from app.models.classes import GymClass, PersonalTrainer
+from app.models.classes import ClassBooking, ClassWaitlist, GymClass, PersonalTrainer
 from app.models.membership import MembershipPlan, UserMembership
 from app.models.operations import BroadcastAnnouncement, Notification, NotificationPreference
 from app.models.system_configuration import SystemConfiguration
@@ -82,9 +86,33 @@ DEMO_USERS = [
     ("member@ypgym.dev", "Maya Member", "+66000000005", "member", "vip"),
 ]
 
+DEMO_MEMBERS = [
+    ("advance", "Advance Member", "advance", "active"),
+    ("normal", "Normal Member", "normal", "active"),
+    ("frozen", "Frozen Member", "advance", "frozen"),
+    ("expired", "Expired Member", "normal", "expired"),
+    ("revoked", "Revoked Member", "normal", "revoked"),
+    ("cancelled", "Cancelled Member", "normal", "cancelled"),
+    ("newmember", "New Member", "normal", None),
+]
 
-async def seed_development_data() -> None:
+
+async def seed_development_data(*, demo: bool = False, now: datetime | None = None) -> None:
     settings = get_settings()
+    if settings.ENVIRONMENT not in {"development", "test"}:
+        raise ValueError("Development seeds must not run in a production environment.")
+    if demo:
+        database = urlsplit(settings.DATABASE_URL)
+        redis = urlsplit(settings.REDIS_URL)
+        allowed_storage = {
+            ("postgres-db", "/ypgym_demo", "redis-cache"),
+            ("test-postgres", "/ypgym_test", "test-redis"),
+        }
+        if settings.ENVIRONMENT not in {"development", "test"} or (
+            database.hostname, database.path, redis.hostname
+        ) not in allowed_storage:
+            raise ValueError("Full demo seeding requires compose.demo.yml or compose.test.yml isolated storage.")
+    now = now or datetime.now(UTC)
     configuration_seeds = [
         ("gym_capacity", str(settings.GYM_CAPACITY), "integer", "Maximum gym capacity."),
         ("qr_token_ttl_seconds", str(settings.QR_TOKEN_TTL_SECONDS), "integer", "QR token time-to-live."),
@@ -160,7 +188,7 @@ async def seed_development_data() -> None:
                     role=role,
                     tier=tier,
                     is_email_verified=True,
-                    email_verified_at=datetime.now(UTC),
+                    email_verified_at=now,
                 )
                 session.add(user)
                 await session.flush()
@@ -187,8 +215,8 @@ async def seed_development_data() -> None:
                 user_id=member.id,
                 plan_id=plans["1 Year"].id,
                 status="active",
-                start_date=date.today() - timedelta(days=45),
-                expiry_date=date.today() + timedelta(days=320),
+                start_date=now.date() - timedelta(days=45),
+                expiry_date=now.date() + timedelta(days=320),
             )
             session.add(membership)
             await session.flush()
@@ -219,7 +247,7 @@ async def seed_development_data() -> None:
             await session.execute(select(Invoice).where(Invoice.payment_id == seeded_payment.id))
         ).scalar_one_or_none()
         if not seeded_invoice:
-            transaction_date = datetime.now(UTC)
+            transaction_date = now
             invoice_pdf = InvoicePdfService()
             invoice_number = invoice_pdf.build_invoice_number(seeded_payment.id, transaction_date)
             pdf_path = invoice_pdf.generate_pdf(
@@ -263,7 +291,7 @@ async def seed_development_data() -> None:
                     message="Your rotating QR pass, attendance history and membership request workflows are connected.",
                     channel="in_app",
                     delivery_state="delivered",
-                    delivered_at=datetime.now(UTC),
+                    delivered_at=now,
                     dedupe_key="development-welcome-v1",
                 ),
             )
@@ -309,8 +337,8 @@ async def seed_development_data() -> None:
                     audience="all",
                     title="Welcome to the operations demo",
                     message="QR attendance, notifications, CRM, billing exports and class scheduling are connected to live development data.",
-                    starts_at=datetime.now(UTC) - timedelta(hours=1),
-                    ends_at=datetime.now(UTC) + timedelta(days=30),
+                    starts_at=now - timedelta(hours=1),
+                    ends_at=now + timedelta(days=30),
                     is_active=True,
                     creator_id=users["admin"].id,
                 ),
@@ -325,7 +353,7 @@ async def seed_development_data() -> None:
             )
         ).scalars().first()
         if not attendance:
-            check_in_at = datetime.now(UTC) - timedelta(days=1, hours=2)
+            check_in_at = now - timedelta(days=1, hours=2)
             attendance = AttendanceSession(
                 user_id=member.id,
                 checked_in_at=check_in_at,
@@ -361,7 +389,7 @@ async def seed_development_data() -> None:
             await session.execute(select(GymClass).where(GymClass.title == "Strength Foundations Demo"))
         ).scalar_one_or_none()
         if not gym_class:
-            start_at = datetime.now(UTC) + timedelta(days=2)
+            start_at = now + timedelta(days=2)
             session.add(
                 GymClass(
                     title="Strength Foundations Demo",
@@ -375,13 +403,125 @@ async def seed_development_data() -> None:
                     location="Studio A",
                 ),
             )
-        elif gym_class.status == "scheduled" and gym_class.start_at <= datetime.now(UTC):
-            start_at = datetime.now(UTC) + timedelta(days=2)
+        elif gym_class.status == "scheduled" and gym_class.start_at <= now:
+            start_at = now + timedelta(days=2)
             gym_class.start_at = start_at
             gym_class.end_at = start_at + timedelta(minutes=60)
 
+        if demo:
+            await _seed_demo_scenarios(session, users, plans, trainer, membership, now)
         await session.commit()
 
 
+async def _seed_demo_scenarios(
+    session: AsyncSession, users: dict[str, User], plans: dict[str, MembershipPlan],
+    trainer: PersonalTrainer, membership: UserMembership, now: datetime,
+) -> None:
+    """Refresh only explicitly seeded fixtures in the isolated demonstration database."""
+    today = now.date()
+    membership.status = "active"
+    membership.start_date = today - timedelta(days=45)
+    membership.expiry_date = max(membership.expiry_date, today + timedelta(days=320))
+    membership.frozen_from = membership.frozen_until = None
+    membership.cancelled_at = membership.revoked_at = membership.revoked_by_id = membership.revoked_reason = None
+    members = {"member": users["member"]}
+    for index, (slug, name, tier, status) in enumerate(DEMO_MEMBERS, start=6):
+        email = f"{slug}@ypgym.dev"
+        user = (await session.execute(select(User).where(User.email == email))).scalar_one_or_none()
+        if not user:
+            user = User(
+                name=f"YPGym Demo {name}", email=email, phone=f"+660000000{index:02d}",
+                password_hash=hash_password(get_settings().DEVELOPMENT_SEED_PASSWORD),
+                role="member", tier=tier, is_email_verified=True, email_verified_at=now,
+            )
+            session.add(user)
+            await session.flush()
+            session.add(NotificationPreference(user_id=user.id))
+        members[slug] = user
+        if status:
+            fixture_id = uuid5(NAMESPACE_URL, f"ypgym:demo:membership:{user.id}")
+            fixture = await session.get(UserMembership, fixture_id)
+            if not fixture:
+                fixture = UserMembership(id=fixture_id, user_id=user.id, plan_id=plans["1 Year"].id)
+                session.add(fixture)
+            fixture.status = status
+            fixture.start_date = today - timedelta(days=45 if status != "expired" else 366)
+            fixture.expiry_date = today + timedelta(days=320 if status != "expired" else -1)
+            fixture.frozen_from = today - timedelta(days=3) if status == "frozen" else None
+            fixture.frozen_until = today + timedelta(days=4) if status == "frozen" else None
+            fixture.cancelled_at = now - timedelta(days=2) if status == "cancelled" else None
+            fixture.revoked_at = now - timedelta(days=2) if status == "revoked" else None
+            fixture.revoked_by_id = users["admin"].id if status == "revoked" else None
+            fixture.revoked_reason = "Synthetic release-demo restriction; no real member data." if status == "revoked" else None
+        dedupe_key = f"release-demo-welcome-{slug}"
+        if not (await session.execute(select(Notification).where(Notification.dedupe_key == dedupe_key))).scalar_one_or_none():
+            session.add(Notification(
+                user_id=user.id, category="operations", notification_type="welcome",
+                title="Release demo account", message="This synthetic account demonstrates member self-service and access states.",
+                channel="in_app", delivery_state="delivered", delivered_at=now, dedupe_key=dedupe_key,
+            ))
+
+    demo_classes = {}
+    for day, title, capacity in [(3, "Capacity One Demo", 1), (4, "Upcoming Mobility Demo", 12)]:
+        fixture = (await session.execute(select(GymClass).where(GymClass.title == title))).scalar_one_or_none()
+        if not fixture:
+            fixture = GymClass(title=title, class_type="Mobility", description="Synthetic release-demo booking scenario.",
+                               location="Studio A", trainer_id=trainer.id, capacity=capacity)
+            session.add(fixture)
+        fixture.start_at = now + timedelta(days=day)
+        fixture.end_at = fixture.start_at + timedelta(hours=1)
+        fixture.status = "scheduled"
+        demo_classes[title] = fixture
+    await session.flush()
+    for title, slug in [("Capacity One Demo", "advance"), ("Upcoming Mobility Demo", "member")]:
+        fixture = (await session.execute(select(ClassBooking).where(
+            ClassBooking.class_id == demo_classes[title].id, ClassBooking.user_id == members[slug].id,
+        ))).scalar_one_or_none()
+        if not fixture:
+            fixture = ClassBooking(class_id=demo_classes[title].id, user_id=members[slug].id)
+            session.add(fixture)
+    # Re-seeding after interactive demo mutations is intentionally not a reset:
+    # retain waitlist positions/decisions. Use the documented isolated-stack reset
+    # to replay promotion from its original state without changing live records.
+    waitlist = (await session.execute(select(ClassWaitlist).where(
+        ClassWaitlist.class_id == demo_classes["Capacity One Demo"].id, ClassWaitlist.user_id == members["normal"].id,
+    ))).scalar_one_or_none()
+    if not waitlist:
+        existing_positions = (await session.execute(select(ClassWaitlist.position).where(
+            ClassWaitlist.class_id == demo_classes["Capacity One Demo"].id,
+        ))).scalars().all()
+        session.add(ClassWaitlist(class_id=demo_classes["Capacity One Demo"].id,
+                                 user_id=members["normal"].id, position=max(existing_positions, default=0) + 1))
+
+    for day in range(1, 8):
+        for slug, hour in [("member", 8), ("advance", 12), ("normal", 18)]:
+            user = members[slug]
+            check_in = (now - timedelta(days=day)).replace(hour=hour, minute=0, second=0, microsecond=0)
+            fixture_id = uuid5(NAMESPACE_URL, f"ypgym:demo:attendance:{user.id}:{day}")
+            fixture = await session.get(AttendanceSession, fixture_id)
+            if not fixture:
+                fixture = AttendanceSession(id=fixture_id, user_id=user.id, source="release_demo", device_id="local-simulator-1")
+                session.add(fixture)
+            fixture.checked_in_at = check_in
+            fixture.closed_at = check_in + timedelta(minutes=60 + day)
+            fixture.status = "checked_out"
+            await session.flush()
+            for event_type, event_at in [("check_in", fixture.checked_in_at), ("check_out", fixture.closed_at)]:
+                event_id = uuid5(NAMESPACE_URL, f"ypgym:demo:event:{fixture_id}:{event_type}")
+                event = await session.get(AttendanceEvent, event_id)
+                if not event:
+                    event = AttendanceEvent(id=event_id, session_id=fixture_id, user_id=user.id,
+                                            event_type=event_type, source="release_demo", device_id="local-simulator-1")
+                    session.add(event)
+                event.event_at = event_at
+    broadcast = (await session.execute(select(BroadcastAnnouncement).where(
+        BroadcastAnnouncement.title == "Welcome to the operations demo",
+    ))).scalar_one()
+    broadcast.starts_at = now - timedelta(hours=1)
+    broadcast.ends_at = now + timedelta(days=30)
+
+
 if __name__ == "__main__":
-    asyncio.run(seed_development_data())
+    parser = argparse.ArgumentParser(description="Idempotent local seeds; full scenarios require isolated demo/test storage.")
+    parser.add_argument("--demo", action="store_true", help="Populate the Day58 synthetic release scenarios in isolated storage.")
+    asyncio.run(seed_development_data(demo=parser.parse_args().demo))

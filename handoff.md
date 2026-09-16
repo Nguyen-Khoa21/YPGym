@@ -1,10 +1,21 @@
 # YPGym Codex Handoff
 
+## 2026-09-16 continuation
+
+The authoritative recovery checkpoint is [`docs/HANDOFF.md`](docs/HANDOFF.md). The September 14 work was committed/pushed as `fde7f1e`; earlier uncommitted claims are historical.
+
+Latest September16: all six native reference screens, server-backed renewal/invoice, final QR offline/background/retry recovery, valid-session restoration, logout/restart and expired-session401/restart are verified. Final mobile checks/export passed. Final web review corrected stale planned labels and connected the lightweight PT home to the trainer's own existing profile/next-three assignments; isolated ownership/role tests and frontend checks passed. The inspected BRD contains FR1–FR39, allowing source-labelled traceability without inventing or claiming the missing proposal. Details and remaining release gates are in the authoritative handoff; no new release commit/tag/push yet.
+
+- Completed Day53 CSV/configuration storage tests and Day58 opt-in isolated demo seed/Compose/runbook: five roles, three member tiers, all requested membership states, billing, classes/bookings/waitlist, notifications/broadcast and recent heatmap data.
+- Latest dedicated PostgreSQL/Redis suite: **102 passed, 5 existing warnings**. Full connected HTTP demo, invoice PDF, scanner/occupancy, booking/promotion, audited CRM and manager-role/cache checks passed on a separate demo stack. Native member/session/recovery/role checks also passed. Normal volumes/records remain untouched. Questionnaire/scoring and empty UAT results are prepared; no human results or research outcomes are claimed.
+- Demo web/API `55174/58001` is retained; normal stack stays at `5174/8001`. Expo Go now downloads over LAN-bound Metro and logs in successfully. Native dashboard/QR/classes/bookings/cancel/rebook, profile/renewal/invoice, QR recovery, SecureStore restore/logout/expiry and staff denial screenshots show real demo state. Final source rebuild, documentation reconciliation, archive and local commit/tag remain.
+- Fresh frontend install/lint/build/audit and demo image rebuild passed with patched Vite 7.3.6 and zero reported frontend vulnerabilities. Mobile typecheck/lint/two QR tests/Android export passed. Measured 1,000-user query/page review passed; no additional index is justified, with empty billing/audit scale limits documented. New work remains uncommitted. Current Metro handle `93600`, commands and exact next actions are in the authoritative handoff. Day60 archive/tag and other final gates are unfinished.
+
 ## 2026-09-14 session closeout
 
 The authoritative continuation handoff is [`docs/HANDOFF.md`](docs/HANDOFF.md). This root file records the closing summary for today.
 
-- Mobile implementation is present in `mobile/src/` with Expo Router, SecureStore sessions, dashboard, rotating QR, classes/booking/waitlist, bookings, attendance, notifications/preferences, profile, invoices, and simulated renewal. Mobile typecheck/lint/QR tests/Android export passed; native authenticated screenshots remain open because no emulator app was available.
+- Mobile implementation is present in `mobile/src/` with Expo Router, SecureStore sessions, dashboard, rotating QR, classes/booking/waitlist, bookings, attendance, notifications/preferences, profile, invoices, and simulated renewal. Mobile typecheck/lint/QR tests/Android export passed; authenticated Android evidence is complete with physical phone/iOS and full screen-reader testing explicitly unverified.
 - Expo web connectivity was fixed: local web uses `http://localhost:8001/api/v1`, Android emulator uses `10.0.2.2`, and physical phones use the LAN address. Backend CORS explicitly allows local Expo web origins and focused CORS checks pass 2/2.
 - Backend work today added analytics, UTC/uniqueness corrections, atomic Redis rate limits, JWT/QR purpose separation, revoked-membership renewal denial, privacy-safe errors/logging, and ignored development mail outbox handling.
 - The isolated PostgreSQL/Redis run passed 94 tests with 4 warnings; the normal development suite passed 64 and skipped 27 integration cases outside the isolated environment. The benchmark stored 1,000 users and related membership/class/attendance data; read probes were 100% successful and login rate limits remained enabled.

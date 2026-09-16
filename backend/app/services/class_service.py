@@ -222,6 +222,12 @@ class TrainerService:
             raise ResourceNotFoundError("Trainer was not found.")
         return self.public_item(trainer, await self.trainers.upcoming_for_trainer(trainer.id))
 
+    async def get_own(self, user: User) -> TrainerItem:
+        trainer = await self.trainers.get_trainer_by_user(user.id)
+        if not trainer:
+            raise ResourceNotFoundError("Your trainer profile has not been linked. Contact a manager.")
+        return self.public_item(trainer, await self.trainers.upcoming_for_trainer(trainer.id))
+
     async def list_admin(self, *, active: bool | None) -> list[TrainerAdminItem]:
         trainers = await self.trainers.list_trainers(active=active)
         upcoming = await self.trainers.upcoming_for_trainers([item.id for item in trainers])

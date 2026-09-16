@@ -68,7 +68,7 @@ export function HomePage() {
                   <div className="rounded-xl border border-border p-3">
                     <CalendarDays className="size-4 text-primary" aria-hidden />
                     <p className="mt-3 text-xs font-bold">Class booking</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">Planned Day 40</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">Booking and waitlists</p>
                   </div>
                 </div>
               </div>

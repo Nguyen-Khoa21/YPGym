@@ -1,6 +1,6 @@
 # Day 50 feature freeze and backlog
 
-Updated 2026-09-14. The release candidate is frozen around the implemented member, operations, analytics, and native member-app journeys. New work must fix a release blocker or be added to the backlog below.
+Updated 2026-09-16. The release candidate is frozen around the implemented member, operations, analytics, and native member-app journeys. New work must fix a release blocker or be added to the backlog below.
 
 ## Included in the release candidate
 
@@ -21,12 +21,14 @@ These are backlog items, not hidden release claims. The proposal source needed t
 
 | Area | Item | Severity | State / next action |
 |---|---|---|---|
-| Backend | Day53 CSV/export and configuration integration checks remain to be added | Medium | In progress; add focused checks before release tag |
-| Backend | Final query-plan/index review for the 1,000-account benchmark remains | Medium | In progress; keep the bounded measured results and limitations explicit |
-| Web | Vite main bundle remains about 731 kB minified | Low | Known warning; consider code splitting after release blockers |
+| Backend | Day53 CSV/export/configuration integration and seed checks | Medium | Verified September 16 in the 101-test isolated suite; retain final release regression gate |
+| Backend | Query-plan/page review with 1,000 users | Medium | Verified September 16: bounded/disjoint CRM/attendance pages, fixed SELECT counts; empty billing/audit scale remains unmeasured, no justified new index |
+| Web | Vite main bundle is 739.62 kB minified after compatible patches | Low | Known warning; consider code splitting after release blockers |
 | Web | Existing TanStack React Compiler compatibility warning remains | Low | Known warning; no behavior failure observed |
-| Mobile | Authenticated Android screenshots are not yet captured; current native evidence proves launch/login/API health only | High | Open; manually confirm the seeded credential and capture dashboard, QR, classes, and profile |
+| Mobile | Complete six-screen authenticated Android and session evidence | Resolved | All six reference screens, renewal/invoice, profile, QR recovery, SecureStore restore/logout/expiry and member-only role denial captured September 16; physical phone/iOS and full accessibility study remain unverified |
+| Mobile | QR retry remained hidden after failed foreground refresh | Resolved | Shared guarded refresh callback and current-clock expiry initialization passed the final Android offline/background/foreground/Try again sequence |
 | Mobile | `npm audit --omit=dev` reports 14 moderate transitive advisories in the Expo SDK57 tree | Medium | Accepted for this candidate; review on Expo SDK upgrade rather than forcing incompatible fixes |
-| Data | Seeded membership/payment rows can fall outside the default 30-day analytics window | Low | Expected; use explicit range or representative seed data for a trend demo |
-| Docker | Fresh disposable rebuild and full native/shared-backend rehearsal remain outstanding | High | Open for Day59 |
+| Data | Ordinary historical seed payments can fall outside the default analytics window | Low | Preserve invoice history; complete relative-date synthetic fixtures now exist only in isolated demo storage |
+| Web | Twelve dependency audit advisories found September 16 | High | Resolved by compatible lockfile updates: fresh host install/lint/build/audit and rebuilt demo image pass; frontend audit 0 |
+| Docker | Full interactive native/shared-backend rehearsal | Resolved | Fresh standalone images/migrations/seed/HTTP journey/worker checks plus native interactive member rehearsal pass; final post-source rebuild remains a Day60 archive gate |
 | Documentation | Proposal FR1–FR39 identities, five-interview evidence, twenty-survey results, and eight-source literature list are unavailable | High | Open; report as unavailable, never fabricate |

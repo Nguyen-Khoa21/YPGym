@@ -1,0 +1,373 @@
+{
+  "measured_at": "2026-09-16T07:57:55.080958+00:00",
+  "dataset": {
+    "users": 1000,
+    "user_memberships": 1000,
+    "classes": 100,
+    "class_bookings": 2000,
+    "attendance_sessions": 1000
+  },
+  "query_review": {
+    "crm": {
+      "total_rows": 1000,
+      "selects_per_page": {
+        "20": 3,
+        "100": 3
+      },
+      "plans": [
+        {
+          "planning_ms": 18.368,
+          "execution_ms": 14.912,
+          "shared_hits": 49,
+          "shared_reads": 0,
+          "scans": [
+            {
+              "Node Type": "Subquery Scan",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "user_memberships",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "users",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            }
+          ]
+        },
+        {
+          "planning_ms": 0.954,
+          "execution_ms": 15.445,
+          "shared_hits": 55,
+          "shared_reads": 0,
+          "scans": [
+            {
+              "Node Type": "Subquery Scan",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "user_memberships",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "user_memberships",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "users",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            }
+          ]
+        },
+        {
+          "planning_ms": 6.774,
+          "execution_ms": 29.855,
+          "shared_hits": 2055,
+          "shared_reads": 0,
+          "scans": [
+            {
+              "Node Type": "Index Scan",
+              "Relation Name": "membership_plans",
+              "Index Name": "membership_plans_pkey",
+              "Actual Rows": 1,
+              "Actual Loops": 1000
+            },
+            {
+              "Node Type": "Subquery Scan",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "user_memberships",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "user_memberships",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "users",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            }
+          ]
+        }
+      ]
+    },
+    "payments": {
+      "total_rows": 0,
+      "selects_per_page": {
+        "20": 2,
+        "100": 2
+      },
+      "plans": [
+        {
+          "planning_ms": 3.351,
+          "execution_ms": 0.119,
+          "shared_hits": 0,
+          "shared_reads": 0,
+          "scans": [
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "membership_plans",
+              "Actual Rows": 0,
+              "Actual Loops": 0
+            },
+            {
+              "Node Type": "Index Only Scan",
+              "Relation Name": "users",
+              "Index Name": "users_pkey",
+              "Actual Rows": 0,
+              "Actual Loops": 0
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "payments",
+              "Actual Rows": 0,
+              "Actual Loops": 1
+            }
+          ]
+        },
+        {
+          "planning_ms": 1.428,
+          "execution_ms": 0.228,
+          "shared_hits": 0,
+          "shared_reads": 0,
+          "scans": [
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "membership_plans",
+              "Actual Rows": 0,
+              "Actual Loops": 0
+            },
+            {
+              "Node Type": "Index Scan",
+              "Relation Name": "users",
+              "Index Name": "users_pkey",
+              "Actual Rows": 0,
+              "Actual Loops": 0
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "payments",
+              "Actual Rows": 0,
+              "Actual Loops": 1
+            }
+          ]
+        }
+      ]
+    },
+    "invoices": {
+      "total_rows": 0,
+      "selects_per_page": {
+        "20": 2,
+        "100": 2
+      },
+      "plans": [
+        {
+          "planning_ms": 3.079,
+          "execution_ms": 0.167,
+          "shared_hits": 0,
+          "shared_reads": 0,
+          "scans": [
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "membership_plans",
+              "Actual Rows": 0,
+              "Actual Loops": 0
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "payments",
+              "Actual Rows": 0,
+              "Actual Loops": 0
+            },
+            {
+              "Node Type": "Index Only Scan",
+              "Relation Name": "users",
+              "Index Name": "users_pkey",
+              "Actual Rows": 0,
+              "Actual Loops": 0
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "invoices",
+              "Actual Rows": 0,
+              "Actual Loops": 1
+            }
+          ]
+        },
+        {
+          "planning_ms": 1.934,
+          "execution_ms": 2.175,
+          "shared_hits": 0,
+          "shared_reads": 0,
+          "scans": [
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "membership_plans",
+              "Actual Rows": 0,
+              "Actual Loops": 0
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "payments",
+              "Actual Rows": 0,
+              "Actual Loops": 0
+            },
+            {
+              "Node Type": "Index Scan",
+              "Relation Name": "users",
+              "Index Name": "users_pkey",
+              "Actual Rows": 0,
+              "Actual Loops": 0
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "invoices",
+              "Actual Rows": 0,
+              "Actual Loops": 1
+            }
+          ]
+        }
+      ]
+    },
+    "audit": {
+      "total_rows": 0,
+      "selects_per_page": {
+        "20": 2,
+        "100": 2
+      },
+      "plans": [
+        {
+          "planning_ms": 3.013,
+          "execution_ms": 0.088,
+          "shared_hits": 0,
+          "shared_reads": 0,
+          "scans": [
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "audit_logs",
+              "Actual Rows": 0,
+              "Actual Loops": 1
+            }
+          ]
+        },
+        {
+          "planning_ms": 1.331,
+          "execution_ms": 0.283,
+          "shared_hits": 0,
+          "shared_reads": 0,
+          "scans": [
+            {
+              "Node Type": "Index Scan",
+              "Relation Name": "users",
+              "Index Name": "users_pkey",
+              "Actual Rows": 0,
+              "Actual Loops": 0
+            },
+            {
+              "Node Type": "Index Scan",
+              "Relation Name": "users",
+              "Index Name": "users_pkey",
+              "Actual Rows": 0,
+              "Actual Loops": 0
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "audit_logs",
+              "Actual Rows": 0,
+              "Actual Loops": 1
+            }
+          ]
+        }
+      ]
+    },
+    "attendance": {
+      "total_rows": 1000,
+      "selects_per_page": {
+        "20": 3,
+        "100": 3
+      },
+      "plans": [
+        {
+          "planning_ms": 3.518,
+          "execution_ms": 2.226,
+          "shared_hits": 41,
+          "shared_reads": 0,
+          "scans": [
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "users",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "attendance_sessions",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            }
+          ]
+        },
+        {
+          "planning_ms": 1.254,
+          "execution_ms": 12.614,
+          "shared_hits": 3022,
+          "shared_reads": 0,
+          "scans": [
+            {
+              "Node Type": "Index Scan",
+              "Relation Name": "users",
+              "Index Name": "users_pkey",
+              "Actual Rows": 1,
+              "Actual Loops": 1000
+            },
+            {
+              "Node Type": "Index Scan",
+              "Relation Name": "attendance_sessions",
+              "Index Name": "ix_attendance_sessions_checked_in_at",
+              "Actual Rows": 1000,
+              "Actual Loops": 1
+            }
+          ]
+        },
+        {
+          "planning_ms": 4.898,
+          "execution_ms": 0.668,
+          "shared_hits": 16,
+          "shared_reads": 0,
+          "scans": [
+            {
+              "Node Type": "Seq Scan",
+              "Relation Name": "attendance_events",
+              "Actual Rows": 100,
+              "Actual Loops": 1
+            }
+          ]
+        }
+      ]
+    },
+    "member_classes": {
+      "rows": 100,
+      "selects": 1
+    }
+  }
+}

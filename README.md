@@ -1,6 +1,6 @@
 # YPGym
 
-YPGym is a PostgreSQL/FastAPI/React gym-operations application. The connected web scope covers authentication and billing, membership lifecycle decisions, CRM, notifications, audited exports, system configuration, rotating QR attendance, occupancy and manager analytics, trainer profiles, transaction-safe class booking/waitlists, and an integrated member dashboard. A Day 43–47 Expo member app uses the same backend contracts and remains under authenticated native evidence review in `mobile/`.
+YPGym is a PostgreSQL/FastAPI/React gym-operations application. The connected web scope covers authentication and billing, membership lifecycle decisions, CRM, notifications, audited exports, system configuration, rotating QR attendance, occupancy and manager analytics, trainer profiles, transaction-safe class booking/waitlists, and an integrated member dashboard. The Day 43–47 Expo member app uses the same backend contracts; its documented Android emulator rehearsal covers the member journeys and session/error states listed in `docs/design/evidence/day-47-mobile/README.md`.
 
 The implementation follows `YPGym_60_Day_Development_Plan_Revised_PostgreSQL (1).md`. Detailed recovery evidence is in `docs/recovery/day-22-38-recovery-audit.md`; the current continuation contract is in `docs/HANDOFF.md`.
 
@@ -78,7 +78,9 @@ npm run lint
 npm run build
 ```
 
-The September 14 isolated run reports 91 passing backend tests (including real PostgreSQL/Redis integration), zero frontend lint errors (one documented TanStack React Compiler compatibility warning), a successful production build, and a clean Alembic metadata check at `20260723_0007`.
+The latest isolated Compose verification completed with 102 passing tests. The final local release archive/commit/tag is still a Day60 gate; no remote push is implied by this repository state.
+
+The September 16 isolated run reports 101 passing backend tests with five Starlette deprecation warnings, including real PostgreSQL/Redis integration, repeatable demo scenarios and CSV/configuration checks. Alembic remains at `20260723_0007`. Native/rendered release gates are separately tracked in `docs/progress/day-43-60-tracker.md`.
 
 Run the real-storage tests from the repository root using their standalone Compose file:
 
@@ -87,6 +89,8 @@ docker compose -p ypgym-tests -f compose.test.yml up --build --abort-on-containe
 ```
 
 This creates dedicated PostgreSQL/Redis services without host ports, runs migrations and tests, then stops those services. PostgreSQL and invoice output use temporary filesystems. Integration fixtures refuse any database outside this test stack; normal `backend-api pytest` runs skip them. Never combine this file with the application Compose file. See `docs/release/integration-report.md` for coverage and remaining gates.
+
+The standalone `compose.demo.yml` starts a separate examiner stack with automatic migrations/scenario seed, worker/beat and separate storage at web `55174` and API `58001`: `docker compose -p ypgym-demo -f compose.demo.yml up -d --build`. See `docs/demo/demo-script.md` for synthetic states, HTTP rehearsal, interactive tasks and isolated reset commands. The normal seed retains its development behavior; `--demo` refuses normal/production storage. Frontend images now install the npm lockfile with `npm ci`.
 
 In development, registration and password-reset emails are prepared in the ignored `backend/storage/mail/new/` Maildir outbox. Open the newest message with a text editor or mail client and use its one-time link. These private links are no longer printed to application or Uvicorn access logs. `DEVELOPMENT_MAIL_DIR` can relocate the outbox; keep it outside release archives. This local outbox does not deliver external SMTP mail.
 

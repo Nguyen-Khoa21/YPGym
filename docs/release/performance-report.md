@@ -32,7 +32,32 @@ Build the runner first if absent: `docker compose -p ypgym-tests -f compose.test
 
 No transport exceptions or server errors. Login limits remained enabled: one source IP allowed 60 requests during its window. Login latency/throughput mixes successful authentication with inexpensive denials; it must not be presented as successful-login capacity. Per-request timings start after acquiring a concurrency slot. Wave duration includes the entire wave; percentiles use sorted observed samples.
 
-This is a bounded local result with 1,000 stored accounts, not production capacity, 1,000 concurrent users or a multi-user session workload. Day54 remains in progress pending pagination/query-plan/index review. Final evidence must identify the eventual verified commit.
+This is a bounded local result with 1,000 stored accounts, not production capacity, 1,000 concurrent users or a multi-user session workload. The repository pagination/query review below is now measured; final regression evidence must identify the eventual release commit.
+
+## September 16 query and pagination review
+
+`registered_load.py --query-review-only` creates the same guarded disposable dataset, runs the existing repositories, checks disjoint first/second pages at sizes 20 and 100, and captures PostgreSQL `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` for the actual emitted queries after `ANALYZE`. The sanitized result is [`query-review-september16.json`](query-review-september16.json); SQL parameters, account credentials and query filters are excluded.
+
+```powershell
+docker compose -p ypgym-tests -f compose.test.yml run --rm test-runner sh -c 'alembic upgrade head && python -m scripts.registered_load --query-review-only'
+docker compose -p ypgym-tests -f compose.test.yml stop
+```
+
+Both commands passed September 16. Only temporary test services were stopped; normal/demo volumes were untouched. The source is the September 16 working tree based on `fde7f1e`, before the final release commit. This review ran alongside an Android emulator and local application stacks, so timings are observations under contention rather than an isolated CPU benchmark.
+
+| Repository list | Stored matching rows | SELECTs at page sizes 20 / 100 | Observed query execution times (ms) |
+|---|---:|---|---|
+| CRM | 1,000 | 3 / 3 | 14.912 count; 15.445 summary; 29.855 page |
+| Payments | 0 | 2 / 2 | 0.119 summary; 0.228 page |
+| Invoices | 0 | 2 / 2 | 0.167 summary; 2.175 page |
+| Audit | 0 | 2 / 2 | 0.088 count; 0.283 page |
+| Attendance | 1,000 | 3 / 3 | 2.226 count; 12.614 page; 0.668 batched events |
+
+The empty payment/invoice/audit cases establish query shape and empty pagination only. Their populated filtering, ownership and export behavior is separately covered by integration tests and the real-billing demo; these timings make no billing/audit scale claim. At both page sizes the CRM and attendance pages were populated, bounded and disjoint. Attendance events are fetched once for the page's session IDs. The member class repository returns all 100 upcoming cards in one joined SELECT with a correlated booking aggregate, rather than per-card SQL calls.
+
+Existing indexes cover user email/phone uniqueness, membership user/status/expiry, class start/status/trainer, booking class/status, waitlist class/status/position, payment user/date, audit date/actor/target/entity and attendance user/status/date/session. PostgreSQL selected the existing attendance date index for the page and sequential scans for whole-cohort CRM aggregates. All reviewed plans reported zero physical shared-block reads. No measured defect justifies an additional index/migration in this bounded dataset.
+
+The CRM, billing, audit and attendance APIs already enforce `page >= 1` and `1 <= page_size <= 100`; web screens use existing server pagination controls. Admin lists order by the requested/date key and ID for stable ties. CSV exports deliberately omit pagination and retain exact filters; large export memory usage and deep OFFSET pages remain future scale considerations. The member upcoming-class endpoint remains an unpaginated schedule contract; do not silently change it for an unmeasured scale claim. Configuration TTL/invalidation and crowdedness cache/reconciliation are verified in the isolated suite.
 
 ## Historical observation
 

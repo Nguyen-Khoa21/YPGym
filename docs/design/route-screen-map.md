@@ -18,7 +18,7 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 | Notification preferences | `/app/notifications/preferences` | Member | `/notifications/preferences/me` | Connected |
 | Member class booking | `/app/classes` | Member | `/classes/upcoming`, `/classes/{id}/book`, waitlist join/leave | Connected responsive class cards, PT cards, capacity, eligible/ineligible, booked/full/waitlisted/cancelled states |
 | My bookings | `/app/bookings` | Member | `/bookings/me`, booking cancel, waitlist leave | Connected confirmed/cancelled/promoted/waiting states and configured cancellation cutoff |
-| Mobile member shell | `mobile/` (Expo Router) | Member | Shared `/api/v1` auth, dashboard, attendance, classes, bookings, notifications, profile, billing | Implemented dark/lime native shell; launch/login evidence indexed in `docs/design/evidence/day-47-mobile/`; authenticated native evidence pending |
+| Mobile member shell | `mobile/src/app/` (Expo Router) | Member | Shared `/api/v1` auth, dashboard, attendance, classes, bookings, notifications, profile, billing | Authenticated Android dashboard/QR/classes/profile/renewal/invoice and cancel/rebook evidence September16; six BRD references and explicit parity exceptions in `docs/design/evidence/day-47-mobile/README.md`; final session/recovery cases pending |
 
 Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/*` routes.
 
@@ -50,6 +50,12 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 | Operations log | member identity, date/status/member filters, source/device, manual-close reason |
 | Analytics heatmap | 168 weekday/hour cells, visits today, busiest hour, current occupancy, selected range |
 | Analytics summary | monthly membership status counts, class-type bookings/utilization, check-ins/unique members/visit duration, successful payment totals, generated timestamp/cache TTL |
+
+## Native reference parity
+
+BRD Figures19–24 (`docs/design/references/image19.png` through `image24.png`) map respectively to native Dashboard, Renewal Selection, Renewal Success, QR Check-in, Class Booking and Member Profile. All use the existing shared API. Actual synthetic account data, VND billing and server eligibility replace sample reference values; dark/lime hierarchy and Dashboard/Check-in/Classes/Profile bottom navigation are retained. Native renewal is confirmed by the account-returned invoice, not a client-only success screen.
+
+The native evidence index records each implementation path, actual captures, observed/fixed clipping and badge alignment, explicit scope exceptions, and pending acceptance cases. Profile initials replace an invented avatar; personalization is deferred and live payment methods are replaced by mock-payment invoice history. This is partial visual parity with documented exceptions, not a claim of pixel identity or fulfilled deferred features.
 
 ## Shared states and responsive behavior
 
