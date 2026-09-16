@@ -32,6 +32,8 @@ Operations routes:
 - `/admin/members`, `/admin/members/:id`, `/admin/billing`, `/admin/classes` for admin
 - `/admin/pt-assignments` for manager/admin trainer profile maintenance.
 
+The current feature set also includes the native member dashboard, rotating QR recovery, classes and booking/waitlist flows, renewal and invoice history, SecureStore session recovery, and a connected personal-trainer workspace. Release hardening covers isolated demo data, audited exports, bounded query review, role/ownership tests, and privacy-safe session/error handling.
+
 ## Run locally
 
 Copy environment examples if local overrides are needed, then start the existing volumes and services:
