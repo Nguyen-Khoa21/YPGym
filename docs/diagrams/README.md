@@ -1,6 +1,6 @@
 # YPGym Diagram Package
 
-These diagrams describe the complete YPGym project target from the project proposal and the current repository. They are not limited to the implementation milestone through Day 42 or to the Day 43 mobile boundary.
+These diagrams describe the implemented release and explicitly marked future scope. Source authority is the available BRD/Design Architecture document, revised development plan, and inspected repository. The separate project proposal document was not found; it has not been read or independently reconciled.
 
 Status styling is intentional:
 
@@ -17,10 +17,11 @@ Status styling is intentional:
 | Membership lifecycle state transition | `ypgym-membership-state-transition.drawio` | `ypgym-membership-state-transition.drawio.png` |
 | PostgreSQL ERD | `ypgym-erd.drawio` | `ypgym-erd.drawio.png` |
 | Domain relationships | `ypgym-domain-relationships.drawio` | `ypgym-domain-relationships.drawio.png` |
+| Backend UML class diagram | `ypgym-backend-uml.drawio` | `ypgym-backend-uml.drawio.png` |
 
 The PNG files contain embedded Draw.io XML. The `.drawio` files remain the clearest sources for manual editing and lecturer review.
 
-The older `architecture.mmd`, `use-cases.mmd` and `membership-state.mmd` files are early planning sketches. Use the named `ypgym-*.drawio` package above for the current whole-project diagrams.
+`architecture.mmd` and `use-cases.mmd` provide compact topology/use-case sketches. `backend-uml.mmd` is the authoring source for the representative UML subset: booking, trainer and attendance services/repositories plus their domain entities. The detailed ERD covers the complete durable schema. Use the named `ypgym-*.drawio` package above for editable review. Sources and embedded previews are versioned; only editor backups are ignored.
 
 ## Open the diagrams on Windows
 
@@ -36,7 +37,7 @@ Start-Process .\docs\diagrams\ypgym-membership-state-transition.drawio
 
 ### Architecture
 
-1. Confirm the client layer contains the React web app, Expo/PWA target, IoT simulator and physical-hardware boundary.
+1. Confirm the client layer contains the implemented React web/PWA and Expo member app, IoT simulator and physical-hardware boundary.
 2. Confirm the Docker platform shows FastAPI/security, domain services, repository, PostgreSQL, Redis, Celery, invoice and email responsibilities.
 3. Confirm the chatbot and AI runtime are marked as later target scope.
 4. Confirm live payment settlement and physical door hardware are not presented as implemented.
@@ -46,7 +47,8 @@ Start-Process .\docs\diagrams\ypgym-membership-state-transition.drawio
 1. Confirm Member, Staff, Manager, Admin, Personal Trainer, IoT Scanner/Simulator and Scheduled Worker actors are present.
 2. Confirm the system boundary covers account, membership, billing, QR attendance, crowdedness, classes, waitlists, notifications, CRM, reporting, audit and configuration.
 3. Confirm role-sensitive operational use cases match the backend permission model.
-4. Confirm the controlled chatbot and full PT workspace are visibly marked as later targets.
+4. Confirm the PT's own read-only profile/next-three assigned classes are implemented; chatbot and advanced PT programming remain deferred.
+5. Confirm scanner actions belong to the device-authenticated scanner actor; staff attendance-desk access does not grant scanner credentials.
 
 ### Membership state transition
 
@@ -60,7 +62,7 @@ Start-Process .\docs\diagrams\ypgym-membership-state-transition.drawio
 
 The diagrams reconcile:
 
-- `YPGym_COMP1682_Project_Proposal.docx`
+- `FYP Brief BRD - Anh Khoa - Design Architecture.docx` (including Section 7 FR1–FR39)
 - `YPGym_60_Day_Development_Plan_Revised_PostgreSQL (1).md`
 - `README.md`
 - `docs/HANDOFF.md`

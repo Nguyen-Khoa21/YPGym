@@ -1,35 +1,74 @@
 classDiagram
-  class ApiEndpoint {
-    +validate request
-    +return response schema
+  direction TB
+  class BookingService {
+    +session AsyncSession
+    +book(class_id, user)
+    +cancel(booking_id, user)
+    +join_waitlist(class_id, user)
   }
-  class Service {
-    +enforce business rules
-    +coordinate repositories
+  class TrainerService {
+    +session AsyncSession
+    +get_own(user)
+    +update(trainer_id, actor, payload)
+    +deactivate(trainer_id, actor)
   }
-  class Repository {
-    +query PostgreSQL
-    +persist SQLAlchemy models
+  class AttendanceService {
+    +session AsyncSession
+    +redis Redis
+    +check_in(device_id, api_key, qr_token)
+    +check_out(device_id, api_key, qr_token)
+    +close_timed_out_sessions()
   }
-  class SQLAlchemyModel {
-    +id
-    +created_at
-    +updated_at
+  class ClassRepository {
+    +get_class(class_id, for_update)
+    +confirmed_booking_count(class_id)
+    +get_trainer_by_user(user_id)
+    +waiting_entries_for_update(class_id)
   }
-  class RedisClient {
-    +token TTL
-    +occupancy cache
-    +rate limit state
+  class AttendanceRepository {
+    +get_active_session(user_id, for_update)
+    +create_session()
+    +active_count()
+    +timeout_candidates(cutoff)
   }
-  class WorkerTask {
-    +send reminders
-    +generate invoices
-    +expire sessions
+  class PersonalTrainer {
+    +id UUID
+    +user_id UUID
+    +display_name str
+    +is_active bool
   }
-
-  ApiEndpoint --> Service
-  Service --> Repository
-  Repository --> SQLAlchemyModel
-  Service --> RedisClient
-  Service --> WorkerTask
-
+  class GymClass {
+    +id UUID
+    +trainer_id UUID
+    +capacity int
+    +start_at datetime
+  }
+  class ClassBooking {
+    +class_id UUID
+    +user_id UUID
+    +status str
+  }
+  class ClassWaitlist {
+    +class_id UUID
+    +user_id UUID
+    +position int
+    +status str
+  }
+  class AttendanceSession {
+    +id UUID
+    +user_id UUID
+    +checked_in_at datetime
+    +closed_at datetime
+    +status str
+  }
+  BookingService ..> ClassRepository : uses
+  TrainerService ..> ClassRepository : uses
+  AttendanceService ..> AttendanceRepository : uses
+  ClassRepository ..> GymClass : queries and locks
+  ClassRepository ..> PersonalTrainer : queries
+  ClassRepository ..> ClassBooking : persists
+  ClassRepository ..> ClassWaitlist : persists
+  AttendanceRepository ..> AttendanceSession : persists
+  PersonalTrainer "0..1" <-- "0..*" GymClass : trainer_id
+  GymClass "1" <-- "0..*" ClassBooking : class_id
+  GymClass "1" <-- "0..*" ClassWaitlist : class_id

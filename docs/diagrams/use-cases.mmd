@@ -5,7 +5,7 @@ flowchart LR
   member --> booking["Book, cancel or waitlist classes"]
   member --> notifications["Manage notification preferences"]
 
-  staff["Staff"] --> scanner["Scan QR and verify attendance"]
+  device["Authenticated Scanner/Simulator"] --> scanner["Scan QR and record attendance"]
   staff --> attendance["Review limited attendance state"]
 
   admin["Admin"] --> crm["Manage member CRM"]
@@ -16,6 +16,7 @@ flowchart LR
   manager["Manager"] --> approvals["Approve cancellations and configuration"]
   manager --> analytics["Review attendance and revenue analytics"]
 
-  pt["Personal Trainer"] --> profile["Maintain trainer profile"]
+  manager --> profile["Maintain trainer profiles"]
+  admin --> profile
+  pt["Personal Trainer"] --> own["Read own linked profile"]
   pt --> assigned["Review assigned classes"]
-

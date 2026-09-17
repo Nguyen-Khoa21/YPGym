@@ -1,4 +1,4 @@
-# Role Permission Matrix through Day 42
+# Release Role Permission Matrix
 
 | Capability | Member | Staff | Manager | Admin | PT |
 |---|:---:|:---:|:---:|:---:|:---:|
@@ -14,7 +14,8 @@
 | Operational configuration | No | No | Yes | Yes | No |
 | Membership revocation | No | No | No | Yes | No |
 | Admin class CRUD | No | No | No | Yes | No |
-| PT profile management | No | No | Yes | Yes | Own public profile only |
+| PT profile maintenance | No | No | Yes | Yes | Read own linked profile only |
+| Own trainer workspace and next-three assignments | No | No | No | No | Yes |
 | Browse trainers/classes | Yes | No | No | No | Public trainer list |
 | Own class booking/waitlist/cancellation | Yes | No | No | No | No |
 | Own integrated member dashboard | Yes | No | No | No | No |
@@ -28,3 +29,5 @@
 - Device API keys, passwords, JWTs, and QR token material are never returned in CRM, audit, or export payloads.
 - Manager/admin trainer mutations are enforced by backend role dependencies; class scheduling remains admin-only.
 - Booking, waitlist, cancellation, and dashboard endpoints are member-only and derive the user ID from the JWT. A member cannot cancel another member's booking.
+- `/trainers/me` is PT-only and derives the linked profile from the current account. PTs cannot mutate trainer profiles, schedule classes or read admin fields through this route. Public trainer list/detail routes remain accessible without a role.
+- Expo is a member client; operations and PT logins are rejected. This platform boundary does not weaken backend permissions.

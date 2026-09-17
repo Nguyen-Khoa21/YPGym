@@ -45,9 +45,7 @@ backend/uploads/
 backend/generated/
 backend/celerybeat-schedule*
 
-# Local Draw.io diagrams and editor files
-docs/diagrams/*.drawio
-docs/diagrams/*.drawio.png
+# Draw.io editor backups (release sources and previews are versioned)
 docs/diagrams/.*.drawio.bkp
 docs/diagrams/.*.drawio.dtmp
 

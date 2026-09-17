@@ -7,6 +7,7 @@ All paths are under `/api/v1`. Errors use the shared `{ "error": { "code", "mess
 | Method and path | Roles | Purpose |
 |---|---|---|
 | `GET /trainers` | Public | Active member-safe trainer cards with at most three upcoming assigned classes. |
+| `GET /trainers/me` | PT only | Authenticated PT's linked profile and at most three future scheduled assignments; identity is derived from the JWT, never a query parameter. |
 | `GET /trainers/{trainer_id}` | Public | One active member-safe trainer card. |
 | `GET /admin/trainers?active=true|false` | Manager, admin | Active/inactive profile management list. |
 | `POST /admin/trainers` | Manager, admin | Create a profile with name, bio, specialty, availability, and optional existing PT user link. |
@@ -14,6 +15,8 @@ All paths are under `/api/v1`. Errors use the shared `{ "error": { "code", "mess
 | `POST /admin/trainers/{trainer_id}/deactivate` | Manager, admin | Deactivate a profile after future scheduled classes are reassigned. |
 
 Create/update/deactivate write audit records. Deactivation returns `409 CONFLICT` with future class IDs when reassignment is still required. Invalid or already-linked PT user IDs return `422 TRAINER_USER_INVALID` or `409 CONFLICT`.
+
+The own-workspace route is declared before `/{trainer_id}` and returns `404` when no profile is linked. An inactive linked profile remains readable by its owner. It uses the existing member-safe `TrainerItem`; internal user IDs, credentials and admin-only fields are excluded. Other roles receive `403`. This is a lightweight read-only workspace; manager/admin profile maintenance and admin-only scheduling remain separate.
 
 ## Member classes and bookings
 

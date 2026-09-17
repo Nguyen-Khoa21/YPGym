@@ -9,10 +9,10 @@ flowchart LR
   services --> repos["Repository Layer"]
   repos --> postgres[("PostgreSQL")]
   services --> redis[("Redis")]
-  services --> worker["Celery Worker"]
+  worker["Celery Worker"] --> services
   beat["Celery Beat"] --> worker
   worker --> postgres
   worker --> redis
-  worker --> email["SMTP/Email"]
-  worker --> invoices["Invoice PDF Generator"]
-
+  worker --> reminders["Preference-aware reminder records"]
+  services --> email["Private development authentication Maildir"]
+  services --> invoices["Invoice PDF Generator"]

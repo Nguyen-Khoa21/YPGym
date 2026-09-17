@@ -1,6 +1,6 @@
 # YPGym System Architecture
 
-## Runtime topology through Day 49 (web and native member clients)
+## Release runtime topology (web and native member clients)
 
 | Service | Responsibility |
 |---|---|
@@ -14,7 +14,7 @@
 | `iot-simulator` | Optional scanner client using the same device-authenticated HTTP contract as future hardware. |
 
 ```text
-Web client --------------------------> FastAPI API
+Web and Expo member clients ---------> FastAPI API
 Scanner/simulator -- device API key -> Attendance API
 FastAPI -> service -> repository ----> PostgreSQL
                  |-------------------> Redis
@@ -52,10 +52,19 @@ API endpoint -> Service -> Repository -> SQLAlchemy model -> PostgreSQL
 - Staff: attendance history and reasoned manual closure only.
 - Managers: attendance analytics, limited membership approval queue, broadcasts, audit, and configuration.
 - Admins: manager capabilities plus full CRM, billing/export, revocation, and class administration.
-- PT role: current limited dashboard; full profile/assignment work begins Day 39.
+- PT role: own linked member-safe trainer profile and next-three future assignments through `/trainers/me`; profile maintenance belongs to manager/admin and scheduling belongs to admin. Advanced PT programming/payroll/client work is deferred.
 
 See `docs/policies/roles.md` for the endpoint/route matrix and `docs/api/iot-scanner.md` for the device boundary.
 See `docs/policies/security.md` for sensitive endpoint limits and `docs/release/viva-notes.md` for release explanations of source-of-truth boundaries.
+
+## API and local deployment documentation
+
+- Swagger: `http://localhost:8001/docs`; OpenAPI: `http://localhost:8001/openapi.json`.
+- Versioned feature API: `http://localhost:8001/api/v1`; health/dependency probes use `/health` and `/health/dependencies`.
+- Normal Compose ports: web `5174`, API `8001`, PostgreSQL `5433`, Redis `6380`. The standalone demo uses web `55174` and loopback API `58001`, without published database/cache ports.
+- Run/migration/seed procedures: root `README.md`, `docs/database/erd.md`, and `docs/demo/demo-script.md`.
+- Domain API summaries: `docs/api/classes-booking-dashboard.md` and `docs/api/iot-scanner.md`; remaining account/billing/notification/configuration operations are discoverable in Swagger and the requirement mapping.
+- Editable release diagrams and diagram scope notes: `docs/diagrams/README.md`; table checklist equivalents: `docs/database/erd.md`.
 
 ## UI authority
 

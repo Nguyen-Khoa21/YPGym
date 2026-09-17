@@ -80,9 +80,16 @@ npm run lint
 npm run build
 ```
 
-The latest isolated Compose verification completed with 102 passing tests. The final local release archive/commit/tag is still a Day60 gate; no remote push is implied by this repository state.
+The September 16 isolated run reports 102 passing backend tests with five Starlette deprecation warnings, including real PostgreSQL/Redis integration, repeatable demo scenarios and CSV/configuration checks. Alembic remains at `20260723_0007`. Native/rendered release gates are separately tracked in `docs/progress/day-43-60-tracker.md`. The implementation and `v0.60.0` tag were pushed on the user's September 16 request; that does not publish the local ZIP.
 
-The September 16 isolated run reports 101 passing backend tests with five Starlette deprecation warnings, including real PostgreSQL/Redis integration, repeatable demo scenarios and CSV/configuration checks. Alembic remains at `20260723_0007`. Native/rendered release gates are separately tracked in `docs/progress/day-43-60-tracker.md`.
+The September 17 review reconciles the FR1–FR39 platform matrix, API/PT/schema documentation and editable diagrams, and replaces the old archive because it included generated invoices. Use `docs/release/archive-inventory.md` for the sanitized package and integrity inventory. The packager uses the standard library and Git's source inventory:
+
+```powershell
+python -m unittest discover -s scripts -p 'test_*.py' -v
+python scripts/package_release.py --output C:\Users\Admin\ypgym-release-20260917.zip
+```
+
+Choose a new output filename outside the repository on subsequent runs. The ZIP contains reviewed non-ignored working-tree additions as well as tracked files; inspect `git status` before packaging.
 
 Run the real-storage tests from the repository root using their standalone Compose file:
 

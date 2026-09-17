@@ -1,6 +1,20 @@
 # YPGym Handoff
 
-Last updated: 2026-09-16, Day60 local release commit/tag complete.
+Last updated: 2026-09-17, release documentation and sanitized-package correction.
+
+## September 17 continuation — release documentation and package correction
+
+- Resumed the active Day42–60 goal after reading both handoffs, the original goal attachment and revised plan. Entry branch `main` / `origin/main` was `007fd86`; September 16 code and `v0.60.0` were subsequently pushed on explicit user request. Only generated `tmp/` was untracked at entry. Earlier no-push/uncommitted statements below are historical.
+- Added a 39-row BRD Section7 FR matrix with web/native coverage, real routes/code/tests/evidence and explicit partials (native registration/recovery/freeze/cancellation, email reverification/external delivery); FR39 remains deferred. The separately named proposal and academic research/UAT results remain unavailable.
+- Reconciled `/trainers/me`, own read-only PT workspace, roles, release topology/Swagger/ports and actual schema/migration/table equivalents. Added representative backend UML and versionable editable/embedded diagram assets; corrected Expo/PT/scanner/worker labels and regenerated stale previews. Existing layout crossing warnings remain documented.
+- Added stdlib `scripts/package_release.py` and regression tests. The old September 16 ZIP contains 16 generated invoice PDFs and is superseded, unsuitable for sharing and unpublished. The replacement excludes runtime storage, real environment/key/database/cache/dependency/build paths and links escaping the repository, and emits a per-file SHA-256 manifest and external ZIP inventory.
+- Fresh checks September 17: packaging **3 passed**; normal/test/demo Compose configurations valid; normal API health successful; Alembic `20260723_0007 (head)` and no pending operations. Architecture/use-case/UML validation: **0 errors**, retained **37/13/1 routing warnings**; reviewed exported previews. September 16's 102-test backend, frontend and native checks are prior application evidence, not newly rerun today. Application source, dependencies, schema and normal stored data were unchanged today.
+- Current files changed: `.gitignore`, root README, API/architecture/database/roles/security/release/diagram documentation, both handoffs, six editable diagram sources/previews and the two packaging scripts. `tmp/` is preserved/excluded. No new remote push is authorized by this continuation.
+- Package/release review and authorized local corrective checkpoint are the final batch; see `docs/release/archive-inventory.md`. Keep both handoffs current after it completes. Normal stack health was verified at web/API `5174/8001`; earlier demo/Metro/emulator handles are historical unless freshly checked.
+
+## Historical session records
+
+The September 17 checkpoint supersedes older archive, push and tracker status claims below.
 
 ## September 16 development continuation — current checkpoint
 
