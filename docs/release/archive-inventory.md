@@ -2,7 +2,7 @@
 
 ## September 17 corrected package
 
-The final source package path is `C:\Users\Admin\ypgym-release-20260917.zip`. Its exact file count, ZIP bytes, SHA-256, base commit and exclusions are recorded in the adjacent `ypgym-release-20260917.inventory.json`. Inside the ZIP, `ARCHIVE-CONTENTS.json` records each source file's size and SHA-256. The inventory stays outside the archive so its checksum does not depend on itself.
+The final source package path is `C:\Users\Admin\ypgym-release-20260917.zip` (432 source files plus `ARCHIVE-CONTENTS.json`). Its exact ZIP bytes, SHA-256, base commit and exclusions are recorded in the adjacent `ypgym-release-20260917.inventory.json`. Inside the ZIP, the manifest records each source file's size and SHA-256. The inventory stays outside the archive so its checksum does not depend on itself. Corrective implementation commit: `a80dc02`; the final documentation/package checkpoint is the non-conflicting annotated local tag `v0.60.1`, preserving `v0.60.0`.
 
 Package from the repository root after reviewing the working tree:
 
@@ -81,6 +81,12 @@ python scripts/package_release.py --output C:\Users\Admin\ypgym-release-review-2
 git diff --check
 git diff --stat
 git diff
+git diff --cached --check
+git diff --cached --stat
+git commit -m "fix: exclude runtime data from release packages and reconcile documentation"
+git commit -m "docs: record verified release package and recovery checkpoint"
+python scripts/package_release.py --output C:\Users\Admin\ypgym-release-20260917.zip
+git tag -a v0.60.1 -m "Corrected local source package, traceability and editable release diagrams"
 ```
 
 All three packaging tests passed with no skips. Compose/health/Alembic checks passed. Application lint/build/102-test backend/native results are dated September16, not rerun for this packaging/documentation change. Draw.io `validate.py` ran against all six sources: zero errors; retained routing warnings are architecture37, use-case13, UML1, domain74, ERD217 and membership3. Exports used installed draw.io30.4.1 with `-x -f png -e --width <2000/2500/5000> -o <preview> <source>` via hidden `Start-Process`; `repair_png.py` ran after each embedded export. Previews were visually reviewed. Embedded XML/PNG CRC and ZIP manifest hashes were checked with Python without printing source or secret values.
