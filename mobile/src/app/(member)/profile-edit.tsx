@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
 import { Alert, Text, View } from 'react-native';
 
 import { Action, Busy, Field, Heading, Message, PageTop, Screen, textStyles } from '@/components/ui';
@@ -24,7 +23,7 @@ export default function ProfileEditScreen() {
     if (newPassword && (newPassword.length < 8 || !currentPassword)) { setValidation('To change your password, enter the current password and a new one of at least 8 characters.'); return; }
     setValidation(''); save.mutate();
   }
-  return <Screen><PageTop title="Personal Information" onBack={() => router.back()} /><Heading title="Your details" detail="Name and phone are editable. Email changes require a separate verification flow." />
+  return <Screen><PageTop title="Personal Information" fallback="/(member)/(tabs)/profile" /><Heading title="Your details" detail="Name and phone are editable. Email changes require a separate verification flow." />
     {profile.isLoading ? <Busy label="Loading profile" /> : null}{profile.isError ? <Message title="Profile unavailable" detail={errorMessage(profile.error)} action="Retry" onAction={() => void profile.refetch()} /> : null}
     {profile.data ? <View style={{ gap: 17 }}><Field label="Full name" value={name} onChangeText={setNameInput} autoComplete="name" /><Field label="Phone number" value={phone} onChangeText={setPhoneInput} keyboardType="phone-pad" autoComplete="tel" /><Text style={textStyles.muted}>Verified email: {profile.data.email}</Text>
       <Text style={[textStyles.subheading, { marginTop: 12 }]}>Account security</Text><Text style={textStyles.muted}>Leave password fields empty to keep your current password.</Text><Field label="Current password" value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry autoComplete="current-password" /><Field label="New password" value={newPassword} onChangeText={setNewPassword} secureTextEntry autoComplete="new-password" />

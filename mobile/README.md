@@ -55,6 +55,10 @@ npx expo export --platform android
 
 After signing in, check Dashboard, Check-in, Classes, and Profile tabs. A valid active membership receives a short-lived QR token from the server; it disappears when expired or the app moves to the background. Booking and waitlist actions require an eligible membership. The renewal flow clearly confirms a **simulated** payment and displays success only after the new invoice appears in the account. No real payment method is charged.
 
+Logout removes the native SecureStore token (or both browser storage fallbacks), clears member-specific query data and replaces the navigation stack with the login screen. The API currently has no logout/token-revocation endpoint, so server-side revocation is not claimed; access tokens still expire according to backend configuration. Expired tokens are removed when session restoration or an authenticated request receives HTTP 401. Nested pages use route-aware Back arrows and fall back to a safe member screen when opened directly.
+
+Dashboard, Profile, Check-in and renewal screens refetch the server membership state when mounted and after the app returns to the foreground. A confirmed mock purchase invalidates and refetches dashboard, profile, QR, invoice/billing, plan and membership query groups before showing the server-backed success receipt. Cancelled, expired, frozen and revoked states remain visibly distinct from the member's account tier and cannot display an eligible QR.
+
 The web portal still runs at `http://localhost:5174`; OpenAPI is at `http://localhost:8001/docs`. The current development handoff is `../docs/HANDOFF.md`.
 
 For the isolated Day58 demo use API port `58001` and the synthetic accounts in `../docs/demo/demo-script.md`. Start the separate `compose.demo.yml` stack; use its records for policy demonstrations.

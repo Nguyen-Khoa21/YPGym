@@ -18,7 +18,7 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 | Notification preferences | `/app/notifications/preferences` | Member | `/notifications/preferences/me` | Connected |
 | Member class booking | `/app/classes` | Member | `/classes/upcoming`, `/classes/{id}/book`, waitlist join/leave | Connected responsive class cards, PT cards, capacity, eligible/ineligible, booked/full/waitlisted/cancelled states |
 | My bookings | `/app/bookings` | Member | `/bookings/me`, booking cancel, waitlist leave | Connected confirmed/cancelled/promoted/waiting states and configured cancellation cutoff |
-| Mobile member shell | `mobile/src/app/` (Expo Router) | Member | Shared `/api/v1` auth, dashboard, attendance, classes, bookings, notifications, profile, billing | Authenticated Android dashboard/QR/classes/profile/renewal/invoice and cancel/rebook evidence September16; six BRD references and explicit parity exceptions in `docs/design/evidence/day-47-mobile/README.md`; final session/recovery cases pending |
+| Mobile member shell | `mobile/src/app/` (Expo Router) | Member | Shared `/api/v1` auth, dashboard, attendance, classes, bookings, notifications, profile, billing | Authenticated Android dashboard/QR/classes/profile/renewal/invoice and cancel/rebook evidence September16; post-Day-60 FR40/FR41 adds centralized logout/reset, route-aware fallback Back behavior, foreground membership refresh and complete renewal cache invalidation; physical phone/iOS remain unverified |
 
 Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/*` routes.
 

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 
-import { Action, Busy, Card, Message, Screen, textStyles } from '@/components/ui';
+import { Action, Busy, Card, Message, PageTop, Screen, textStyles } from '@/components/ui';
 import { errorMessage, formatDate, formatMoney } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { colors } from '@/lib/theme';
@@ -13,7 +13,7 @@ export default function RenewalSuccessScreen() {
   const { request, user } = useAuth();
   const invoices = useQuery({ queryKey: ['invoices', user?.id], queryFn: ({ signal }) => request<Invoice[]>('/billing/me/invoices', { signal }), enabled: Boolean(invoiceId) });
   const invoice = invoices.data?.find((item) => item.id === invoiceId);
-  return <Screen><View style={{ flex: 1, justifyContent: 'center', minHeight: 580, gap: 18 }}>
+  return <Screen><PageTop title="Renewal Complete" fallback="/(member)/(tabs)/dashboard" /><View style={{ flex: 1, justifyContent: 'center', minHeight: 520, gap: 18 }}>
     {invoices.isLoading ? <Busy label="Verifying your invoice" /> : null}
     {invoices.isError ? <Message title="Could not verify renewal" detail={errorMessage(invoices.error)} action="Retry" onAction={() => void invoices.refetch()} /> : null}
     {invoices.data && !invoice ? <Message title="Renewal receipt unavailable" detail="This screen only confirms an invoice returned by your account." action="View invoices" onAction={() => router.replace('/(member)/invoices')} /> : null}

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { Action, Busy, Card, Heading, Message, PageTop, Screen, textStyles } from '@/components/ui';
@@ -16,7 +15,7 @@ export default function NotificationsScreen() {
   const mark = useMutation({ mutationFn: (id?: string) => request(id ? `/notifications/me/${id}/read` : '/notifications/me/read-all', { method: 'POST' }),
     onSuccess: async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['notifications'] }), queryClient.invalidateQueries({ queryKey: ['dashboard'] })]); },
     onError: (error) => Alert.alert('Could not update inbox', errorMessage(error)) });
-  return <Screen refreshing={inbox.isRefetching} onRefresh={() => void inbox.refetch()}><PageTop title="Notifications" onBack={() => router.back()} /><Heading title="Your inbox" detail={inbox.data ? `${inbox.data.unread_count} unread` : undefined} />
+  return <Screen refreshing={inbox.isRefetching} onRefresh={() => void inbox.refetch()}><PageTop title="Notifications" fallback="/(member)/(tabs)/dashboard" /><Heading title="Your inbox" detail={inbox.data ? `${inbox.data.unread_count} unread` : undefined} />
     {inbox.data?.unread_count ? <Action label="Mark all read" onPress={() => mark.mutate(undefined)} disabled={mark.isPending} outline /> : null}
     {inbox.isLoading ? <Busy label="Loading notifications" /> : null}{inbox.isError ? <Message title="Inbox unavailable" detail={errorMessage(inbox.error)} action="Retry" onAction={() => void inbox.refetch()} /> : null}
     {inbox.data?.items.length === 0 ? <Message title="Your inbox is clear" detail="Membership and booking updates will appear here." /> : null}

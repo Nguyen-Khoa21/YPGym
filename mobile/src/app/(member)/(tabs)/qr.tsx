@@ -15,7 +15,7 @@ export default function QrScreen() {
   const { width } = useWindowDimensions();
   const [now, setNow] = useState(Date.now);
   const [foregroundReady, setForegroundReady] = useState(true);
-  const access = useQuery({ queryKey: ['dashboard', user?.id], queryFn: ({ signal }) => request<Dashboard>('/dashboard/me', { signal }), refetchInterval: 30_000 });
+  const access = useQuery({ queryKey: ['dashboard', user?.id], queryFn: ({ signal }) => request<Dashboard>('/dashboard/me', { signal }), staleTime: 0, refetchOnMount: 'always', refetchInterval: 30_000 });
   const eligible = access.data?.qr_access.eligible === true;
   const qr = useQuery({ queryKey: ['qr', user?.id], queryFn: ({ signal }) => request<QrToken>('/attendance/qr-token/me', { signal }), enabled: eligible,
     retry: false, refetchInterval: (query) => query.state.data ? Math.max(1000, new Date(query.state.data.expires_at).getTime() - Date.now() - 5000) : false });
@@ -37,7 +37,7 @@ export default function QrScreen() {
   const seconds = qrSecondsLeft(qr.data?.expires_at, now);
   const showCode = mayShowQr(eligible, foregroundReady, qr.isError, seconds, Boolean(qr.data?.token));
   return <Screen onRefresh={() => { void access.refetch(); if (eligible) void refreshQr(); }} refreshing={access.isRefetching || qr.isRefetching}>
-    <Brand /><Heading title={user?.name ?? 'Check-in pass'} detail={`${user?.tier.toUpperCase() ?? 'MEMBER'} · ID ${user?.id.slice(0, 8) ?? ''}`} />
+    <Brand /><Heading title={user?.name ?? 'Check-in pass'} detail={`${access.data?.membership?.status.toUpperCase() ?? 'NO MEMBERSHIP'} · ID ${user?.id.slice(0, 8) ?? ''}`} />
     {access.isLoading ? <Busy label="Checking membership access" /> : null}
     {access.isError ? <Message title="Access unavailable" detail={errorMessage(access.error)} action="Retry" onAction={() => void access.refetch()} /> : null}
     {access.data && !eligible ? <Message title="QR access restricted" detail={access.data.qr_access.reason ?? access.data.membership?.message ?? 'An active membership is required.'} action="View plans" onAction={() => router.push('/(member)/renew')} /> : null}

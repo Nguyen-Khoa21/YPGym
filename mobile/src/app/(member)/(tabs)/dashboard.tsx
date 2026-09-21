@@ -11,7 +11,7 @@ import type { Dashboard } from '@/lib/types';
 
 export default function DashboardScreen() {
   const { request, user } = useAuth();
-  const dashboard = useQuery({ queryKey: ['dashboard', user?.id], queryFn: ({ signal }) => request<Dashboard>('/dashboard/me', { signal }), refetchInterval: 30_000 });
+  const dashboard = useQuery({ queryKey: ['dashboard', user?.id], queryFn: ({ signal }) => request<Dashboard>('/dashboard/me', { signal }), staleTime: 0, refetchOnMount: 'always', refetchInterval: 30_000 });
   const data = dashboard.data;
   return <Screen refreshing={dashboard.isRefetching} onRefresh={() => void dashboard.refetch()}>
     <Brand right={<Pressable accessibilityRole="button" accessibilityLabel="Notifications" onPress={() => router.push('/(member)/notifications')}><Ionicons name="notifications-outline" size={23} color={colors.lime} /></Pressable>} />
@@ -19,7 +19,7 @@ export default function DashboardScreen() {
     {dashboard.isLoading ? <Busy label="Loading your live account" /> : null}
     {dashboard.isError ? <Message title="Dashboard unavailable" detail={errorMessage(dashboard.error)} action="Retry" onAction={() => void dashboard.refetch()} /> : null}
     {data ? <>
-      <Card accent><Pill label={`${data.membership?.status ?? 'No plan'} · ${data.member.tier}`} /><Text style={textStyles.muted}>Days Remaining</Text><Text style={{ color: colors.text, fontSize: 52, fontWeight: '900' }}>{data.membership?.days_remaining ?? '—'}</Text><Text style={textStyles.muted}>{data.membership ? `${data.membership.plan_name} · Expires ${formatDate(data.membership.expiry_date)}` : 'Choose a membership to unlock the gym.'}</Text><Action label={data.membership ? 'Renew membership →' : 'Choose a plan →'} onPress={() => router.push('/(member)/renew')} /></Card>
+      <Card accent><Pill label={data.membership?.status ?? 'No membership'} tone={data.qr_access.eligible ? 'lime' : 'coral'} /><Text style={textStyles.muted}>Account tier: {data.member.tier.toUpperCase()}</Text><Text style={textStyles.muted}>Days Remaining</Text><Text style={{ color: colors.text, fontSize: 52, fontWeight: '900' }}>{data.membership?.days_remaining ?? '—'}</Text><Text style={textStyles.muted}>{data.membership ? `${data.membership.plan_name} · Expires ${formatDate(data.membership.expiry_date)}` : 'Choose a membership to unlock the gym.'}</Text>{data.membership && !data.qr_access.eligible ? <Text style={textStyles.muted}>{data.membership.message}</Text> : null}<Action label={data.membership ? 'View membership options →' : 'Choose a plan →'} onPress={() => router.push('/(member)/renew')} /></Card>
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <View style={{ flex: 1 }}><Card><Ionicons name="qr-code-outline" size={27} color={colors.lime} /><Text style={textStyles.subheading}>Show QR</Text><Action label={data.qr_access.eligible ? 'Open pass' : 'Restricted'} disabled={!data.qr_access.eligible} onPress={() => router.push('/(member)/(tabs)/qr')} outline /></Card></View>
         <View style={{ flex: 1 }}><Card><Ionicons name="people-outline" size={26} color={colors.lime} /><Text style={textStyles.muted}>Live Capacity</Text><Text style={textStyles.subheading}>{data.crowdedness.percentage}%</Text><Pill label={data.crowdedness.status} tone={data.crowdedness.percentage > 80 ? 'coral' : 'lime'} /></Card></View>

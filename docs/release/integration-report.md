@@ -1,5 +1,11 @@
 # Isolated integration evidence
 
+## September 20 post-Day-60 Feature 1
+
+The fresh isolated command `docker compose -p ypgym-postday60-tests -f compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner --attach test-runner` migrated a temporary PostgreSQL database through `20260723_0007` and completed **102 passed, 5 warnings in 67.27 seconds**. The warnings remain Starlette's `HTTP_422_UNPROCESSABLE_ENTITY` deprecation. The test project was removed afterward; normal application volumes were not touched.
+
+This run freshly covers failed mock payment, idempotent repeated purchase, active renewal and immutable invoice ownership; approved cancellation/freeze and QR denial; revoked renewal denial; expired JWT rejection; member/role ownership and the broader stored-data regression. Feature 1 also adds six mobile Node tests covering QR safety, logout cache/storage/navigation ordering, member restoration, retryable offline restoration, expired-session discard, active-to-cancelled and active-to-renewed cache refresh, and Back fallback behavior. Mobile typecheck, lint and Android export pass. The Android emulator confirmed cancelled-state messaging/QR denial and logout persistence across an Expo Go force-stop/reopen. Physical phone and iOS were not exercised.
+
 ## September 16 continuation
 
 The earlier storage run covered 101 tests. The latest final-source run executed `docker compose -p ypgym-tests -f compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner --attach test-runner`: migrations applied to the dedicated temporary database, **102 passed, 5 warnings in 90.58 seconds**. The five warnings are the existing Starlette 422 deprecation. The test stack stopped normally with exit code 0; normal application services remained running.

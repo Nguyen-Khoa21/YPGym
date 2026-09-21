@@ -1,6 +1,19 @@
 # YPGym Handoff
 
-Last updated: 2026-09-17, release documentation and sanitized-package correction.
+Last updated: 2026-09-20, post-Day-60 Feature 1 mobile reliability.
+
+## September 20 continuation — Feature 1 mobile reliability and membership state
+
+- Started the user-supplied post-Day-60 mobile/YPFood roadmap from `main` at synchronized local/remote commit `451f0d3` (`v0.60.1`). There was no merge/rebase state. Existing user-owned `README.md`, `RUN_GUIDE.md` and `tmp/` work was preserved and excluded from this feature commit.
+- Reserved the unused FR40–FR55 identifiers in `docs/requirements/post-day-60.md` and added `docs/progress/post-day-60-mobile-ypfood.md` with the 13-slice order, actual dependency map, baseline and scope boundaries. FR39 remains out of scope.
+- Feature 1 centralizes member session restoration/logout. Logout clears in-memory identity, member-scoped TanStack Query data, SecureStore and both browser storage fallbacks, then replaces the navigation stack with `/login`. HTTP 401 and restored non-member/expired sessions discard the stored session. The backend has no logout/token-revocation route, so no server revocation is claimed.
+- Nested attendance, booking, invoice, notification, preferences, profile-edit and renewal screens now use route-aware Back arrows with safe fallbacks when deep-linked; tab roots still have no meaningless Back control. Renewal Success also has a safe Back path.
+- Dashboard/Profile/QR/renewal read fresh membership state on mount and after native foregrounding. Successful mock renewal waits for the backend response, then refetches dashboard, profile, QR, invoices/billing, plans and membership query groups before opening the account-verified invoice success screen. The same idempotency key remains stable for retries from one confirmation screen.
+- Cancelled/expired/frozen/revoked membership status is separated from account tier. Dashboard, Profile, Check-in and renewal show server status/reason; QR remains the existing server-issued expiring token and is not rendered when the shared backend eligibility response denies access.
+- Fresh validation: isolated PostgreSQL/Redis backend suite **102 passed, 5 existing Starlette deprecation warnings in 67.27s**; Alembic current/check is clean at `20260723_0007`; dependency health reports PostgreSQL/Redis `ok`; mobile typecheck and lint pass; mobile tests are **6 passed**; Android export passes. Web baseline lint/build passes with the existing TanStack/bundle warnings and no web source changed.
+- Fresh Expo compatibility diagnostics report **20/21** because `@expo/ui`, `expo`, `expo-constants` and `expo-router` are each one recommended SDK57 patch behind. No dependency was changed in this slice. A later deliberate SDK-compatible patch update is recommended, separate from Feature 1 behavior.
+- Fresh Android emulator check used `Medium_Phone_API_36.1` and Expo Go against the normal shared API. Member login showed the persisted **CANCELLED** state separately from VIP tier, Dashboard and Profile showed the cancellation message/status, QR showed `QR access restricted`, and confirmed logout returned to Login. Force-stopping/reopening Expo Go remained on Login, proving SecureStore cleanup for this journey. No normal data was mutated; physical phone and iOS remain unverified.
+- No backend source, dependency lockfile, database model, migration, constraint or stored data changed. Next slice is Feature 2 only after the Feature 1 commit push decision required by the supplied protocol.
 
 ## September 17 continuation — release documentation and package correction
 

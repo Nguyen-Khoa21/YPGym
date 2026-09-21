@@ -1,9 +1,11 @@
 import type { PropsWithChildren, ReactNode } from 'react';
+import { router, type Href } from 'expo-router';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '@/lib/theme';
+import { goBackOrReplace } from '@/lib/navigation';
 
 export function Screen({ children, onRefresh, refreshing = false }: PropsWithChildren<{ onRefresh?: () => void; refreshing?: boolean }>) {
   return <SafeAreaView style={styles.screen}>
@@ -25,8 +27,8 @@ export function Heading({ eyebrow, title, detail }: { eyebrow?: string; title: s
   </View>;
 }
 
-export function PageTop({ title, onBack }: { title: string; onBack: () => void }) {
-  return <View style={styles.pageTop}><Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={25} color={colors.text} /></Pressable><Text style={styles.pageTopTitle}>{title}</Text></View>;
+export function PageTop({ title, fallback }: { title: string; fallback: Href }) {
+  return <View style={styles.pageTop}><Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => goBackOrReplace(router, fallback)} style={styles.back}><Ionicons name="arrow-back" size={25} color={colors.text} /></Pressable><Text style={styles.pageTopTitle}>{title}</Text></View>;
 }
 
 export function Card({ children, accent = false }: PropsWithChildren<{ accent?: boolean }>) {

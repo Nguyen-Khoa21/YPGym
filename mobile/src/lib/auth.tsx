@@ -1,15 +1,28 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
 import { apiRequest, ApiError, errorMessage } from '@/lib/api';
-import { queryClient } from '@/lib/query';
+import { clearMemberQueryData } from '@/lib/query';
+import { endMemberSession, restoreMemberSession } from '@/lib/session';
 import type { LoginResponse, User } from '@/lib/types';
 
 const TOKEN_KEY = 'ypgym_member_token';
-const readToken = () => Platform.OS === 'web' ? Promise.resolve(window.sessionStorage.getItem(TOKEN_KEY)) : SecureStore.getItemAsync(TOKEN_KEY);
-const saveToken = (value: string) => Platform.OS === 'web' ? Promise.resolve(window.sessionStorage.setItem(TOKEN_KEY, value)) : SecureStore.setItemAsync(TOKEN_KEY, value);
-const deleteToken = () => Platform.OS === 'web' ? Promise.resolve(window.sessionStorage.removeItem(TOKEN_KEY)) : SecureStore.deleteItemAsync(TOKEN_KEY);
+async function readToken() {
+  if (Platform.OS !== 'web') return SecureStore.getItemAsync(TOKEN_KEY);
+  return window.sessionStorage.getItem(TOKEN_KEY) ?? window.localStorage.getItem(TOKEN_KEY);
+}
+async function saveToken(value: string) {
+  if (Platform.OS !== 'web') return SecureStore.setItemAsync(TOKEN_KEY, value);
+  window.localStorage.removeItem(TOKEN_KEY);
+  window.sessionStorage.setItem(TOKEN_KEY, value);
+}
+async function deleteToken() {
+  if (Platform.OS !== 'web') return SecureStore.deleteItemAsync(TOKEN_KEY);
+  window.sessionStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(TOKEN_KEY);
+}
 
 type Options = { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal };
 type Session = {
@@ -32,42 +45,60 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const logout = useCallback(async (expectedToken?: string) => {
     if (expectedToken && expectedToken !== currentToken.current) return;
-    currentToken.current = null;
-    queryClient.clear();
-    await deleteToken();
-    setToken(null);
-    setUser(null);
-    setRestoreError(null);
+    await endMemberSession({
+      clearMemory: () => {
+        currentToken.current = null;
+        setToken(null);
+        setUser(null);
+        setRestoreError(null);
+      },
+      clearQueries: clearMemberQueryData,
+      clearStoredToken: deleteToken,
+      resetNavigation: () => router.replace('/login'),
+    });
   }, []);
 
   useEffect(() => {
     let mounted = true;
     async function restore() {
-      try {
-        const stored = await readToken();
-        if (!mounted || !stored) return;
-        currentToken.current = stored;
-        setToken(stored);
-        const profile = await apiRequest<User>('/auth/me', stored);
-        if (!mounted || currentToken.current !== stored) return;
-        if (profile.role !== 'member') { await logout(stored); return; }
-        setUser(profile);
+      const result = await restoreMemberSession({
+        readToken,
+        loadUser: (stored) => apiRequest<User>('/auth/me', stored),
+        discardStoredSession: async () => { clearMemberQueryData(); await deleteToken(); },
+        isUnauthorized: (error) => error instanceof ApiError && error.status === 401,
+      });
+      if (!mounted) return;
+      if (result.kind === 'authenticated') {
+        currentToken.current = result.token;
+        setToken(result.token);
+        setUser(result.user);
         setRestoreError(null);
-      } catch (error) {
-        if (!mounted) return;
-        if (error instanceof ApiError && error.status === 401) await logout(currentToken.current ?? undefined);
-        else setRestoreError(errorMessage(error));
-      } finally { if (mounted) setReady(true); }
+      } else if (result.kind === 'retry') {
+        currentToken.current = result.token;
+        setToken(result.token);
+        setUser(null);
+        setRestoreError(errorMessage(result.error));
+      } else {
+        currentToken.current = null;
+        setToken(null);
+        setUser(null);
+        setRestoreError(null);
+      }
+      setReady(true);
     }
-    void restore();
+    void restore().catch((error) => {
+      if (!mounted) return;
+      setRestoreError(errorMessage(error));
+      setReady(true);
+    });
     return () => { mounted = false; };
-  }, [logout, restoreAttempt]);
+  }, [restoreAttempt]);
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await apiRequest<LoginResponse>('/auth/login', undefined, { method: 'POST', body: { email, password } });
     if (result.user.role !== 'member') throw new ApiError('This app is for members. Use the web workspace for your role.', 403, 'PERMISSION_DENIED');
     await saveToken(result.access_token);
-    queryClient.clear();
+    clearMemberQueryData();
     currentToken.current = result.access_token;
     setToken(result.access_token);
     setUser(result.user);
