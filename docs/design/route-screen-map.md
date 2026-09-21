@@ -1,6 +1,6 @@
 # Design Architecture Route-Screen Map
 
-Primary UI references are the BRD Design Architecture document and its embedded My QR, Member CRM, Admin Member Details, Class Schedule, and Attendance Dashboard screenshots. The repository's shared forest/lime/cream design system supplies responsive web behavior where a live Figma frame is unavailable.
+Primary UI references are the BRD Design Architecture document and its embedded My QR, Member CRM, Admin Member Details, Class Schedule, and Attendance Dashboard screenshots. The post-Day-60 white, deep-green and light-green workout system in `workout-visual-system.md` supersedes the former dark/neon mobile palette and supplies responsive shared tokens where a live Figma frame is unavailable.
 
 ## Member and public routes
 
@@ -18,7 +18,7 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 | Notification preferences | `/app/notifications/preferences` | Member | `/notifications/preferences/me` | Connected |
 | Member class booking | `/app/classes` | Member | `/classes/upcoming`, `/classes/{id}/book`, waitlist join/leave | Connected responsive class cards, PT cards, capacity, eligible/ineligible, booked/full/waitlisted/cancelled states |
 | My bookings | `/app/bookings` | Member | `/bookings/me`, booking cancel, waitlist leave | Connected confirmed/cancelled/promoted/waiting states and configured cancellation cutoff |
-| Mobile member shell | `mobile/src/app/` (Expo Router) | Member | Shared `/api/v1` auth, dashboard, attendance, classes, bookings, notifications, profile, billing | Authenticated Android dashboard/QR/classes/profile/renewal/invoice and cancel/rebook evidence September16; post-Day-60 FR40/FR41 adds centralized logout/reset, route-aware fallback Back behavior, foreground membership refresh and complete renewal cache invalidation; physical phone/iOS remain unverified |
+| Mobile member shell | `mobile/src/app/` (Expo Router) | Member | Shared `/api/v1` auth, dashboard, attendance, classes, bookings, notifications, profile, billing | FR40/FR41 centralizes logout/reset, route-aware fallback Back behavior and membership refresh; FR54/FR55 adds the responsive white/green shell, semantic status/error states, field validation, skeleton feedback and accessible touch targets across all member routes; physical phone/iOS remain unverified |
 
 Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/*` routes.
 
@@ -53,7 +53,7 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 
 ## Native reference parity
 
-BRD Figures19–24 (`docs/design/references/image19.png` through `image24.png`) map respectively to native Dashboard, Renewal Selection, Renewal Success, QR Check-in, Class Booking and Member Profile. All use the existing shared API. Actual synthetic account data, VND billing and server eligibility replace sample reference values; dark/lime hierarchy and Dashboard/Check-in/Classes/Profile bottom navigation are retained. Native renewal is confirmed by the account-returned invoice, not a client-only success screen.
+BRD Figures19–24 (`docs/design/references/image19.png` through `image24.png`) map respectively to native Dashboard, Renewal Selection, Renewal Success, QR Check-in, Class Booking and Member Profile. All use the existing shared API. Actual synthetic account data, VND billing and server eligibility replace sample reference values; the four-position Dashboard/Check-in/Classes/Profile navigation is retained within the post-Day-60 white/green visual system. Native renewal is confirmed by the account-returned invoice, not a client-only success screen.
 
 The native evidence index records each implementation path, actual captures, observed/fixed clipping and badge alignment, explicit scope exceptions, and pending acceptance cases. Profile initials replace an invented avatar; personalization is deferred and live payment methods are replaced by mock-payment invoice history. This is partial visual parity with documented exceptions, not a claim of pixel identity or fulfilled deferred features.
 
@@ -68,4 +68,4 @@ The native evidence index records each implementation path, actual captures, obs
 
 ## Explicit scope boundaries
 
-Days 39-42 are connected. Expo/mobile delivery begins at Day 43. Personalization, recommendations, AI chatbot expansion, live payment settlement, physical hardware firmware, and advanced PT business workflows remain outside this milestone.
+Days 39–42 and the documented Day 43–60 release are connected. Post-Day-60 mobile reliability and the shared workout visual system are also connected; later YPTrain, guarded review, staff and discount slices remain governed by `docs/progress/post-day-60-yptrain.md`. Live payment settlement, physical hardware firmware and unapproved advanced PT business workflows remain outside this milestone.

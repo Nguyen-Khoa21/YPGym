@@ -8,6 +8,7 @@ import { Action, Brand, Busy, Card, Heading, Message, Pill, Screen, textStyles }
 import { errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { mayShowQr, qrSecondsLeft } from '@/lib/qr';
+import { colors } from '@/lib/theme';
 import type { Dashboard, QrToken } from '@/lib/types';
 
 export default function QrScreen() {
@@ -37,14 +38,14 @@ export default function QrScreen() {
   const seconds = qrSecondsLeft(qr.data?.expires_at, now);
   const showCode = mayShowQr(eligible, foregroundReady, qr.isError, seconds, Boolean(qr.data?.token));
   return <Screen onRefresh={() => { void access.refetch(); if (eligible) void refreshQr(); }} refreshing={access.isRefetching || qr.isRefetching}>
-    <Brand /><Heading title={user?.name ?? 'Check-in pass'} detail={`${access.data?.membership?.status.toUpperCase() ?? 'NO MEMBERSHIP'} · ID ${user?.id.slice(0, 8) ?? ''}`} />
+    <Brand /><Heading eyebrow="Front desk pass" title={user?.name ?? 'Check-in pass'} detail={`${access.data?.membership?.status.toUpperCase() ?? 'NO MEMBERSHIP'} · ID ${user?.id.slice(0, 8) ?? ''}`} />
     {access.isLoading ? <Busy label="Checking membership access" /> : null}
-    {access.isError ? <Message title="Access unavailable" detail={errorMessage(access.error)} action="Retry" onAction={() => void access.refetch()} /> : null}
-    {access.data && !eligible ? <Message title="QR access restricted" detail={access.data.qr_access.reason ?? access.data.membership?.message ?? 'An active membership is required.'} action="View plans" onAction={() => router.push('/(member)/renew')} /> : null}
+    {access.isError ? <Message title="Access unavailable" detail={errorMessage(access.error)} action="Retry" onAction={() => void access.refetch()} tone="error" /> : null}
+    {access.data && !eligible ? <Message title="QR access restricted" detail={access.data.qr_access.reason ?? access.data.membership?.message ?? 'An active membership is required.'} action="View plans" onAction={() => router.push('/(member)/renew')} tone="error" /> : null}
     {eligible ? <Card accent><Text style={[textStyles.muted, { textAlign: 'center' }]}>Scan this code at the gym entrance</Text><Pill label={showCode ? 'Live entry code' : 'Checking code'} centered />
       {qr.isLoading ? <Busy label="Issuing your rotating pass" /> : null}
-      {qr.isError ? <Message title="Code unavailable" detail={errorMessage(qr.error)} action="Try again" onAction={() => void refreshQr()} /> : null}
-      {showCode && qr.data ? <View style={{ alignItems: 'center', paddingVertical: 18, gap: 17 }}><View style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 15 }}><QRCode value={qr.data.token} size={Math.min(width - 102, 252)} backgroundColor="#ffffff" color="#171717" /></View><Text style={textStyles.lime}>Refreshes in {seconds}s</Text></View> : qr.data && !qr.isError ? <Message title="Pass refreshing" detail="A fresh server-issued code is required before check-in." action="Refresh now" onAction={() => void refreshQr()} /> : null}
+      {qr.isError ? <Message title="Code unavailable" detail={errorMessage(qr.error)} action="Try again" onAction={() => void refreshQr()} tone="error" /> : null}
+      {showCode && qr.data ? <View style={{ alignItems: 'center', paddingVertical: 18, gap: 17 }}><View style={{ backgroundColor: colors.white, borderColor: colors.border, borderWidth: 1, padding: 16, borderRadius: 18 }}><QRCode value={qr.data.token} size={Math.min(width - 102, 252)} backgroundColor={colors.white} color={colors.qrInk} /></View><Text style={textStyles.accent}>Refreshes in {seconds}s</Text></View> : qr.data && !qr.isError ? <Message title="Pass refreshing" detail="A fresh server-issued code is required before check-in." action="Refresh now" onAction={() => void refreshQr()} /> : null}
       <Text style={[textStyles.muted, { textAlign: 'center' }]}>Codes expire and are superseded on refresh. Screenshots do not grant access.</Text>
     </Card> : null}
     <Action label="View attendance history" outline onPress={() => router.push('/(member)/attendance')} />

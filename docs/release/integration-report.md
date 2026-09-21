@@ -1,5 +1,11 @@
 # Isolated integration evidence
 
+## September 21 post-Day-60 Feature 2
+
+The fresh isolated command `docker compose -p ypgym-yptrain-f2-tests -f compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner --attach test-runner` migrated temporary PostgreSQL storage through `20260723_0007` and completed **102 passed, 5 warnings in 51.80 seconds**. The warnings remain Starlette's `HTTP_422_UNPROCESSABLE_ENTITY` deprecation. The isolated Compose project was removed afterward; normal application volumes and stored data were not touched. Normal `docker compose config --quiet`, `alembic current` and `alembic check` also passed with no pending migration operations.
+
+Feature 2 adds one mobile contrast/token test, bringing the mobile Node suite to seven passing tests. Mobile TypeScript checking, ESLint and Android export pass. Web ESLint and the production build pass with the existing TanStack Compiler and large-bundle warnings. Expo-web review passed at phone, tablet and desktop widths without horizontal overflow. A native Android Expo Go login against the normal API confirmed Dashboard, Check-in, Classes and Profile navigation and server-backed cancelled-membership restrictions through the accessibility tree. The headless emulator framebuffer remained black during capture, so native screenshots are not presented as visual evidence. Physical phone, iOS and human UAT remain separate gates.
+
 ## September 20 post-Day-60 Feature 1
 
 The fresh isolated command `docker compose -p ypgym-postday60-tests -f compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner --attach test-runner` migrated a temporary PostgreSQL database through `20260723_0007` and completed **102 passed, 5 warnings in 67.27 seconds**. The warnings remain Starlette's `HTTP_422_UNPROCESSABLE_ENTITY` deprecation. The test project was removed afterward; normal application volumes were not touched.

@@ -59,6 +59,8 @@ Logout removes the native SecureStore token (or both browser storage fallbacks),
 
 Dashboard, Profile, Check-in and renewal screens refetch the server membership state when mounted and after the app returns to the foreground. A confirmed mock purchase invalidates and refetches dashboard, profile, QR, invoice/billing, plan and membership query groups before showing the server-backed success receipt. Cancelled, expired, frozen and revoked states remain visibly distinct from the member's account tier and cannot display an eligible QR.
 
+The member app uses the shared white-and-green workout visual system documented in `../docs/design/workout-visual-system.md`. Semantic colors, spacing, radii and shadows live in `src/lib/theme.ts`; shared controls and loading, empty, error and form-validation states live in `src/components/ui.tsx`. The content container adapts from phone through tablet and Expo web widths while keeping the Dashboard, Check-in, Classes and Profile tabs in their established order.
+
 The web portal still runs at `http://localhost:5174`; OpenAPI is at `http://localhost:8001/docs`. The current development handoff is `../docs/HANDOFF.md`.
 
 For the isolated Day58 demo use API port `58001` and the synthetic accounts in `../docs/demo/demo-script.md`. Start the separate `compose.demo.yml` stack; use its records for policy demonstrations.

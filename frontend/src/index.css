@@ -6,26 +6,26 @@
 
 @layer base {
   :root {
-    --background: 48 32% 96%;
-    --foreground: 148 31% 12%;
+    --background: 0 0% 100%;
+    --foreground: 145 23% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 148 31% 12%;
+    --card-foreground: 145 23% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 148 31% 12%;
-    --primary: 150 38% 18%;
-    --primary-foreground: 49 92% 88%;
-    --secondary: 85 75% 55%;
-    --secondary-foreground: 148 31% 12%;
-    --muted: 45 22% 90%;
-    --muted-foreground: 150 12% 38%;
-    --accent: 13 88% 62%;
+    --popover-foreground: 145 23% 10%;
+    --primary: 148 69% 18%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 139 37% 48%;
+    --secondary-foreground: 145 23% 10%;
+    --muted: 135 20% 96%;
+    --muted-foreground: 148 8% 35%;
+    --accent: 8 70% 43%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 50%;
+    --destructive: 4 76% 40%;
     --destructive-foreground: 0 0% 100%;
-    --border: 42 17% 82%;
-    --input: 42 17% 76%;
-    --ring: 85 75% 42%;
-    --radius: 1rem;
+    --border: 138 18% 86%;
+    --input: 138 18% 78%;
+    --ring: 148 69% 28%;
+    --radius: 1.1rem;
   }
 
   * {
@@ -173,7 +173,7 @@
 }
 
 .header-join:hover {
-  background: hsl(150 38% 24%);
+  background: color-mix(in srgb, hsl(var(--primary)) 88%, white);
   transform: translateY(-1px);
 }
 
@@ -415,7 +415,7 @@
 
 .admin-content {
   background:
-    radial-gradient(circle at 100% 0%, hsl(85 75% 55% / 0.16), transparent 18rem),
+    radial-gradient(circle at 100% 0%, hsl(var(--secondary) / 0.16), transparent 18rem),
     hsl(150 21% 96%);
 }
 

@@ -1,11 +1,23 @@
 # YPGym Handoff
 
-Last updated: 2026-09-20, post-Day-60 Feature 1 mobile reliability.
+Last updated: 2026-09-21, post-Day-60 Feature 2 workout visual system.
+
+## September 21 continuation — Feature 2 white/green workout visual system
+
+- Resumed from synchronized `main` / `origin/main` commit `436473c` (`feat(mobile): add reliable sessions navigation and membership updates`). There was no merge/rebase state. User-owned `README.md`, `RUN_GUIDE.md` and `tmp/` work remains preserved and excluded from the feature commit.
+- Replaced the mobile dark/neon presentation with reusable white, deep-green, light-green and near-black semantic tokens. Shared cards, actions, fields, loading skeletons, messages, status pills, headers and touch feedback now provide consistent responsive, accessible states across Login, Dashboard, Check-in, Classes, Profile and all nested member screens.
+- Preserved the four-tab information architecture and Feature 1 navigation/session behavior. Mobile layouts now cap wide content, adapt horizontal spacing for phone/tablet widths, use 44–52 px touch targets and expose status/error meaning through text and icons as well as color.
+- Aligned the web foundation tokens and shared button minimum height with the same visual language without changing web routes or business behavior. `docs/design/workout-visual-system.md` is the shared authority for later YPTrain screens.
+- Reconciled the post-Day-60 requirements and tracker to the owner-approved YPTrain roadmap. The former YPFood proposal is cancelled; no YPFood schema, endpoint or client behavior was introduced. FR55 is verified by this slice, while FR54 remains shared with later mutation-feedback work.
+- Fresh validation: isolated PostgreSQL/Redis backend suite **102 passed, 5 existing Starlette deprecation warnings in 51.80s**; Compose configuration is valid; Alembic current/check is clean at `20260723_0007`; mobile typecheck/lint and **7 Node tests** pass; Android export passes; web lint/build pass with the existing TanStack Compiler and 739.63 kB bundle warnings.
+- Responsive Expo-web review passed at phone, tablet and desktop widths, including Login validation, connected Dashboard, Classes and restricted QR states with no horizontal overflow. Native Android Expo Go login passed on `Medium_Phone_API_36.1`; the accessibility tree confirmed Dashboard, Check-in, Classes and Profile navigation and cancelled-membership restrictions. The headless AVD framebuffer captured black even while the native tree was healthy, so no native screenshot is claimed.
+- Expo Doctor remains **20/21** because `@expo/ui`, `expo`, `expo-constants` and `expo-router` are each one recommended SDK57 patch behind. No dependency or lockfile changed. Physical phone, iOS and human UAT remain unverified.
+- No backend source, database model, migration, constraint or normal stored data changed. The next permitted slice is Feature 3, only after this feature's local commit is explicitly approved for push under the supplied protocol.
 
 ## September 20 continuation — Feature 1 mobile reliability and membership state
 
-- Started the user-supplied post-Day-60 mobile/YPFood roadmap from `main` at synchronized local/remote commit `451f0d3` (`v0.60.1`). There was no merge/rebase state. Existing user-owned `README.md`, `RUN_GUIDE.md` and `tmp/` work was preserved and excluded from this feature commit.
-- Reserved the unused FR40–FR55 identifiers in `docs/requirements/post-day-60.md` and added `docs/progress/post-day-60-mobile-ypfood.md` with the 13-slice order, actual dependency map, baseline and scope boundaries. FR39 remains out of scope.
+- Started the first post-Day-60 roadmap from `main` at synchronized local/remote commit `451f0d3` (`v0.60.1`). There was no merge/rebase state. Existing user-owned `README.md`, `RUN_GUIDE.md` and `tmp/` work was preserved and excluded from this feature commit. The September 21 owner scope replaces the former YPFood proposal with YPTrain.
+- Reserved the unused FR40–FR55 identifiers in `docs/requirements/post-day-60.md`; the current tracker is `docs/progress/post-day-60-yptrain.md`. FR39 remains deferred and is not treated as an existing AI pipeline.
 - Feature 1 centralizes member session restoration/logout. Logout clears in-memory identity, member-scoped TanStack Query data, SecureStore and both browser storage fallbacks, then replaces the navigation stack with `/login`. HTTP 401 and restored non-member/expired sessions discard the stored session. The backend has no logout/token-revocation route, so no server revocation is claimed.
 - Nested attendance, booking, invoice, notification, preferences, profile-edit and renewal screens now use route-aware Back arrows with safe fallbacks when deep-linked; tab roots still have no meaningless Back control. Renewal Success also has a safe Back path.
 - Dashboard/Profile/QR/renewal read fresh membership state on mount and after native foregrounding. Successful mock renewal waits for the backend response, then refetches dashboard, profile, QR, invoices/billing, plans and membership query groups before opening the account-verified invoice success screen. The same idempotency key remains stable for retries from one confirmation screen.
