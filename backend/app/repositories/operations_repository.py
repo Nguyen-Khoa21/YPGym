@@ -4,6 +4,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import and_, func, or_, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased, selectinload
 
@@ -682,6 +683,15 @@ class NotificationRepository:
         await self.session.flush()
         return item
 
+    async def create_notification_once(self, **values: Any) -> bool:
+        statement = (
+            insert(Notification)
+            .values(**values)
+            .on_conflict_do_nothing(constraint="uq_notifications_dedupe_key")
+            .returning(Notification.id)
+        )
+        return (await self.session.execute(statement)).scalar_one_or_none() is not None
+
     async def notification_exists(self, dedupe_key: str) -> bool:
         return bool(
             (
@@ -704,6 +714,29 @@ class NotificationRepository:
             )
         ).all()
         return [(row[0], row[1]) for row in rows]
+
+    async def class_reminder_candidates(
+        self,
+        *,
+        starts_after: datetime,
+        starts_before: datetime,
+    ) -> list[tuple[ClassBooking, GymClass, User, NotificationPreference | None]]:
+        rows = (
+            await self.session.execute(
+                select(ClassBooking, GymClass, User, NotificationPreference)
+                .join(GymClass, GymClass.id == ClassBooking.class_id)
+                .join(User, User.id == ClassBooking.user_id)
+                .outerjoin(NotificationPreference, NotificationPreference.user_id == User.id)
+                .where(
+                    ClassBooking.status == "booked",
+                    GymClass.status == "scheduled",
+                    GymClass.start_at > starts_after,
+                    GymClass.start_at <= starts_before,
+                )
+                .order_by(GymClass.start_at, ClassBooking.id),
+            )
+        ).all()
+        return [(row[0], row[1], row[2], row[3]) for row in rows]
 
     async def create_broadcast(self, **values: Any) -> BroadcastAnnouncement:
         item = BroadcastAnnouncement(**values)

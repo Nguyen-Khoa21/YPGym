@@ -23,6 +23,7 @@ CONFIGURATION_RULES = {
     "attendance_timeout_minutes": ConfigurationRule(15, 1440, 180),
     "duplicate_scan_window_seconds": ConfigurationRule(1, 300, 30),
     "class_cancellation_window_hours": ConfigurationRule(0, 168, 12),
+    "class_reminder_lead_minutes": ConfigurationRule(5, 1440, 120),
     "waitlist_size": ConfigurationRule(0, 100, 10),
 }
 

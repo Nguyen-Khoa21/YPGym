@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from app.core.config import get_settings
 from app.db.session import AsyncSessionLocal, engine
 from app.services.attendance_service import AttendanceService
+from app.services.configuration_service import ConfigurationService
 from app.services.lifecycle_service import MembershipLifecycleService
 from app.services.notification_service import NotificationService
 
@@ -30,6 +31,10 @@ celery_app.conf.beat_schedule = {
     "attendance-timeouts-five-minutes": {
         "task": "app.workers.close_timed_out_attendance",
         "schedule": 300.0,
+    },
+    "class-reminders-minute": {
+        "task": "app.workers.send_class_reminders",
+        "schedule": 60.0,
     },
 }
 
@@ -71,6 +76,21 @@ async def _send_expiry_reminders() -> int:
 @celery_app.task(name="app.workers.send_expiry_reminders")
 def send_expiry_reminders() -> int:
     return _run_async_task(_send_expiry_reminders)
+
+
+async def _send_class_reminders() -> int:
+    redis = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+    try:
+        async with AsyncSessionLocal() as session:
+            lead_minutes = await ConfigurationService(session, redis).get_int("class_reminder_lead_minutes")
+            return await NotificationService(session).send_class_reminders(lead_minutes=lead_minutes)
+    finally:
+        await redis.aclose()
+
+
+@celery_app.task(name="app.workers.send_class_reminders")
+def send_class_reminders() -> int:
+    return _run_async_task(_send_class_reminders)
 
 
 async def _close_timed_out_attendance() -> int:

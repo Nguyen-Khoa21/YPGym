@@ -1,6 +1,6 @@
 # YPGym member app
 
-The Expo/React Native app uses the existing YPGym FastAPI backend. It includes member sign-in and session restoration, a live dashboard and rotating check-in QR, class booking and waitlists, attendance, notifications, profile editing, preferences, invoices, and simulated membership renewal. The operations workspace remains in the web app.
+The Expo/React Native app uses the existing YPGym FastAPI backend. It includes member registration, email verification, sign-in and session restoration, membership purchase/renewal and freeze/cancellation requests, a live dashboard and rotating check-in QR, class booking and waitlists, attendance-day history, actionable in-app class reminders, profile editing, preferences and invoices. The operations workspace remains in the web app.
 
 ## Run in Expo web on this computer
 
@@ -54,6 +54,8 @@ npx expo export --platform android
 ```
 
 After signing in, check Dashboard, Check-in, Classes, and Profile tabs. A valid active membership receives a short-lived QR token from the server; it disappears when expired or the app moves to the background. Booking and waitlist actions require an eligible membership. The renewal flow clearly confirms a **simulated** payment and displays success only after the new invoice appears in the account. No real payment method is charged.
+
+New members can use **Create a member account** and follow the one-time `ypgym://verify-email` link written to the development Maildir alongside the web link. Profile → Membership Requests submits real freeze/cancellation requests and shows their staff-reviewed status. Booked-class reminders are stored by the backend, respect Notification Preferences, and open the matching booking from the inbox. The manager-configured lead time defaults to 120 minutes. Device push is not configured; reminders appear in the persistent in-app inbox. Dates, class times and distinct visit days use `GYM_TIMEZONE` / `EXPO_PUBLIC_GYM_TIMEZONE`, both defaulting to `Asia/Ho_Chi_Minh`; keep these deployment values aligned.
 
 Logout removes the native SecureStore token (or both browser storage fallbacks), clears member-specific query data and replaces the navigation stack with the login screen. The API currently has no logout/token-revocation endpoint, so server-side revocation is not claimed; access tokens still expire according to backend configuration. Expired tokens are removed when session restoration or an authenticated request receives HTTP 401. Nested pages use route-aware Back arrows and fall back to a safe member screen when opened directly.
 

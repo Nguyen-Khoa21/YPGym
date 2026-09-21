@@ -208,7 +208,10 @@ class AuthService:
         message = EmailMessage()
         message["To"] = recipient
         message["Subject"] = f"YPGym: {label}"
-        message.set_content(f"{self.settings.FRONTEND_URL}{route}?token={token}\n")
+        links = [f"{self.settings.FRONTEND_URL}{route}?token={token}"]
+        if route == "/verify-email":
+            links.append(f"{self.settings.MOBILE_APP_URL}{route.lstrip('/')}?token={token}")
+        message.set_content("\n".join(links) + "\n")
 
         def write_message():
             directory = Path(self.settings.DEVELOPMENT_MAIL_DIR)

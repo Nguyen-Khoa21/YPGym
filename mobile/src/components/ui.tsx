@@ -75,8 +75,8 @@ export function Action({ label, onPress, outline = false, danger = false, disabl
   </Pressable>;
 }
 
-export function Field({ label, value, onChangeText, error, ...props }: TextInputProps & { label: string; value: string; onChangeText: (value: string) => void; error?: string }) {
-  return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><TextInput accessibilityLabel={label} accessibilityHint={error} placeholderTextColor={colors.dim} selectionColor={colors.primary} style={[styles.input, error && styles.inputError]} value={value} onChangeText={onChangeText} {...props} />{error ? <View style={styles.fieldError}><Ionicons name="alert-circle-outline" size={16} color={colors.danger} /><Text style={styles.fieldErrorText}>{error}</Text></View> : null}</View>;
+export function Field({ label, value, onChangeText, error, style, ...props }: TextInputProps & { label: string; value: string; onChangeText: (value: string) => void; error?: string }) {
+  return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><TextInput accessibilityLabel={label} accessibilityHint={error} placeholderTextColor={colors.dim} selectionColor={colors.primary} style={[styles.input, error && styles.inputError, style]} value={value} onChangeText={onChangeText} {...props} />{error ? <View style={styles.fieldError}><Ionicons name="alert-circle-outline" size={16} color={colors.danger} /><Text style={styles.fieldErrorText}>{error}</Text></View> : null}</View>;
 }
 
 export function Busy({ label }: { label: string }) {

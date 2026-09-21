@@ -5,8 +5,8 @@ Created September 20, 2026 and revised September 21, 2026 for the owner-approved
 | ID | Requirement | Current status | Planned feature slice |
 |---|---|---|---|
 | FR40 | Reliable mobile back navigation, session restoration and logout | Verified in Feature 1 on an Android emulator; physical-device and iOS verification remain pending | Feature 1 |
-| FR41 | Mobile membership purchase/renewal/cancellation state consistency | Implemented in Feature 1 for server-state refresh, status messaging, QR eligibility and renewal cache updates; mobile lifecycle-request UI remains Feature 3 | Features 1 and 3 |
-| FR42 | Upcoming booked-class reminders and notification navigation | Planned | Feature 3 |
+| FR41 | Mobile membership purchase/renewal/cancellation state consistency | Verified across Features 1 and 3, including registration/verification, plans, simulated purchase/renewal, invoices, lifecycle requests, live membership/QR/attendance/crowdedness and class booking/waitlists | Features 1 and 3 |
+| FR42 | Upcoming booked-class reminders and notification navigation | Verified for preference-aware deduplicated in-app reminders and booking navigation; device push remains credential/environment gated | Feature 3 |
 | FR43 | Individual manager-created staff and trainer accounts | Planned | Feature 10 |
 | FR44 | Staff clock-in/clock-out records and manager reporting | Planned | Feature 10 |
 | FR45 | Admin machine/exercise catalogue management | Planned | Feature 5 |
@@ -37,5 +37,14 @@ The current backend has no logout or token-revocation endpoint. Feature 1 theref
 |---|---|---|
 | FR54 | Semantic mobile loading, empty, error and field-validation states; larger reusable web/mobile controls | Mobile typecheck/lint/tests/export plus connected screen and mutation regression |
 | FR55 | `mobile/src/lib/theme.ts`, `mobile/src/components/ui.tsx`, all member routes, Expo light shell, web CSS tokens and shared web buttons | Contrast test, phone/tablet/desktop visual inspection, Android emulator inspection, web lint/build |
+
+## Feature 3 traceability
+
+| Requirement | Implementation | Verification |
+|---|---|---|
+| FR41 | Mobile `/register`, `/verify-email`, membership-request/history, attendance-day summary and existing shared member flows | Isolated registration/lifecycle/attendance/QR/payment/booking suites; mobile typecheck, lint, tests and Android export |
+| FR42 | Celery minute schedule, configurable lead time, PostgreSQL dedupe key, per-member preferences, notification action metadata and booking deep link | `test_member_reminders.py`, `member-journey.test.mjs`, API ownership checks and full isolated suite |
+
+The default gym timezone is `Asia/Ho_Chi_Minh`, validated as an IANA timezone. Attendance distinct-day aggregation and class reminder presentation use that configured zone. Feature 3 adds persistent in-app reminders only because no device-push service or credentials are configured.
 
 The YPTrain Features 5–9 replace all previously proposed food catalogue, cart, checkout, stock, delivery, review and payment work. No YPFood schema, API or client implementation exists or is planned.

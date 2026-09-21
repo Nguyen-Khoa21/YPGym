@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -61,6 +61,8 @@ class AttendanceSessionItem(BaseModel):
 class AttendancePage(BaseModel):
     items: list[AttendanceSessionItem]
     page: PageInfo
+    distinct_visit_days: list[date] = Field(default_factory=list)
+    gym_timezone: str | None = None
 
 
 class ManualCloseRequest(BaseModel):

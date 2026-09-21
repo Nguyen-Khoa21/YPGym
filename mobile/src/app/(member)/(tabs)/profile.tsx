@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { Brand, Busy, Card, Message, Pill, Screen, textStyles } from '@/components/ui';
@@ -26,6 +26,7 @@ export default function ProfileScreen() {
       <MenuRow icon="card-outline" label="Membership Plan" detail={dashboard.data?.membership ? `${dashboard.data.membership.plan_name} · ${dashboard.data.membership.status}` : 'Choose a plan'} onPress={() => router.push('/(member)/renew')} />
       <MenuRow icon="receipt-outline" label="Invoices" detail="Verified mock-payment history" onPress={() => router.push('/(member)/invoices')} />
       <MenuRow icon="notifications-outline" label="Notification Preferences" onPress={() => router.push('/(member)/preferences')} />
+      <MenuRow icon="pause-circle-outline" label="Membership Requests" detail="Request a freeze or cancellation" onPress={() => router.push('/(member)/membership-requests' as Href)} />
       <MenuRow icon="calendar-outline" label="My Bookings" onPress={() => router.push('/(member)/bookings')} /></View>
     <Card><Pressable accessibilityRole="button" onPress={confirmLogout} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 48, opacity: pressed ? 0.7 : 1 })}><Ionicons name="log-out-outline" color={colors.danger} size={22} /><Text style={{ color: colors.danger, fontSize: 17, fontWeight: '800' }}>Log Out</Text></Pressable></Card>
   </Screen>;

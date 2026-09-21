@@ -101,6 +101,7 @@ class NotificationPreference(TimestampMixin, Base):
     email_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     in_app_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     expiry_reminders_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    class_reminders_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     broadcasts_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
 
 
@@ -121,6 +122,8 @@ class Notification(Base):
     channel: Mapped[str] = mapped_column(String(24), nullable=False)
     delivery_state: Mapped[str] = mapped_column(String(24), nullable=False, default="pending")
     dedupe_key: Mapped[str | None] = mapped_column(String(220))
+    action_type: Mapped[str | None] = mapped_column(String(40))
+    action_id: Mapped[UUID | None] = mapped_column()
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("now()"))

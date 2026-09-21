@@ -10,6 +10,7 @@ class NotificationPreferenceResponse(BaseModel):
     email_enabled: bool
     in_app_enabled: bool
     expiry_reminders_enabled: bool
+    class_reminders_enabled: bool
     broadcasts_enabled: bool
 
     model_config = ConfigDict(from_attributes=True)
@@ -19,6 +20,7 @@ class NotificationPreferenceUpdate(BaseModel):
     email_enabled: bool
     in_app_enabled: bool
     expiry_reminders_enabled: bool
+    class_reminders_enabled: bool
     broadcasts_enabled: bool
 
 
@@ -30,6 +32,8 @@ class NotificationItem(BaseModel):
     message: str
     channel: str
     delivery_state: str
+    action_type: str | None = None
+    action_id: UUID | None = None
     read_at: datetime | None
     created_at: datetime
 

@@ -28,5 +28,8 @@ export async function apiRequest<T>(path: string, token?: string | null, options
 
 export function errorMessage(error: unknown) { return error instanceof Error ? error.message : 'Something went wrong. Please try again.'; }
 export const formatMoney = (amount: string | number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(Number(amount));
-export const formatDate = (value: string) => new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value));
-export const formatTime = (value: string) => new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+export const GYM_TIMEZONE = process.env.EXPO_PUBLIC_GYM_TIMEZONE || 'Asia/Ho_Chi_Minh';
+export const formatDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
+  ? new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
+  : new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric', timeZone: GYM_TIMEZONE }).format(new Date(value));
+export const formatTime = (value: string) => new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit', timeZone: GYM_TIMEZONE }).format(new Date(value));

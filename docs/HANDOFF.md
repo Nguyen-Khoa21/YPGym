@@ -1,6 +1,17 @@
 # YPGym Handoff
 
-Last updated: 2026-09-21, post-Day-60 Feature 2 workout visual system.
+Last updated: 2026-09-22, post-Day-60 Feature 3 mobile member journey and class reminders.
+
+## September 21–22 continuation — Feature 3 complete mobile journey and class reminders
+
+- Resumed from synchronized `main` / `origin/main` commit `bc5a6bd` (`feat(ui): add white green YPGym workout design system`). User-owned `README.md`, `RUN_GUIDE.md` and `tmp/` remain preserved and excluded from this feature.
+- Added native member registration and one-time email verification, with a `ypgym://verify-email` development link alongside the existing web link. Added real freeze/cancellation request forms and status history using the established lifecycle APIs. Existing plans, simulated purchase/renewal, invoices, rotating QR, crowdedness, classes, bookings, waitlists and session handling remain shared with the FastAPI backend.
+- Added persistent booked-class reminders. Celery checks every minute, reads the manager-configurable 5–1440 minute lead time, respects in-app and class-reminder preferences, stores one PostgreSQL notification per booking/start even if the lead-time setting changes, and includes a booking target. Tapping the mobile notification marks it read and opens/highlights the matching booking. No device-push provider or credential was present, so this feature truthfully implements persistent in-app reminders only.
+- Defined `Asia/Ho_Chi_Minh` as the default gym IANA timezone in backend/mobile configuration. Attendance history now returns all distinct gym-local visit dates and the timezone, while the mobile app shows the exact day count and recent date chips. Class dates/times and reminder messages use the same timezone.
+- Added migration `20260921_0008`, preference/admin controls, mobile reminder navigation tests, and real PostgreSQL coverage for reminder preference filtering, action metadata, deduplication, ownership and UTC-boundary visit-day aggregation.
+- The normal development stack was forward-migrated to `20260921_0008`, rebuilt and health-checked. `alembic check` reports no pending operations, and two scheduled class-reminder worker runs completed successfully without candidates or errors.
+- Fresh verification: isolated PostgreSQL/Redis migrations through `20260921_0008` and **105 backend tests passed with five existing Starlette deprecation warnings in 45.05s**. Mobile typecheck/lint and **9 Node tests** pass; Android export passes. Web lint/build pass with the existing TanStack Compiler and large-bundle warnings. Authenticated Expo web on port 8081 confirmed API connectivity, registration validation, login, lifecycle-request history/forms, four gym-local visit days and the class-reminder preference using live development data. Physical phone, iOS, device push and human UAT remain unverified.
+- The next permitted slice is Feature 4 welcome email, only after this feature is committed and the exact push is explicitly approved under the roadmap protocol.
 
 ## September 21 continuation — Feature 2 white/green workout visual system
 

@@ -1,5 +1,13 @@
 # Isolated integration evidence
 
+## September 21–22 post-Day-60 Feature 3
+
+The fresh isolated command `docker compose -p ypgym-yptrain-f3-tests -f compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner --attach test-runner` migrated temporary PostgreSQL storage through `20260921_0008` and completed **105 passed, 5 warnings in 45.05 seconds**. The warnings remain Starlette's `HTTP_422_UNPROCESSABLE_ENTITY` deprecation. The isolated project and volumes were removed afterward; normal application records were not reset.
+
+Feature 3 storage coverage proves preference-aware and deduplicated class reminders, persisted booking action metadata, member inbox ownership, and gym-timezone attendance-day aggregation across a UTC date boundary. Existing integration coverage still exercises registration/verification, membership eligibility, simulated billing/idempotency, invoice ownership, QR expiry/rotation, booking/waitlist conflicts, and session authorization. Mobile typecheck/lint, nine Node tests and Android export pass. Web lint/build pass with their existing warnings. Authenticated Expo web on port 8081 additionally confirmed live API connectivity, login, lifecycle-request history/forms, four distinct visit days and the class-reminder preference. No device-push provider was configured, and physical phone/iOS/human UAT were not exercised.
+
+The normal development stack was forward-migrated to `20260921_0008` and rebuilt. API health passed, Alembic reported the expected single head with no metadata drift, and the minute-scheduled reminder task completed twice with result `0` and no errors against the current development data.
+
 ## September 21 post-Day-60 Feature 2
 
 The fresh isolated command `docker compose -p ypgym-yptrain-f2-tests -f compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner --attach test-runner` migrated temporary PostgreSQL storage through `20260723_0007` and completed **102 passed, 5 warnings in 51.80 seconds**. The warnings remain Starlette's `HTTP_422_UNPROCESSABLE_ENTITY` deprecation. The isolated Compose project was removed afterward; normal application volumes and stored data were not touched. Normal `docker compose config --quiet`, `alembic current` and `alembic check` also passed with no pending migration operations.

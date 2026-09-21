@@ -1,5 +1,7 @@
 from functools import lru_cache
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,6 +10,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     API_V1_PREFIX: str = "/api/v1"
     FRONTEND_URL: str = "http://localhost:5174"
+    MOBILE_APP_URL: str = "ypgym://"
+    GYM_TIMEZONE: str = "Asia/Ho_Chi_Minh"
     CORS_EXTRA_ORIGINS: str = ""
     DATABASE_URL: str = "postgresql+asyncpg://ypgym:ypgym_dev_password@localhost:5433/ypgym"
     REDIS_URL: str = "redis://localhost:6380/0"
@@ -27,6 +31,15 @@ class Settings(BaseSettings):
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 60
     DEVELOPMENT_MAIL_DIR: str = "storage/mail"
     INVOICE_STORAGE_DIR: str = "storage/invoices"
+
+    @field_validator("GYM_TIMEZONE")
+    @classmethod
+    def validate_gym_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError("GYM_TIMEZONE must be a valid IANA timezone.") from exc
+        return value
 
     model_config = SettingsConfigDict(
         env_file=".env",

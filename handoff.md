@@ -1,5 +1,11 @@
 # YPGym Codex Handoff
 
+## September 21–22 post-Day-60 Feature 3 checkpoint
+
+- The authoritative current record is [`docs/HANDOFF.md`](docs/HANDOFF.md). Feature 3 adds mobile registration/verification, membership freeze/cancellation requests, gym-local attendance-day totals and preference-aware, deduplicated in-app class reminders that open the matching booking.
+- Migration `20260921_0008` adds the class-reminder preference, notification action target and configurable lead time. Fresh isolated PostgreSQL/Redis verification passed **105 backend tests**; mobile typecheck/lint, nine tests and Android export pass; web lint/build pass with existing warnings.
+- Device push, physical-phone/iOS testing and human UAT are not claimed. User-owned `README.md`, `RUN_GUIDE.md` and `tmp/` remain excluded. The next roadmap slice is Feature 4 after the Feature 3 commit/push gate.
+
 ## September 17 continuation — release documentation and package correction
 
 - Resumed the active Day42–60 goal after reading both handoffs, the original goal attachment and revised plan. Entry branch `main` / `origin/main` was `007fd86`; September 16 code and `v0.60.0` were subsequently pushed on explicit user request. Only generated `tmp/` was untracked at entry. Earlier no-push/uncommitted statements below are historical.

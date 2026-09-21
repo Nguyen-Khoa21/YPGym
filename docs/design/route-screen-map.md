@@ -18,7 +18,7 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 | Notification preferences | `/app/notifications/preferences` | Member | `/notifications/preferences/me` | Connected |
 | Member class booking | `/app/classes` | Member | `/classes/upcoming`, `/classes/{id}/book`, waitlist join/leave | Connected responsive class cards, PT cards, capacity, eligible/ineligible, booked/full/waitlisted/cancelled states |
 | My bookings | `/app/bookings` | Member | `/bookings/me`, booking cancel, waitlist leave | Connected confirmed/cancelled/promoted/waiting states and configured cancellation cutoff |
-| Mobile member shell | `mobile/src/app/` (Expo Router) | Member | Shared `/api/v1` auth, dashboard, attendance, classes, bookings, notifications, profile, billing | FR40/FR41 centralizes logout/reset, route-aware fallback Back behavior and membership refresh; FR54/FR55 adds the responsive white/green shell, semantic status/error states, field validation, skeleton feedback and accessible touch targets across all member routes; physical phone/iOS remain unverified |
+| Mobile member shell | `mobile/src/app/` (Expo Router) | Member | Shared `/api/v1` auth, dashboard, attendance, classes, bookings, notifications, profile, billing and lifecycle requests | FR40/FR41 centralizes logout/reset, route-aware Back behavior, membership refresh, registration/verification and freeze/cancellation requests; FR42 adds persistent in-app class reminders that open the matching booking; attendance exposes distinct `Asia/Ho_Chi_Minh` visit dates; FR54/FR55 supplies the responsive white/green shell and accessible states; physical phone/iOS remain unverified |
 
 Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/*` routes.
 

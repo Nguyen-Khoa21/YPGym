@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Integer, func, or_, select
+from sqlalchemy import Date, Integer, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.attendance import AttendanceEvent, AttendanceSession, IoTDevice
@@ -127,6 +127,19 @@ class AttendanceRepository:
             ).scalars().all(),
         )
         return sessions, total, await self.events_for_sessions([item.id for item in sessions])
+
+    async def distinct_member_visit_days(self, *, user_id: UUID, gym_timezone: str) -> list[date]:
+        local_day = cast(func.timezone(gym_timezone, AttendanceSession.checked_in_at), Date)
+        return list(
+            (
+                await self.session.execute(
+                    select(local_day)
+                    .where(AttendanceSession.user_id == user_id)
+                    .distinct()
+                    .order_by(local_day.desc()),
+                )
+            ).scalars().all(),
+        )
 
     async def list_admin_sessions(
         self,

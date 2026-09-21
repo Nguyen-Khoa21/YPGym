@@ -1,16 +1,17 @@
 # Post-Day-60 mobile and YPTrain tracker
 
-Updated September 21, 2026. This tracker covers the owner-approved post-Day-60 YPTrain roadmap. The completed Day 42–60 release remains recorded separately in `day-43-60-tracker.md`.
+Updated September 22, 2026. This tracker covers the owner-approved post-Day-60 YPTrain roadmap. The completed Day 42–60 release remains recorded separately in `day-43-60-tracker.md`.
 
 ## Discovery baseline
 
 - Repository: `C:\Users\Admin\ypgym`, branch `main`, upstream `origin/main`, remote `https://github.com/Nguyen-Khoa21/YPGym.git`.
-- Feature 2 resumed from synchronized local/remote commit `436473c447a855678566ee98488547930781070a`; annotated release tag remains `v0.60.1` on the earlier checkpoint.
+- Feature 3 resumed from synchronized local/remote commit `bc5a6bd44ab6f52fc0c939ffd4ebd1d5dd499416`; annotated release tag remains `v0.60.1` on the earlier checkpoint.
 - No merge or rebase state was present. User-owned `README.md`, `RUN_GUIDE.md` and `tmp/` work was preserved and excluded from this slice.
-- Alembic is at `20260723_0007 (head)` and `alembic check` reports no new upgrade operations. Normal PostgreSQL/Redis dependency health is `ok`.
+- Alembic is at `20260921_0008 (head)` and `alembic check` reports no new upgrade operations. Normal PostgreSQL/Redis dependency health is `ok`.
 - Fresh web baseline: lint passed with the existing TanStack Table React Compiler warning; production build passed with the existing 739.63 kB bundle warning.
 - Fresh mobile baseline before editing: typecheck, lint, two QR tests and Android export passed. Expo Doctor reported 20/21 because four installed SDK 57 packages are one patch behind current compatibility recommendations: `@expo/ui`, `expo`, `expo-constants` and `expo-router`. No dependency was silently upgraded in Feature 1.
 - Feature 2 final evidence is current: isolated backend **102 passed with five existing Starlette deprecation warnings in 51.80 seconds**; Compose/Alembic checks are clean; mobile typecheck/lint, seven Node tests and Android export pass; web lint/build pass with existing warnings. Expo-web phone/tablet/desktop review and native Android login/four-tab accessibility-tree navigation passed. Physical phone, iOS and human UAT remain unverified.
+- Feature 3 final evidence: isolated PostgreSQL/Redis migrations through `20260921_0008` and **105 backend tests passed with five existing warnings in 45.05 seconds**. Mobile typecheck/lint, nine Node tests and Android export pass; web lint/build pass with existing warnings. Authenticated Expo web confirmed registration validation, API-online login, lifecycle-request history/forms, gym-local visit totals and the class-reminder preference. Device push, physical phone, iOS and human UAT remain unverified.
 
 ## Existing dependency map
 
@@ -22,7 +23,7 @@ Updated September 21, 2026. This tracker covers the owner-approved post-Day-60 Y
 | Classes and trainers | Mobile classes/bookings; web member/admin/PT pages | class/trainer/booking/waitlist routes; class/trainer services and repositories; PostgreSQL row locking and waitlist rules |
 | Notifications/broadcasts | Mobile inbox/preferences/dashboard; web member/manager pages | notification/preference/broadcast routes; `NotificationService`; PostgreSQL records and Celery expiry-reminder schedule |
 | UI feedback/cache | React Native alerts/messages and TanStack Query; web Sonner and TanStack Query | Per-feature query keys and mutation invalidation; Feature 1 centralizes member session cleanup and membership refresh roots |
-| Development email | Web auth entry; no native registration yet | `AuthService` writes privacy-sensitive verification/reset messages to ignored Maildir in development; external SMTP delivery is not implemented |
+| Development email | Web and native registration/verification | `AuthService` writes privacy-sensitive verification/reset messages to ignored Maildir in development, including a `ypgym://verify-email` link; external SMTP delivery is not implemented |
 
 ## Feature slices
 
@@ -30,7 +31,7 @@ Updated September 21, 2026. This tracker covers the owner-approved post-Day-60 Y
 |---|---|---|---|
 | 1. Mobile reliability and membership state | FR40, FR41, part of FR54 | Verified | Session/navigation/state code; 102 backend tests, six mobile tests, typecheck/lint/export and Android logout/restart journey pass |
 | 2. White/green workout design system | FR54–FR55 | Verified | Shared semantic tokens/components cover all named mobile screens; web foundation aligned; contrast, responsive web, native Android navigation, automated checks and export pass |
-| 3. Complete mobile journey and class reminders | FR41, FR42 | Not started | Native registration/lifecycle requests and reminder persistence remain |
+| 3. Complete mobile journey and class reminders | FR41, FR42 | Verified | Shared API registration/verification and lifecycle requests; preference-aware deduplicated PostgreSQL reminders with booking targets; gym-local visit days; 105 backend and nine mobile tests plus lint/typecheck/build/export |
 | 4. Welcome email | FR53 | Not started | Provider-neutral implementation precedes mandatory live-credential checkpoint |
 | 5. YPTrain catalogue and equipment guide | FR45, FR46, FR52 | Not started | Requires forward migration, catalogue RBAC and shared web/mobile API |
 | 6. Attendance-linked workout logging | FR47–FR48 | Not started | Requires attendance ownership gate, daily uniqueness and normalized sets |
@@ -49,3 +50,4 @@ Updated September 21, 2026. This tracker covers the owner-approved post-Day-60 Y
 - YPTrain history is descriptive and must not provide medical, injury, diet, rehabilitation or automatic next-workout prescriptions.
 - Live payment, SMTP credentials, Expo push credentials, public deployment and app-store release remain credential or environment gated.
 - Physical phone, iOS and human UAT are not inferred from emulator, export or automated checks.
+- The openGym repository was reviewed only for product inspiration around equipment-aware search, bodyweight/load semantics, preserving entered set state, contribution calendars and accessible muscle maps. YPGym will implement these ideas within its existing architecture; no openGym code or media is copied because its repository is AGPL-3.0 and its exercise data/media carry separate terms.

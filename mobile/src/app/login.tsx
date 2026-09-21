@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Redirect, router } from 'expo-router';
+import { Redirect, router, type Href } from 'expo-router';
 import { Text, View } from 'react-native';
 
 import { Action, Brand, Card, Field, Heading, Message, Screen, textStyles } from '@/components/ui';
@@ -30,6 +30,7 @@ export default function Login() {
     <Card accent><Text style={textStyles.subheading}>Welcome back</Text><Text style={textStyles.muted}>Your membership, check-in code, classes and profile are connected to the gym.</Text></Card>
     <View style={{ gap: 16, marginTop: 20 }}><Field label="Email address" value={email} onChangeText={(value) => { setEmail(value); if (fieldErrors.email) setFieldErrors((current) => ({ ...current, email: undefined })); }} error={fieldErrors.email} keyboardType="email-address" autoCapitalize="none" autoComplete="email" /><Field label="Password" value={password} onChangeText={(value) => { setPassword(value); if (fieldErrors.password) setFieldErrors((current) => ({ ...current, password: undefined })); }} error={fieldErrors.password} secureTextEntry autoComplete="current-password" />
       {error ? <Message title="Sign-in failed" detail={error} tone="error" /> : null}<Action label={busy ? 'Signing in…' : 'Sign in'} onPress={() => void submit()} disabled={busy} /></View>
+    <Action label="Create a member account" onPress={() => router.push('/register' as Href)} outline />
     <Text style={{ color: health.isSuccess ? colors.primary : colors.muted, marginTop: 22, textAlign: 'center' }}>{health.isLoading ? 'Checking API…' : health.isSuccess ? 'Gym API online' : `Gym API unavailable: ${errorMessage(health.error)}`}</Text>
   </Screen>;
 }

@@ -172,6 +172,7 @@ class AttendanceService:
         self.configuration = ConfigurationService(session, redis)
         self.qr = QrTokenService(session, redis)
         self.crowdedness = CrowdednessService(session, redis)
+        self.settings = get_settings()
 
     async def check_in(self, *, device_id: str, api_key: str, qr_token: str) -> ScannerResponse:
         device = await self._authenticate_device(device_id, api_key)
@@ -329,6 +330,11 @@ class AttendanceService:
         return AttendancePage(
             items=[self._session_item(item, events.get(item.id, [])) for item in sessions],
             page=PageInfo(page=page, page_size=page_size, total=total, pages=ceil(total / page_size) if total else 0),
+            distinct_visit_days=await self.attendance.distinct_member_visit_days(
+                user_id=user.id,
+                gym_timezone=self.settings.GYM_TIMEZONE,
+            ),
+            gym_timezone=self.settings.GYM_TIMEZONE,
         )
 
     async def admin_history(self, **filters) -> AttendancePage:

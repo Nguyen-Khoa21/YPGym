@@ -19,6 +19,7 @@ const labels: Record<string, { title: string; unit: string; icon: typeof Gauge }
   attendance_timeout_minutes: { title: "Attendance timeout", unit: "minutes", icon: TimerReset },
   duplicate_scan_window_seconds: { title: "Duplicate scan window", unit: "seconds", icon: RefreshCw },
   class_cancellation_window_hours: { title: "Class cancellation window", unit: "hours", icon: Settings2 },
+  class_reminder_lead_minutes: { title: "Class reminder lead time", unit: "minutes", icon: TimerReset },
   waitlist_size: { title: "Default waitlist limit", unit: "members", icon: Gauge },
 };
 

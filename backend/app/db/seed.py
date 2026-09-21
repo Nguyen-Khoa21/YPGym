@@ -124,6 +124,7 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
         ),
         ("duplicate_scan_window_seconds", "30", "integer", "Duplicate QR scan guard window."),
         ("class_cancellation_window_hours", "12", "integer", "Member class cancellation window."),
+        ("class_reminder_lead_minutes", "120", "integer", "Lead time for booked-class reminders."),
         ("waitlist_size", "10", "integer", "Default class waitlist size."),
     ]
 

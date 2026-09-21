@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { Action, Busy, Card, Heading, Message, PageTop, Screen, textStyles } from '@/components/ui';
 import { errorMessage, formatDate } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { queryClient } from '@/lib/query';
+import { notificationTarget } from '@/lib/notifications';
 import type { NotificationPage } from '@/lib/types';
 
 export default function NotificationsScreen() {
@@ -19,7 +21,7 @@ export default function NotificationsScreen() {
     {inbox.data?.unread_count ? <Action label="Mark all read" onPress={() => mark.mutate(undefined)} disabled={mark.isPending} outline /> : null}
     {inbox.isLoading ? <Busy label="Loading notifications" /> : null}{inbox.isError ? <Message title="Inbox unavailable" detail={errorMessage(inbox.error)} action="Retry" onAction={() => void inbox.refetch()} tone="error" /> : null}
     {inbox.data?.items.length === 0 ? <Message title="Your inbox is clear" detail="Membership and booking updates will appear here." /> : null}
-    <View style={{ marginTop: 17 }}>{inbox.data?.items.map((item) => <Pressable accessibilityRole="button" accessibilityLabel={`${item.title}, ${item.read_at ? 'read' : 'unread'}`} key={item.id} onPress={() => { if (!item.read_at) mark.mutate(item.id); }} style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] })}><Card accent={!item.read_at}><Text style={textStyles.subheading}>{item.title}</Text><Text style={textStyles.muted}>{item.message}</Text><Text style={textStyles.accent}>{formatDate(item.created_at)} · {item.read_at ? 'Read' : 'Unread'}</Text></Card></Pressable>)}</View>
+    <View style={{ marginTop: 17 }}>{inbox.data?.items.map((item) => <Pressable accessibilityRole="button" accessibilityLabel={`${item.title}, ${item.read_at ? 'read' : 'unread'}`} key={item.id} onPress={() => { if (!item.read_at) mark.mutate(item.id); const target = notificationTarget(item); if (target) router.push(target); }} style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] })}><Card accent={!item.read_at}><Text style={textStyles.subheading}>{item.title}</Text><Text style={textStyles.muted}>{item.message}</Text><Text style={textStyles.accent}>{formatDate(item.created_at)} · {item.read_at ? 'Read' : 'Unread'}{item.action_type ? ' · Open booking' : ''}</Text></Card></Pressable>)}</View>
     {inbox.data && page < inbox.data.page.pages ? <Action label="Next page" onPress={() => setPage(page + 1)} outline /> : null}{page > 1 ? <Action label="Previous page" onPress={() => setPage(page - 1)} outline /> : null}
   </Screen>;
 }

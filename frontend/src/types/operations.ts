@@ -111,6 +111,7 @@ export type NotificationPreference = {
   email_enabled: boolean;
   in_app_enabled: boolean;
   expiry_reminders_enabled: boolean;
+  class_reminders_enabled: boolean;
   broadcasts_enabled: boolean;
 };
 
@@ -122,6 +123,8 @@ export type NotificationItem = {
   message: string;
   channel: string;
   delivery_state: string;
+  action_type: string | null;
+  action_id: string | null;
   read_at: string | null;
   created_at: string;
 };

@@ -11,7 +11,8 @@ import type { Preferences } from '@/lib/types';
 
 const fields: { key: keyof Preferences; label: string }[] = [
   { key: 'email_enabled', label: 'Development email notices' }, { key: 'in_app_enabled', label: 'In-app notices' },
-  { key: 'expiry_reminders_enabled', label: 'Membership reminders' }, { key: 'broadcasts_enabled', label: 'Gym announcements' },
+  { key: 'expiry_reminders_enabled', label: 'Membership reminders' }, { key: 'class_reminders_enabled', label: 'Booked class reminders' },
+  { key: 'broadcasts_enabled', label: 'Gym announcements' },
 ];
 
 export default function PreferencesScreen() {

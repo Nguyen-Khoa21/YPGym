@@ -2,9 +2,11 @@ import logging
 from datetime import UTC, date, datetime, timedelta
 from math import ceil
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.exceptions import AppError, ResourceNotFoundError
 from app.models.user import User
 from app.repositories.operations_repository import AuditRepository, NotificationRepository
@@ -27,6 +29,7 @@ class NotificationService:
         self.session = session
         self.notifications = NotificationRepository(session)
         self.audit = AuditRepository(session)
+        self.settings = get_settings()
 
     async def get_preferences(self, user: User) -> NotificationPreferenceResponse:
         preferences = await self.notifications.get_or_create_preferences(user.id)
@@ -195,6 +198,45 @@ class NotificationService:
                         )
                         logger.info("development_expiry_email user_id=%s days=%s", user.id, days)
                         created += 1
+        await self.session.commit()
+        return created
+
+    async def send_class_reminders(
+        self,
+        *,
+        now: datetime | None = None,
+        lead_minutes: int,
+    ) -> int:
+        now = now or datetime.now(UTC)
+        deadline = now + timedelta(minutes=lead_minutes)
+        timezone = ZoneInfo(self.settings.GYM_TIMEZONE)
+        created = 0
+        candidates = await self.notifications.class_reminder_candidates(
+            starts_after=now,
+            starts_before=deadline,
+        )
+        for booking, gym_class, user, preferences in candidates:
+            if preferences and (not preferences.in_app_enabled or not preferences.class_reminders_enabled):
+                continue
+            local_start = gym_class.start_at.astimezone(timezone)
+            dedupe_key = f"class-reminder:{booking.id}:{gym_class.start_at.isoformat()}:in_app"
+            inserted = await self.notifications.create_notification_once(
+                user_id=user.id,
+                category="class_booking",
+                notification_type="class_reminder",
+                title=f"{gym_class.title} starts soon",
+                message=(
+                    f"Your class starts {local_start.strftime('%A, %d %B at %H:%M')} "
+                    f"({self.settings.GYM_TIMEZONE}) at {gym_class.location}."
+                ),
+                channel="in_app",
+                delivery_state="delivered",
+                delivered_at=now,
+                dedupe_key=dedupe_key,
+                action_type="class_booking",
+                action_id=booking.id,
+            )
+            created += int(inserted)
         await self.session.commit()
         return created
 
