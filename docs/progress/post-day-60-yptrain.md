@@ -12,6 +12,7 @@ Updated September 22, 2026. This tracker covers the owner-approved post-Day-60 Y
 - Fresh mobile baseline before editing: typecheck, lint, two QR tests and Android export passed. Expo Doctor reported 20/21 because four installed SDK 57 packages are one patch behind current compatibility recommendations: `@expo/ui`, `expo`, `expo-constants` and `expo-router`. No dependency was silently upgraded in Feature 1.
 - Feature 2 final evidence is current: isolated backend **102 passed with five existing Starlette deprecation warnings in 51.80 seconds**; Compose/Alembic checks are clean; mobile typecheck/lint, seven Node tests and Android export pass; web lint/build pass with existing warnings. Expo-web phone/tablet/desktop review and native Android login/four-tab accessibility-tree navigation passed. Physical phone, iOS and human UAT remain unverified.
 - Feature 3 final evidence: isolated PostgreSQL/Redis migrations through `20260921_0008` and **105 backend tests passed with five existing warnings in 45.05 seconds**. Mobile typecheck/lint, nine Node tests and Android export pass; web lint/build pass with existing warnings. Authenticated Expo web confirmed registration validation, API-online login, lifecycle-request history/forms, gym-local visit totals and the class-reminder preference. Device push, physical phone, iOS and human UAT remain unverified.
+- Feature 4 is implemented locally after Feature 3 reached `origin/main` at `e7f5d76`. The fresh isolated migration/test run and normal development-stack migration/worker check are recorded in `docs/release/integration-report.md`. Live SMTP credentials and sender have not been supplied; external delivery is unverified.
 
 ## Existing dependency map
 
@@ -23,7 +24,7 @@ Updated September 22, 2026. This tracker covers the owner-approved post-Day-60 Y
 | Classes and trainers | Mobile classes/bookings; web member/admin/PT pages | class/trainer/booking/waitlist routes; class/trainer services and repositories; PostgreSQL row locking and waitlist rules |
 | Notifications/broadcasts | Mobile inbox/preferences/dashboard; web member/manager pages | notification/preference/broadcast routes; `NotificationService`; PostgreSQL records and Celery expiry-reminder schedule |
 | UI feedback/cache | React Native alerts/messages and TanStack Query; web Sonner and TanStack Query | Per-feature query keys and mutation invalidation; Feature 1 centralizes member session cleanup and membership refresh roots |
-| Development email | Web and native registration/verification | `AuthService` writes privacy-sensitive verification/reset messages to ignored Maildir in development, including a `ypgym://verify-email` link; external SMTP delivery is not implemented |
+| Registration email | Web and native registration/verification | `AuthService` preserves one-time verification/reset links; PostgreSQL stores one welcome intent per new member; Celery uses ignored Maildir in development or configurable SMTP. External SMTP delivery remains unverified. |
 
 ## Feature slices
 
@@ -32,7 +33,7 @@ Updated September 22, 2026. This tracker covers the owner-approved post-Day-60 Y
 | 1. Mobile reliability and membership state | FR40, FR41, part of FR54 | Verified | Session/navigation/state code; 102 backend tests, six mobile tests, typecheck/lint/export and Android logout/restart journey pass |
 | 2. White/green workout design system | FR54–FR55 | Verified | Shared semantic tokens/components cover all named mobile screens; web foundation aligned; contrast, responsive web, native Android navigation, automated checks and export pass |
 | 3. Complete mobile journey and class reminders | FR41, FR42 | Verified | Shared API registration/verification and lifecycle requests; preference-aware deduplicated PostgreSQL reminders with booking targets; gym-local visit days; 105 backend and nine mobile tests plus lint/typecheck/build/export |
-| 4. Welcome email | FR53 | Not started | Provider-neutral implementation precedes mandatory live-credential checkpoint |
+| 4. Welcome email | FR53 | Development verified; live delivery unverified | Transactional one-per-member intent, worker retry/dedupe, Maildir and SMTP adapter; normal migration and empty-queue worker probe pass. Sender credentials are owner-controlled. |
 | 5. YPTrain catalogue and equipment guide | FR45, FR46, FR52 | Not started | Requires forward migration, catalogue RBAC and shared web/mobile API |
 | 6. Attendance-linked workout logging | FR47–FR48 | Not started | Requires attendance ownership gate, daily uniqueness and normalized sets |
 | 7. History, comparisons and muscle map | FR49–FR50 | Not started | Metric/week definition must be consistent across both clients |

@@ -1,5 +1,11 @@
 # YPGym Codex Handoff
 
+## September 22 post-Day-60 Feature 4 checkpoint
+
+- The authoritative record is [`docs/HANDOFF.md`](docs/HANDOFF.md). Feature 4 adds a deduplicated PostgreSQL welcome-email intent, a Celery worker with bounded retry, development Maildir delivery, and a configurable SMTP adapter. Verification/reset links retain hashed one-time tokens and can use the same transport.
+- Migration `20260922_0009` was applied to the normal development stack. The isolated backend suite passed **111 tests** with five existing warnings; Alembic current/check, API dependencies and the new worker task passed. Real SMTP delivery is unverified pending owner-controlled sender/configuration. `docs/api/email-delivery.md` documents operation and failure limits.
+- User-owned `README.md`, `RUN_GUIDE.md` and `tmp/` remain excluded. The next feature is the YPTrain catalogue after Feature 4's local commit and explicit push approval.
+
 ## September 21–22 post-Day-60 Feature 3 checkpoint
 
 - The authoritative current record is [`docs/HANDOFF.md`](docs/HANDOFF.md). Feature 3 adds mobile registration/verification, membership freeze/cancellation requests, gym-local attendance-day totals and preference-aware, deduplicated in-app class reminders that open the matching booking.

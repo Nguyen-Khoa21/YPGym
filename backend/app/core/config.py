@@ -1,7 +1,8 @@
 from functools import lru_cache
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import field_validator
+from pydantic import EmailStr, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,10 +19,18 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "change-this-secret-in-production"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    SMTP_HOST: str = "smtp.example.com"
-    SMTP_PORT: int = 587
+    EMAIL_DELIVERY_MODE: Literal["development", "smtp"] = "development"
+    EMAIL_SENDER_NAME: str = "YPGym Team"
+    EMAIL_SENDER_ADDRESS: EmailStr = "no-reply@example.com"
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = Field(default=587, ge=1, le=65535)
+    SMTP_TLS_MODE: Literal["starttls", "ssl", "none"] = "starttls"
     SMTP_USERNAME: str = ""
-    SMTP_PASSWORD: str = ""
+    SMTP_PASSWORD: SecretStr = SecretStr("")
+    SMTP_TIMEOUT_SECONDS: int = Field(default=10, ge=1, le=60)
+    EMAIL_MAX_DELIVERY_ATTEMPTS: int = Field(default=5, ge=1, le=20)
+    EMAIL_RETRY_DELAY_SECONDS: int = Field(default=300, ge=1, le=86400)
+    EMAIL_DELIVERY_BATCH_SIZE: int = Field(default=25, ge=1, le=100)
     QR_TOKEN_TTL_SECONDS: int = 60
     ATTENDANCE_TIMEOUT_MINUTES: int = 180
     GYM_CAPACITY: int = 150
@@ -40,6 +49,28 @@ class Settings(BaseSettings):
         except ZoneInfoNotFoundError as exc:
             raise ValueError("GYM_TIMEZONE must be a valid IANA timezone.") from exc
         return value
+
+    @field_validator("EMAIL_SENDER_NAME", "EMAIL_SENDER_ADDRESS", "SMTP_HOST", "SMTP_USERNAME")
+    @classmethod
+    def reject_email_header_injection(cls, value: str) -> str:
+        if "\r" in value or "\n" in value:
+            raise ValueError("Email and SMTP settings cannot contain line breaks.")
+        return value.strip()
+
+    @model_validator(mode="after")
+    def validate_smtp_configuration(self) -> "Settings":
+        if self.EMAIL_DELIVERY_MODE != "smtp":
+            return self
+        if not self.SMTP_HOST:
+            raise ValueError("SMTP_HOST is required when EMAIL_DELIVERY_MODE is smtp.")
+        if not self.EMAIL_SENDER_ADDRESS:
+            raise ValueError("EMAIL_SENDER_ADDRESS is required when EMAIL_DELIVERY_MODE is smtp.")
+        password_configured = bool(self.SMTP_PASSWORD.get_secret_value())
+        if bool(self.SMTP_USERNAME) != password_configured:
+            raise ValueError("SMTP_USERNAME and SMTP_PASSWORD must be configured together.")
+        if self.SMTP_USERNAME and self.SMTP_TLS_MODE == "none":
+            raise ValueError("SMTP authentication requires TLS.")
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",

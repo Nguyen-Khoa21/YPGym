@@ -13,6 +13,9 @@ x-backend-environment: &backend-environment
   CORS_EXTRA_ORIGINS: http://localhost:8081,http://localhost:8082,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:8082,http://127.0.0.1:19006
   INVOICE_STORAGE_DIR: /app/storage/invoices
   DEVELOPMENT_MAIL_DIR: /app/storage/mail
+  EMAIL_DELIVERY_MODE: development
+  EMAIL_SENDER_NAME: YPGym Team
+  EMAIL_SENDER_ADDRESS: no-reply@example.com
 
 x-backend: &backend
   build: ./backend

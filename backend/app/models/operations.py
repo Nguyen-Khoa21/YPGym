@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, JSON, String, Text, UniqueConstraint, text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -110,6 +110,13 @@ class Notification(Base):
     __table_args__ = (
         Index("ix_notifications_user_created", "user_id", "created_at"),
         Index("ix_notifications_user_read", "user_id", "read_at"),
+        Index(
+            "ix_notifications_email_delivery",
+            "notification_type",
+            "channel",
+            "delivery_state",
+            "last_delivery_attempt_at",
+        ),
         UniqueConstraint("dedupe_key", name="uq_notifications_dedupe_key"),
     )
 
@@ -124,6 +131,8 @@ class Notification(Base):
     dedupe_key: Mapped[str | None] = mapped_column(String(220))
     action_type: Mapped[str | None] = mapped_column(String(40))
     action_id: Mapped[UUID | None] = mapped_column()
+    delivery_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    last_delivery_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("now()"))

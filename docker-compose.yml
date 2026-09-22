@@ -42,7 +42,8 @@ services:
     environment:
       ENVIRONMENT: development
       API_V1_PREFIX: /api/v1
-      FRONTEND_URL: http://localhost:${FRONTEND_HOST_PORT:-5174}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5174}
+      MOBILE_APP_URL: ${MOBILE_APP_URL:-ypgym://}
       CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-http://localhost:8081,http://localhost:8082,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:8082,http://127.0.0.1:19006}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ypgym}:${POSTGRES_PASSWORD:-ypgym_dev_password}@postgres-db:5432/${POSTGRES_DB:-ypgym}
       REDIS_URL: redis://redis-cache:6379/0
@@ -54,6 +55,16 @@ services:
       GYM_CAPACITY: 150
       IOT_DEVICE_API_KEY: ${IOT_DEVICE_API_KEY:-local-iot-key}
       DEVELOPMENT_SEED_PASSWORD: ${DEVELOPMENT_SEED_PASSWORD:-YPGymDemo123!}
+      EMAIL_DELIVERY_MODE: ${EMAIL_DELIVERY_MODE:-development}
+      EMAIL_SENDER_NAME: ${EMAIL_SENDER_NAME:-YPGym Team}
+      EMAIL_SENDER_ADDRESS: ${EMAIL_SENDER_ADDRESS:-no-reply@example.com}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_TLS_MODE: ${SMTP_TLS_MODE:-starttls}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_TIMEOUT_SECONDS: ${SMTP_TIMEOUT_SECONDS:-10}
+      DEVELOPMENT_MAIL_DIR: ${DEVELOPMENT_MAIL_DIR:-storage/mail}
     ports:
       - "${BACKEND_HOST_PORT:-8001}:8000"
     volumes:
@@ -93,6 +104,20 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ypgym}:${POSTGRES_PASSWORD:-ypgym_dev_password}@postgres-db:5432/${POSTGRES_DB:-ypgym}
       REDIS_URL: redis://redis-cache:6379/0
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-local-secret}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5174}
+      EMAIL_DELIVERY_MODE: ${EMAIL_DELIVERY_MODE:-development}
+      EMAIL_SENDER_NAME: ${EMAIL_SENDER_NAME:-YPGym Team}
+      EMAIL_SENDER_ADDRESS: ${EMAIL_SENDER_ADDRESS:-no-reply@example.com}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_TLS_MODE: ${SMTP_TLS_MODE:-starttls}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_TIMEOUT_SECONDS: ${SMTP_TIMEOUT_SECONDS:-10}
+      EMAIL_MAX_DELIVERY_ATTEMPTS: ${EMAIL_MAX_DELIVERY_ATTEMPTS:-5}
+      EMAIL_RETRY_DELAY_SECONDS: ${EMAIL_RETRY_DELAY_SECONDS:-300}
+      EMAIL_DELIVERY_BATCH_SIZE: ${EMAIL_DELIVERY_BATCH_SIZE:-25}
+      DEVELOPMENT_MAIL_DIR: ${DEVELOPMENT_MAIL_DIR:-storage/mail}
     volumes:
       - ./backend:/app
     depends_on:

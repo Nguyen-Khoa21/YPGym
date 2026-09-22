@@ -81,7 +81,14 @@ async def test_development_email_keeps_one_time_link_out_of_logs(tmp_path, caplo
     from app.services.auth_service import AuthService
 
     service = AuthService(None)
-    service.settings = SimpleNamespace(ENVIRONMENT="development", FRONTEND_URL="http://localhost:5174", DEVELOPMENT_MAIL_DIR=str(tmp_path / "mail"))
+    service.settings = SimpleNamespace(
+        ENVIRONMENT="development",
+        EMAIL_DELIVERY_MODE="development",
+        EMAIL_SENDER_NAME="YPGym Team",
+        EMAIL_SENDER_ADDRESS="no-reply@example.com",
+        FRONTEND_URL="http://localhost:5174",
+        DEVELOPMENT_MAIL_DIR=str(tmp_path / "mail"),
+    )
     await service._prepare_development_email("synthetic@example.com", "Password reset", "/reset-password", "PRIVATE_RESET_MATERIAL")
     outbox = Maildir(tmp_path / "mail", create=False)
     try:

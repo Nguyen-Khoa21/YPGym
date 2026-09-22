@@ -17,7 +17,7 @@ Created September 20, 2026 and revised September 21, 2026 for the owner-approved
 | FR50 | Weekly front/back muscle heatmap | Planned | Feature 7 |
 | FR51 | Guarded AI weekly training review | Architecture/provider decision required before live integration | Feature 8 |
 | FR52 | Live gym equipment/exercise guide | Planned as the shared YPTrain catalogue | Feature 5 |
-| FR53 | Registration welcome email through configurable SMTP delivery | Planned; live delivery remains credential gated | Feature 4 |
+| FR53 | Registration welcome email through configurable SMTP delivery | Provider-neutral development delivery and SMTP adapter verified in Feature 4; live delivery remains credential gated | Feature 4 |
 | FR54 | Consistent action success/error feedback and real-time UI refresh | Partially implemented in Features 1–2 and existing connected clients; later mutation corrections remain | Features 1, 2, 10 and 11 |
 | FR55 | White-and-green workout-oriented responsive design system | Verified in Feature 2 across shared mobile components/member routes and the web foundation; physical-device and iOS verification remain pending | Feature 2 and later UI slices |
 | FR56 | Previous-month attendance-based membership discount | Business combination/consumption policy required before implementation | Feature 9 |
@@ -46,5 +46,11 @@ The current backend has no logout or token-revocation endpoint. Feature 1 theref
 | FR42 | Celery minute schedule, configurable lead time, PostgreSQL dedupe key, per-member preferences, notification action metadata and booking deep link | `test_member_reminders.py`, `member-journey.test.mjs`, API ownership checks and full isolated suite |
 
 The default gym timezone is `Asia/Ho_Chi_Minh`, validated as an IANA timezone. Attendance distinct-day aggregation and class reminder presentation use that configured zone. Feature 3 adds persistent in-app reminders only because no device-push service or credentials are configured.
+
+## Feature 4 traceability
+
+| Requirement | Implementation | Verification |
+|---|---|---|
+| FR53 | Registration transaction creates one deduplicated PostgreSQL welcome-email intent; Celery sends via development Maildir or configurable SMTP, with bounded retries and private failure logs. Verification/reset messages use the configured transport without changing token hashing or one-time use. | `test_account_journey.py` registration, duplicate, escaped HTML, link/token and retry cases; `test_email_delivery.py` SMTP/auth/configuration checks; full isolated backend suite and normal-stack migration/worker check. External SMTP delivery is not claimed. |
 
 The YPTrain Features 5–9 replace all previously proposed food catalogue, cart, checkout, stock, delivery, review and payment work. No YPFood schema, API or client implementation exists or is planned.

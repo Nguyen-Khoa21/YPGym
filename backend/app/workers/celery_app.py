@@ -9,6 +9,7 @@ from app.core.config import get_settings
 from app.db.session import AsyncSessionLocal, engine
 from app.services.attendance_service import AttendanceService
 from app.services.configuration_service import ConfigurationService
+from app.services.email_service import EmailDeliveryService
 from app.services.lifecycle_service import MembershipLifecycleService
 from app.services.notification_service import NotificationService
 
@@ -34,6 +35,10 @@ celery_app.conf.beat_schedule = {
     },
     "class-reminders-minute": {
         "task": "app.workers.send_class_reminders",
+        "schedule": 60.0,
+    },
+    "welcome-emails-minute": {
+        "task": "app.workers.send_welcome_emails",
         "schedule": 60.0,
     },
 }
@@ -91,6 +96,16 @@ async def _send_class_reminders() -> int:
 @celery_app.task(name="app.workers.send_class_reminders")
 def send_class_reminders() -> int:
     return _run_async_task(_send_class_reminders)
+
+
+async def _send_welcome_emails() -> int:
+    async with AsyncSessionLocal() as session:
+        return await EmailDeliveryService(session).deliver_pending_welcome_emails()
+
+
+@celery_app.task(name="app.workers.send_welcome_emails")
+def send_welcome_emails() -> int:
+    return _run_async_task(_send_welcome_emails)
 
 
 async def _close_timed_out_attendance() -> int:

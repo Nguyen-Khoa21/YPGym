@@ -1,8 +1,9 @@
 import asyncio
+import logging
+import smtplib
 from datetime import UTC, datetime, timedelta
 from email.message import EmailMessage
-from mailbox import Maildir
-from pathlib import Path
+from email.utils import formataddr
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,9 @@ from app.core.exceptions import AppError, DependencyUnavailableError
 from app.models.enums import MemberTier, UserRole
 from app.models.user import User
 from app.repositories.auth_repository import AuthTokenRepository
+from app.repositories.operations_repository import NotificationRepository
 from app.repositories.user_repository import UserRepository
+from app.services.email_service import ConfiguredEmailTransport
 from app.schemas.auth_schema import (
     ForgotPasswordResponse,
     LoginResponse,
@@ -30,12 +33,15 @@ from app.utils.security import (
     verify_password,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class AuthService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.users = UserRepository(session)
         self.tokens = AuthTokenRepository(session)
+        self.notifications = NotificationRepository(session)
         self.settings = get_settings()
 
     async def register(self, payload: RegisterRequest) -> RegisterResponse:
@@ -67,6 +73,16 @@ class AuthService:
                 is_email_verified=False,
             )
             verification_token = await self._create_email_verification(user)
+            await self.notifications.create_notification_once(
+                user_id=user.id,
+                category="account",
+                notification_type="registration_welcome",
+                title="Welcome to YPGym",
+                message="Welcome to YPGym. Verify your email, then explore membership plans and member features.",
+                channel="email",
+                delivery_state="pending",
+                dedupe_key=f"registration-welcome:{user.id}:email",
+            )
             await self.session.commit()
         except IntegrityError as exc:
             await self.session.rollback()
@@ -76,7 +92,14 @@ class AuthService:
                 status_code=409,
             ) from exc
 
-        await self._prepare_development_email(user.email, "Email verification", "/verify-email", verification_token)
+        try:
+            await self._prepare_development_email(user.email, "Email verification", "/verify-email", verification_token)
+        except DependencyUnavailableError as exc:
+            logger.warning(
+                "registration_verification_email_failed user_id=%s exception_type=%s",
+                user.id,
+                type(exc).__name__,
+            )
         return RegisterResponse(
             message="Registration successful. Please verify your email before logging in.",
             user=UserPublic.model_validate(user),
@@ -164,7 +187,14 @@ class AuthService:
                 expires_at=expires_at,
             )
             await self.session.commit()
-            await self._prepare_development_email(user.email, "Password reset", "/reset-password", token)
+            try:
+                await self._prepare_development_email(user.email, "Password reset", "/reset-password", token)
+            except DependencyUnavailableError as exc:
+                logger.warning(
+                    "password_reset_email_failed user_id=%s exception_type=%s",
+                    user.id,
+                    type(exc).__name__,
+                )
 
         return ForgotPasswordResponse(
             message="If this email is registered, a password reset link has been prepared.",
@@ -203,26 +233,21 @@ class AuthService:
         return token
 
     async def _prepare_development_email(self, recipient: str, label: str, route: str, token: str) -> None:
-        if self.settings.ENVIRONMENT != "development":
+        if self.settings.EMAIL_DELIVERY_MODE == "development" and self.settings.ENVIRONMENT != "development":
             return
         message = EmailMessage()
+        message["From"] = formataddr((self.settings.EMAIL_SENDER_NAME, self.settings.EMAIL_SENDER_ADDRESS))
         message["To"] = recipient
         message["Subject"] = f"YPGym: {label}"
-        links = [f"{self.settings.FRONTEND_URL}{route}?token={token}"]
+        links = [f"{self.settings.FRONTEND_URL.rstrip('/')}{route}?token={token}"]
         if route == "/verify-email":
             links.append(f"{self.settings.MOBILE_APP_URL}{route.lstrip('/')}?token={token}")
         message.set_content("\n".join(links) + "\n")
 
-        def write_message():
-            directory = Path(self.settings.DEVELOPMENT_MAIL_DIR)
-            directory.parent.mkdir(parents=True, exist_ok=True)
-            outbox = Maildir(directory, create=True)
-            try:
-                outbox.add(message)
-            finally:
-                outbox.close()
-
         try:
-            await asyncio.to_thread(write_message)
-        except OSError as exc:
-            raise DependencyUnavailableError("EMAIL_PREPARATION_UNAVAILABLE", "The local email could not be prepared. Check the development outbox configuration.") from exc
+            await asyncio.to_thread(ConfiguredEmailTransport(self.settings).send, message)
+        except (OSError, smtplib.SMTPException) as exc:
+            raise DependencyUnavailableError(
+                "EMAIL_DELIVERY_UNAVAILABLE",
+                "The email could not be delivered. Check the mail configuration.",
+            ) from exc

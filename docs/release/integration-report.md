@@ -1,5 +1,11 @@
 # Isolated integration evidence
 
+## September 22 post-Day-60 Feature 4
+
+The fresh isolated command `docker compose -p ypgym-yptrain-f4-tests -f compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner --attach test-runner` migrated temporary PostgreSQL through `20260922_0009` and completed **111 passed, 5 warnings in 46.84 seconds**. The warnings remain Starlette's `HTTP_422_UNPROCESSABLE_ENTITY` deprecation. The test project and volumes were removed afterward.
+
+New storage tests cover exactly one committed welcome-email intent for a successful registration, duplicate rejection, development Maildir delivery, escaped member name, correct login link, no verification token in the greeting, SMTP verification links with a hashed/one-time database token, retry timing, delivery exhaustion and privacy-safe failure logs. A transport test covers SMTP STARTTLS and authentication without opening a network connection. Normal Compose API/worker/beat were rebuilt after applying the forward migration; `alembic current` is `20260922_0009 (head)`, `alembic check` found no pending operations, API database/Redis health is `ok`, the worker registers `send_welcome_emails`, and a direct empty-queue run returned `0`. No external SMTP connection or real inbox delivery was attempted or claimed.
+
 ## September 21–22 post-Day-60 Feature 3
 
 The fresh isolated command `docker compose -p ypgym-yptrain-f3-tests -f compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner --attach test-runner` migrated temporary PostgreSQL storage through `20260921_0008` and completed **105 passed, 5 warnings in 45.05 seconds**. The warnings remain Starlette's `HTTP_422_UNPROCESSABLE_ENTITY` deprecation. The isolated project and volumes were removed afterward; normal application records were not reset.

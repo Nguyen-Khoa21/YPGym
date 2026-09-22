@@ -701,6 +701,33 @@ class NotificationRepository:
             ).scalar_one(),
         )
 
+    async def next_welcome_email_for_delivery(
+        self,
+        *,
+        retry_before: datetime,
+        max_attempts: int,
+    ) -> tuple[Notification, User] | None:
+        row = (
+            await self.session.execute(
+                select(Notification, User)
+                .join(User, User.id == Notification.user_id)
+                .where(
+                    Notification.notification_type == "registration_welcome",
+                    Notification.channel == "email",
+                    Notification.delivery_state == "pending",
+                    Notification.delivery_attempts < max_attempts,
+                    or_(
+                        Notification.last_delivery_attempt_at.is_(None),
+                        Notification.last_delivery_attempt_at <= retry_before,
+                    ),
+                )
+                .order_by(Notification.created_at, Notification.id)
+                .with_for_update(skip_locked=True)
+                .limit(1),
+            )
+        ).first()
+        return (row[0], row[1]) if row else None
+
     async def reminder_candidates(self, expiry_date: date) -> list[tuple[UserMembership, User]]:
         rows = (
             await self.session.execute(

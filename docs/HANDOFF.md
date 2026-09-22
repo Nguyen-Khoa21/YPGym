@@ -1,6 +1,15 @@
 # YPGym Handoff
 
-Last updated: 2026-09-22, post-Day-60 Feature 3 mobile member journey and class reminders.
+Last updated: 2026-09-22, post-Day-60 Feature 4 registration welcome email.
+
+## September 22 continuation — Feature 4 registration welcome email
+
+- Feature 3 commit `e7f5d76` (`feat(mobile): complete member self service and class reminders`) was pushed to `origin/main` on the owner's request. Feature 4 was developed from the synchronized branch while preserving user-owned `README.md`, `RUN_GUIDE.md` and `tmp/` outside its files.
+- Registration now commits exactly one deduplicated welcome-email intent with the new user and hashed one-time verification token. A minute-scheduled Celery task delivers pending greetings through the existing ignored Maildir in development or a standard-library SMTP adapter. The greeting uses the configured YPGym sender and frontend login URL, escapes the name in HTML and contains no verification token. Retry timing and attempts are bounded, stored in PostgreSQL, and logged without credential/recipient/exception values.
+- The separate verification and password-reset emails can use the same configured SMTP transport; verification still uses the existing web and `ypgym://` links with hashed, one-time tokens. Registration remains committed if mail delivery fails. There is no member-facing resend endpoint if the separate verification email fails, and an SMTP-acknowledged send can be duplicated after a worker crash before the database commit. See `docs/api/email-delivery.md` for setup and these limits.
+- Migration `20260922_0009` adds attempt metadata and an email-delivery index. The normal development database was forward-migrated to this head without resetting records; the API/worker/beat were rebuilt. Alembic reports no metadata drift, database/Redis health is `ok`, the worker registers the new task, and an empty-queue task run returned `0`.
+- The isolated PostgreSQL/Redis suite passed **111 tests, five existing Starlette deprecation warnings in 46.84 seconds** after fresh migrations. Tests cover one queue intent, duplicate registration, Maildir output, escaped content/link, SMTP verification links and hashed token, retry/exhaustion, private failure logs, and SMTP STARTTLS/auth configuration. No real SMTP attempt was made because owner-controlled host, TLS, sender and credentials are not configured. No dependency was added.
+- This Feature 4 commit remains local until the owner approves the exact push. Only after its push gate should Feature 5 begin the shared YPTrain catalogue and equipment guide.
 
 ## September 21–22 continuation — Feature 3 complete mobile journey and class reminders
 
