@@ -3,6 +3,7 @@ export class ApiError extends Error {
 }
 
 const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '');
+export function apiUrl(path: string) { return baseUrl ? `${baseUrl}${path}` : ''; }
 
 export async function apiRequest<T>(path: string, token?: string | null, options: { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
   if (!baseUrl) throw new ApiError('Set EXPO_PUBLIC_API_URL to your reachable backend address. See mobile/README.md.', 0, 'CONFIGURATION_ERROR');

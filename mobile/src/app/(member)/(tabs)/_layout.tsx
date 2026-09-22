@@ -7,6 +7,7 @@ const icons: Record<string, { active: keyof typeof Ionicons.glyphMap; inactive: 
   dashboard: { active: 'grid', inactive: 'grid-outline' },
   qr: { active: 'qr-code', inactive: 'qr-code-outline' },
   classes: { active: 'calendar', inactive: 'calendar-outline' },
+  train: { active: 'barbell', inactive: 'barbell-outline' },
   profile: { active: 'person', inactive: 'person-outline' },
 };
 
@@ -26,6 +27,7 @@ export default function MemberTabs() {
     <Tabs.Screen name="dashboard" options={{ title: 'Dashboard' }} />
     <Tabs.Screen name="qr" options={{ title: 'Check-in' }} />
     <Tabs.Screen name="classes" options={{ title: 'Classes' }} />
+    <Tabs.Screen name="train" options={{ title: 'YPTrain' }} />
     <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
   </Tabs>;
 }

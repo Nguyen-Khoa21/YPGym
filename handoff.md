@@ -1,5 +1,12 @@
 # YPGym Codex Handoff
 
+## September 22 post-Day-60 Feature 5 checkpoint
+
+- Feature 4 welcome email was pushed as `cd154024` on `origin/main`. Feature 5 developed from synchronized `main`; the authoritative details are in [`docs/HANDOFF.md`](docs/HANDOFF.md) and [`docs/api/training-catalogue.md`](docs/api/training-catalogue.md).
+- One shared YPTrain catalogue now supplies member web and Expo browse/detail. Manager/admin can create, edit, archive/restore and upload validated images with audit. Four idempotent seed entries are explicitly illustrative. Add Exercise remains disabled until Feature 6's attendance-gated workout logging.
+- Migration `20260922_0010` is at the normal database head without drift. The isolated suite passed **114 tests**; web lint/build, mobile typecheck/lint/nine tests/Android export, live member/manager API and browser parity checks passed with documented pre-existing warnings. Physical phone/iOS and actual equipment inventory remain unverified.
+- `README.md`, `RUN_GUIDE.md` and `tmp/` are user-owned and excluded from the feature commit. Generated `mobile/dist-feature5/` is also excluded; automatic approval review blocked its recursive deletion. After the exact Feature 5 push gate, continue Feature 6 only.
+
 ## September 22 post-Day-60 Feature 4 checkpoint
 
 - The authoritative record is [`docs/HANDOFF.md`](docs/HANDOFF.md). Feature 4 adds a deduplicated PostgreSQL welcome-email intent, a Celery worker with bounded retry, development Maildir delivery, and a configurable SMTP adapter. Verification/reset links retain hashed one-time tokens and can use the same transport.

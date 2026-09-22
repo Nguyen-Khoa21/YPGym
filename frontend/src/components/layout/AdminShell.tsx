@@ -28,6 +28,7 @@ const adminNav = [
   { to: "/admin/audit", label: "Audit log", icon: ShieldCheck, roles: ["manager", "admin"] },
   { to: "/admin/settings", label: "Settings", icon: Settings2, roles: ["manager", "admin"] },
   { to: "/admin/pt-assignments", label: "PT profiles", icon: Dumbbell, roles: ["manager", "admin"] },
+  { to: "/admin/exercises", label: "Exercises", icon: Dumbbell, roles: ["manager", "admin"] },
 ];
 
 export function AdminShell({ children }: PropsWithChildren) {

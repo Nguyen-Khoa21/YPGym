@@ -5,6 +5,7 @@ import {
   ChevronRight,
   CircleUserRound,
   ClipboardList,
+  Dumbbell,
   LayoutDashboard,
   PauseCircle,
   QrCode,
@@ -24,11 +25,12 @@ const memberNav = [
   { to: "/app/membership-requests", label: "Freeze / cancel", icon: PauseCircle },
   { to: "/app/notifications", label: "Notifications", icon: Bell },
   { to: "/app/classes", label: "Classes", icon: CalendarDays },
+  { to: "/app/train", label: "YPTrain", icon: Dumbbell },
   { to: "/app/bookings", label: "My bookings", icon: CalendarDays },
   { to: "/app/profile", label: "Profile", icon: CircleUserRound },
 ];
 
-const mobileNav = [memberNav[0], memberNav[3], memberNav[7], memberNav[8], memberNav[9]];
+const mobileNav = memberNav.filter((item) => ["/app/dashboard", "/app/qr", "/app/classes", "/app/train", "/app/profile"].includes(item.to));
 
 export function MemberShell({ children }: PropsWithChildren) {
   const { user } = useAuth();

@@ -14,6 +14,7 @@ bcrypt<4.1
 python-jose[cryptography]
 email-validator
 python-multipart
+Pillow>=11.3,<13
 httpx
 reportlab
 pytest

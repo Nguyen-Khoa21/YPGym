@@ -35,6 +35,8 @@ import { ProfileSettingsPage } from "@/features/member/pages/ProfileSettingsPage
 import { PtDashboardPage } from "@/features/member/pages/PtDashboardPage";
 import { BuyMembershipPage } from "@/features/memberships/pages/BuyMembershipPage";
 import { MembershipPlansPage } from "@/features/memberships/pages/MembershipPlansPage";
+import { AdminTrainingPage } from "@/features/training/pages/AdminTrainingPage";
+import { MemberTrainingPage } from "@/features/training/pages/MemberTrainingPage";
 
 const operationsRoles = ["admin", "manager", "staff"] as const;
 const managerRoles = ["admin", "manager"] as const;
@@ -94,6 +96,14 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute roles={["member"]}><MyBookingsPage /></ProtectedRoute>,
   },
   {
+    path: "/app/train",
+    element: <ProtectedRoute roles={["member"]}><MemberTrainingPage /></ProtectedRoute>,
+  },
+  {
+    path: "/app/train/:id",
+    element: <ProtectedRoute roles={["member"]}><MemberTrainingPage /></ProtectedRoute>,
+  },
+  {
     path: "/admin",
     element: <ProtectedRoute roles={[...operationsRoles]}><AdminDashboardPage /></ProtectedRoute>,
   },
@@ -136,6 +146,10 @@ export const router = createBrowserRouter([
   {
     path: "/admin/pt-assignments",
     element: <ProtectedRoute roles={[...managerRoles]}><AdminTrainersPage /></ProtectedRoute>,
+  },
+  {
+    path: "/admin/exercises",
+    element: <ProtectedRoute roles={[...managerRoles]}><AdminTrainingPage /></ProtectedRoute>,
   },
   {
     path: "/pt/dashboard",

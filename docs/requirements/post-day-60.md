@@ -9,14 +9,14 @@ Created September 20, 2026 and revised September 21, 2026 for the owner-approved
 | FR42 | Upcoming booked-class reminders and notification navigation | Verified for preference-aware deduplicated in-app reminders and booking navigation; device push remains credential/environment gated | Feature 3 |
 | FR43 | Individual manager-created staff and trainer accounts | Planned | Feature 10 |
 | FR44 | Staff clock-in/clock-out records and manager reporting | Planned | Feature 10 |
-| FR45 | Admin machine/exercise catalogue management | Planned | Feature 5 |
-| FR46 | Upper/lower exercise browse and search | Planned | Feature 5 |
+| FR45 | Admin machine/exercise catalogue management | Implemented in Feature 5; isolated and client verification recorded in the tracker | Feature 5 |
+| FR46 | Upper/lower exercise browse and search | Implemented against one member API on web and Expo | Feature 5 |
 | FR47 | Guided exercise logging with 1–10 sets, reps and weight | Planned | Feature 6 |
 | FR48 | Attendance-linked workout session per gym-local calendar date | Planned | Feature 6 |
 | FR49 | Workout history calendar and same-exercise comparisons | Planned | Feature 7 |
 | FR50 | Weekly front/back muscle heatmap | Planned | Feature 7 |
 | FR51 | Guarded AI weekly training review | Architecture/provider decision required before live integration | Feature 8 |
-| FR52 | Live gym equipment/exercise guide | Planned as the shared YPTrain catalogue | Feature 5 |
+| FR52 | Live gym equipment/exercise guide | Shared guide implemented; illustrative machine entries do not confirm installation and logging awaits Feature 6 | Feature 5 |
 | FR53 | Registration welcome email through configurable SMTP delivery | Provider-neutral development delivery and SMTP adapter verified in Feature 4; live delivery remains credential gated | Feature 4 |
 | FR54 | Consistent action success/error feedback and real-time UI refresh | Partially implemented in Features 1–2 and existing connected clients; later mutation corrections remain | Features 1, 2, 10 and 11 |
 | FR55 | White-and-green workout-oriented responsive design system | Verified in Feature 2 across shared mobile components/member routes and the web foundation; physical-device and iOS verification remain pending | Feature 2 and later UI slices |
@@ -54,3 +54,11 @@ The default gym timezone is `Asia/Ho_Chi_Minh`, validated as an IANA timezone. A
 | FR53 | Registration transaction creates one deduplicated PostgreSQL welcome-email intent; Celery sends via development Maildir or configurable SMTP, with bounded retries and private failure logs. Verification/reset messages use the configured transport without changing token hashing or one-time use. | `test_account_journey.py` registration, duplicate, escaped HTML, link/token and retry cases; `test_email_delivery.py` SMTP/auth/configuration checks; full isolated backend suite and normal-stack migration/worker check. External SMTP delivery is not claimed. |
 
 The YPTrain Features 5–9 replace all previously proposed food catalogue, cart, checkout, stock, delivery, review and payment work. No YPFood schema, API or client implementation exists or is planned.
+
+## Feature 5 traceability
+
+| Requirement | Implementation | Verification |
+|---|---|---|
+| FR45 | PostgreSQL training exercises, muscle tags and sanitized images; manager/admin create/edit/archive/restore and same-transaction audit; `frontend/src/features/training/pages/AdminTrainingPage.tsx` | `test_training_catalogue.py` validates RBAC, records, archive, image handling and audit; web lint/build |
+| FR46 | Member API search/filter/pagination and upper/lower web + Expo browse/detail screens | Same API contract exercised from both clients; isolated API test and web/mobile type/lint/export checks |
+| FR52 | Usage, primary/secondary muscles, safety and illustrative labeling | Seed repeatability test, guide detail and image fallback; physical machine presence remains unconfirmed |

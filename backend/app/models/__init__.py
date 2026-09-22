@@ -26,6 +26,7 @@ from app.models.operations import (
     NotificationPreference,
 )
 from app.models.system_configuration import SystemConfiguration
+from app.models.training import TrainingExercise, TrainingExerciseImage, TrainingExerciseMuscle
 from app.models.user import User
 
 __all__ = [
@@ -59,6 +60,9 @@ __all__ = [
     "RequestStatus",
     "SystemConfiguration",
     "SystemConfigurationValueType",
+    "TrainingExercise",
+    "TrainingExerciseImage",
+    "TrainingExerciseMuscle",
     "User",
     "UserMembership",
     "UserRole",

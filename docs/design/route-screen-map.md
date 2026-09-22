@@ -18,6 +18,7 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 | Notification preferences | `/app/notifications/preferences` | Member | `/notifications/preferences/me` | Connected |
 | Member class booking | `/app/classes` | Member | `/classes/upcoming`, `/classes/{id}/book`, waitlist join/leave | Connected responsive class cards, PT cards, capacity, eligible/ineligible, booked/full/waitlisted/cancelled states |
 | My bookings | `/app/bookings` | Member | `/bookings/me`, booking cancel, waitlist leave | Connected confirmed/cancelled/promoted/waiting states and configured cancellation cutoff |
+| YPTrain exercise guide | `/app/train`, `/app/train/:id` | Member | `/training/exercises`, detail and active image | Shared upper/lower browse, name/muscle search, image/illustration cards, usage/muscle/safety detail; Add Exercise is disabled pending Feature 6 |
 | Mobile member shell | `mobile/src/app/` (Expo Router) | Member | Shared `/api/v1` auth, dashboard, attendance, classes, bookings, notifications, profile, billing and lifecycle requests | FR40/FR41 centralizes logout/reset, route-aware Back behavior, membership refresh, registration/verification and freeze/cancellation requests; FR42 adds persistent in-app class reminders that open the matching booking; attendance exposes distinct `Asia/Ho_Chi_Minh` visit dates; FR54/FR55 supplies the responsive white/green shell and accessible states; physical phone/iOS remain unverified |
 
 Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/*` routes.
@@ -38,6 +39,7 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 | Audit log | `/admin/audit` | Manager/admin | `/admin/audit-logs` | Connected date/action/actor/target/entity filters and pagination |
 | Configuration | `/admin/settings` | Manager/admin | `/admin/configuration` | Connected validated editing and cache invalidation |
 | PT profiles | `/admin/pt-assignments` | Manager/admin | `/admin/trainers`, `/admin/classes/trainers` | Connected create/edit/deactivate, active/inactive filters, assigned-class deactivation guard, confirmation, and audit |
+| YPTrain catalogue | `/admin/exercises` | Manager/admin | `/admin/training/exercises`, image upload | Shared record create/edit/archive/restore, search/filter, validated image replacement and audit |
 | PT dashboard | `/pt/dashboard` | PT | Auth role | Intentionally lightweight protected landing page; payroll/client-programming scope is not fabricated |
 
 ## Attendance field mapping

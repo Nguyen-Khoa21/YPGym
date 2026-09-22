@@ -16,6 +16,7 @@ from app.models.classes import ClassBooking, ClassWaitlist, GymClass, PersonalTr
 from app.models.membership import MembershipPlan, UserMembership
 from app.models.operations import BroadcastAnnouncement, Notification, NotificationPreference
 from app.models.system_configuration import SystemConfiguration
+from app.models.training import TrainingExercise, TrainingExerciseMuscle
 from app.models.user import User
 from app.services.invoice_service import InvoicePdfService
 from app.utils.security import hash_password, hash_token
@@ -94,6 +95,13 @@ DEMO_MEMBERS = [
     ("revoked", "Revoked Member", "normal", "revoked"),
     ("cancelled", "Cancelled Member", "normal", "cancelled"),
     ("newmember", "New Member", "normal", None),
+]
+
+ILLUSTRATIVE_EXERCISES = [
+    ("Push-up", "upper", "A bodyweight pressing exercise for upper-body strength.", "Start in a plank with hands below shoulders. Lower with control, then press back up.", "Keep your trunk steady and use an incline if the floor version is too demanding.", ["chest", "triceps"], ["shoulders", "core"]),
+    ("Lat pulldown", "upper", "An illustrative cable-machine pulling exercise; equipment availability is unconfirmed.", "Adjust the thigh pad. Pull the bar toward the upper chest without leaning far back, then return slowly.", "Avoid pulling behind the neck and stop if movement causes pain.", ["back"], ["biceps", "forearms"]),
+    ("Bodyweight squat", "lower", "A bodyweight lower-body squat.", "Stand with feet comfortable apart. Bend hips and knees, then stand back up with control.", "Keep heels grounded and use a comfortable depth.", ["quadriceps", "glutes"], ["hamstrings", "core"]),
+    ("Leg press", "lower", "An illustrative machine-based leg press; equipment availability is unconfirmed.", "Adjust the seat and place feet on the platform. Extend the legs without locking knees, then lower slowly.", "Keep your lower back on the pad and use a manageable load.", ["quadriceps", "glutes"], ["hamstrings", "calves"]),
 ]
 
 
@@ -408,6 +416,13 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
             start_at = now + timedelta(days=2)
             gym_class.start_at = start_at
             gym_class.end_at = start_at + timedelta(minutes=60)
+
+        for name, region, description, steps, safety, primary, secondary in ILLUSTRATIVE_EXERCISES:
+            exercise_id = uuid5(NAMESPACE_URL, f"ypgym:illustrative-exercise:{name}")
+            existing = (await session.execute(select(TrainingExercise.id).where(TrainingExercise.id == exercise_id))).scalar_one_or_none()
+            if not existing:
+                session.add(TrainingExercise(id=exercise_id, name=name, region=region, description=description, usage_steps=steps, safety_note=safety, is_illustrative=True))
+                session.add_all([TrainingExerciseMuscle(exercise_id=exercise_id, muscle=muscle, role=role) for role, values in (("primary", primary), ("secondary", secondary)) for muscle in values])
 
         if demo:
             await _seed_demo_scenarios(session, users, plans, trainer, membership, now)

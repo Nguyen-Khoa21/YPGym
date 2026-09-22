@@ -1,6 +1,16 @@
 # YPGym Handoff
 
-Last updated: 2026-09-22, post-Day-60 Feature 4 registration welcome email.
+Last updated: 2026-09-22, post-Day-60 Feature 5 shared YPTrain catalogue.
+
+## September 22 continuation — Feature 5 YPTrain catalogue and equipment guide
+
+- Feature 4 was pushed to `origin/main` as `cd154024c7161fbce132a0e393034e28af2cb44f` (`feat(auth): add configurable welcome email delivery`) on the owner's exact request. Feature 5 began from synchronized `main`. User-owned `README.md`, `RUN_GUIDE.md` and `tmp/` stayed outside the feature files.
+- No prior exercise/equipment catalogue, seed or image-upload mechanism was present. Feature 5 adds a single normalized PostgreSQL exercise catalogue, controlled primary/secondary muscle tags, and one image record per exercise. The manager/admin API supports validated create/edit/archive/restore and audited image replacement. Members can list/search/filter active records and read usage, muscles and safety guidance. The same API powers responsive web `/app/train` and Expo YPTrain tab/detail; manager web `/admin/exercises` is discoverable from the shell/dashboard. Member CRUD is denied.
+- Image uploads accept PNG/JPEG/WebP up to 2 MB and 4 megapixels, are decoded/re-encoded as metadata-stripped JPEG using Pillow, and are audited atomically. Public image GET serves active records only so native/browser image elements can render them. Four repeatable **illustrative** seeds include bodyweight and machine examples; machine availability is explicitly unconfirmed. Add Exercise is shown but disabled pending Feature 6's verified check-in and workout logging.
+- Migration `20260922_0010` was applied forward to the normal development database, followed by the idempotent seed. `alembic current` is `20260922_0010 (head)` and `alembic check` has no pending operations. Live seeded member/manager login returned `200/200`; member catalogue returned four rows, manager list returned `200`, and member management access returned `403`. `pip check` found no broken requirements.
+- Final isolated PostgreSQL/Redis verification passed **114 tests with six Starlette deprecation warnings in 53.95 seconds**. The temporary test containers/network were removed. Web lint/build passed with the existing TanStack Compiler and bundle-size warnings. Mobile typecheck/lint, nine existing Node tests and Android export passed. Browser QA on the normal shared backend confirmed web and Expo catalogue parity for `Bodyweight squat`, web region filtering, detailed usage/primary/secondary/safety text, disabled Add Exercise, and manager form validation. Physical Android/iOS/phone testing of this new screen was not performed.
+- `docs/api/training-catalogue.md` documents schema, routes, roles, image policy, seed and manual test. `docs/requirements/post-day-60.md`, route-screen map and tracker now map FR45/FR46/FR52. Feature 6 is next **after** this local Feature 5 commit's exact push gate; it must reuse the existing attendance records and require server-verified same-day check-in before workout writes.
+- A generated `mobile/dist-feature5/` Android export is untracked and excluded from the feature commit. Automatic approval review blocked a recursive removal command despite an explicit workspace path check, so the export remains on disk for manual cleanup. The user-owned untracked `tmp/` and `RUN_GUIDE.md` remain untouched.
 
 ## September 22 continuation — Feature 4 registration welcome email
 
@@ -9,7 +19,7 @@ Last updated: 2026-09-22, post-Day-60 Feature 4 registration welcome email.
 - The separate verification and password-reset emails can use the same configured SMTP transport; verification still uses the existing web and `ypgym://` links with hashed, one-time tokens. Registration remains committed if mail delivery fails. There is no member-facing resend endpoint if the separate verification email fails, and an SMTP-acknowledged send can be duplicated after a worker crash before the database commit. See `docs/api/email-delivery.md` for setup and these limits.
 - Migration `20260922_0009` adds attempt metadata and an email-delivery index. The normal development database was forward-migrated to this head without resetting records; the API/worker/beat were rebuilt. Alembic reports no metadata drift, database/Redis health is `ok`, the worker registers the new task, and an empty-queue task run returned `0`.
 - The isolated PostgreSQL/Redis suite passed **111 tests, five existing Starlette deprecation warnings in 46.84 seconds** after fresh migrations. Tests cover one queue intent, duplicate registration, Maildir output, escaped content/link, SMTP verification links and hashed token, retry/exhaustion, private failure logs, and SMTP STARTTLS/auth configuration. No real SMTP attempt was made because owner-controlled host, TLS, sender and credentials are not configured. No dependency was added.
-- This Feature 4 commit remains local until the owner approves the exact push. Only after its push gate should Feature 5 begin the shared YPTrain catalogue and equipment guide.
+- This Feature 4 commit was subsequently pushed with owner approval; the current Feature 5 checkpoint above supersedes its earlier local-only status.
 
 ## September 21–22 continuation — Feature 3 complete mobile journey and class reminders
 
