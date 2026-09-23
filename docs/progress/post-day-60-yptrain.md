@@ -1,6 +1,6 @@
 # Post-Day-60 mobile and YPTrain tracker
 
-Updated September 22, 2026. This tracker covers the owner-approved post-Day-60 YPTrain roadmap. The completed Day 42–60 release remains recorded separately in `day-43-60-tracker.md`.
+Updated September 23, 2026. This tracker covers the owner-approved post-Day-60 YPTrain roadmap. The completed Day 42–60 release remains recorded separately in `day-43-60-tracker.md`.
 
 ## Discovery baseline
 
@@ -16,6 +16,8 @@ Updated September 22, 2026. This tracker covers the owner-approved post-Day-60 Y
 - Feature 4 was subsequently pushed as `cd154024` (`feat(auth): add configurable welcome email delivery`). Feature 5 starts from that synchronized `main`/`origin/main` checkpoint. The normal database is forward-migrated to `20260922_0010` with no metadata drift; four illustrative exercises were seeded without touching prior records.
 - Feature 5 introduces one PostgreSQL catalogue with controlled primary/secondary muscles, audited manager/admin create/edit/archive/restore and sanitized image replacement. Member web and Expo use the same `/training/exercises` list/detail/image contracts. Browser QA on both clients loaded the same `Bodyweight squat` entry and exact guide text; manager edit validation rendered at `/admin/exercises`. Add Exercise is deliberately disabled until Feature 6 supplies attendance-gated logging. Physical-device/iOS checks and actual machine inventory confirmation remain open.
 - Feature 5 verification: final isolated PostgreSQL/Redis suite **114 passed, six Starlette deprecation warnings in 53.95 seconds**. Web lint/build, mobile typecheck/lint/nine Node tests/Android export, normal Alembic current/check, Compose config, dependency `pip check` and live member/manager/denied API probes passed. Temporary test containers/network were removed; normal data remained intact.
+- Feature 5 was pushed as `80e6505` (`feat(yptrain): add shared exercise catalogue and guide`). Feature 6 adds one attendance-linked daily workout per member/gym-local date, idempotent exercise submissions, snapshotted catalogue meaning and ordered validated kg/lb sets. Writes derive identity/date and require both a recorded scanner check-in and eligible membership.
+- Feature 6 verification: final isolated PostgreSQL/Redis suite **117 passed, seven Starlette deprecation warnings in 54.29 seconds**. Web lint/build, mobile typecheck/lint/nine Node tests/Android export, normal health, Compose and Alembic current/check pass. Authenticated web and Expo-web showed the exact same saved two-set workout; the web stepper preserved hidden row input. Disposable QA data was removed and prior seed status restored. Physical phone/native Android/iOS remain unverified for this flow.
 
 ## Existing dependency map
 
@@ -29,6 +31,7 @@ Updated September 22, 2026. This tracker covers the owner-approved post-Day-60 Y
 | UI feedback/cache | React Native alerts/messages and TanStack Query; web Sonner and TanStack Query | Per-feature query keys and mutation invalidation; Feature 1 centralizes member session cleanup and membership refresh roots |
 | Registration email | Web and native registration/verification | `AuthService` preserves one-time verification/reset links; PostgreSQL stores one welcome intent per new member; Celery uses ignored Maildir in development or configurable SMTP. External SMTP delivery remains unverified. |
 | YPTrain catalogue | Member web `/app/train`; Expo YPTrain tab/detail; manager web `/admin/exercises` | Shared `/training/exercises` and `/admin/training/exercises`; service/repository and controlled PostgreSQL exercise/muscle/image records; no member CRUD |
+| YPTrain daily workout | Same web/Expo exercise detail and YPTrain summary | Shared `/training/workouts/today`; PostgreSQL workout session/exercise/set rows linked to scanner attendance with server-side member/date/eligibility guards |
 
 ## Feature slices
 
@@ -38,8 +41,8 @@ Updated September 22, 2026. This tracker covers the owner-approved post-Day-60 Y
 | 2. White/green workout design system | FR54–FR55 | Verified | Shared semantic tokens/components cover all named mobile screens; web foundation aligned; contrast, responsive web, native Android navigation, automated checks and export pass |
 | 3. Complete mobile journey and class reminders | FR41, FR42 | Verified | Shared API registration/verification and lifecycle requests; preference-aware deduplicated PostgreSQL reminders with booking targets; gym-local visit days; 105 backend and nine mobile tests plus lint/typecheck/build/export |
 | 4. Welcome email | FR53 | Development verified; live delivery unverified | Transactional one-per-member intent, worker retry/dedupe, Maildir and SMTP adapter; normal migration and empty-queue worker probe pass. Sender credentials are owner-controlled. |
-| 5. YPTrain catalogue and equipment guide | FR45, FR46, FR52 | Development verified; native/physical inventory unverified | Forward migration, RBAC/audit/image and shared web/Expo browse/detail; isolated suite, browser parity, build/export and live API probe pass; Add Exercise awaits Feature 6 |
-| 6. Attendance-linked workout logging | FR47–FR48 | Not started | Requires attendance ownership gate, daily uniqueness and normalized sets |
+| 5. YPTrain catalogue and equipment guide | FR45, FR46, FR52 | Development verified; native/physical inventory unverified | Forward migration, RBAC/audit/image and shared web/Expo browse/detail; isolated suite, browser parity, build/export and live API probe pass; Add Exercise is connected by Feature 6 |
+| 6. Attendance-linked workout logging | FR47–FR48 | Development verified; physical/native-device verification pending | Same-day scanner and membership gate, ownership, daily uniqueness, snapshots, idempotency/concurrency and normalized sets; isolated suite plus web/Expo parity and builds pass |
 | 7. History, comparisons and muscle map | FR49–FR50 | Not started | Metric/week definition must be consistent across both clients |
 | 8. Guarded weekly training review | FR51 | Decision gated | No approved provider or existing guarded FR39 pipeline has been verified |
 | 9. Attendance renewal discount | FR56 | Decision gated | Combination and one-time consumption policy require owner approval |

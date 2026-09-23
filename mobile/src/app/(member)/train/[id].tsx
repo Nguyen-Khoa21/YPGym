@@ -1,18 +1,22 @@
+import { useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import * as Crypto from 'expo-crypto';
 import { useLocalSearchParams } from 'expo-router';
 import { Image, Text, View } from 'react-native';
 
-import { Action, Busy, Card, Message, PageTop, Screen, textStyles } from '@/components/ui';
+import { Action, Busy, Card, Field, Message, PageTop, Screen, textStyles } from '@/components/ui';
 import { apiUrl, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { colors } from '@/lib/theme';
-import { exerciseImage, type Exercise } from '@/lib/training';
+import { exerciseImage, type Exercise, type WorkoutToday } from '@/lib/training';
 
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { request, user } = useAuth();
+  const queryClient = useQueryClient();
   const exercise = useQuery({ queryKey: ['training', 'exercise', user?.id, id], queryFn: ({ signal }) => request<Exercise>(`/training/exercises/${id}`, { signal }), enabled: !!id });
+  const today = useQuery({ queryKey: ['training', 'workout', 'today', user?.id], queryFn: ({ signal }) => request<WorkoutToday>('/training/workouts/today', { signal }) });
   return <Screen><PageTop title="Exercise guide" fallback="/(member)/(tabs)/train" />
     {exercise.isLoading ? <Busy label="Loading exercise" /> : null}
     {exercise.isError ? <Message title="Exercise unavailable" detail={errorMessage(exercise.error)} action="Retry" onAction={() => void exercise.refetch()} tone="error" /> : null}
@@ -22,7 +26,40 @@ export default function ExerciseDetailScreen() {
       <Card><Text style={textStyles.subheading}>How to use</Text><Text style={textStyles.body}>{exercise.data.usage_steps}</Text></Card>
       <Card><Text style={textStyles.subheading}>Muscles</Text><Text style={textStyles.body}>Primary: {exercise.data.primary_muscles.join(', ')}</Text><Text style={textStyles.body}>Secondary: {exercise.data.secondary_muscles.join(', ') || 'None listed'}</Text></Card>
       <Card><Text style={textStyles.subheading}>Safety note</Text><Text style={textStyles.body}>{exercise.data.safety_note}</Text></Card>
-      <Action label="Add Exercise · coming soon" onPress={() => {}} disabled /><Text style={[textStyles.muted, { marginTop: 8 }]}>Workout logging arrives in the next YPTrain update and will require a verified gym check-in.</Text>
+      {today.isLoading ? <Busy label="Checking today's gym visit" /> : null}{today.isError ? <Message title="Workout unavailable" detail={errorMessage(today.error)} action="Retry" onAction={() => void today.refetch()} tone="error" /> : null}
+      {today.data?.eligible ? <WorkoutForm exercise={exercise.data} request={request} onSaved={(value) => queryClient.setQueryData(['training', 'workout', 'today', user?.id], value)} /> : today.data ? <Message title="Check-in required" detail={today.data.reason ?? ''} action="Check again" onAction={() => void today.refetch()} /> : null}
+      {today.data?.session ? <Card><Text style={textStyles.subheading}>{`Today's workout · ${today.data.gym_date}`}</Text>{today.data.session.exercises.map((item) => <View key={item.id}><Text style={textStyles.body}>{item.name}</Text><Text style={textStyles.muted}>{item.sets.map((set) => `${set.set_order}: ${set.reps} reps × ${set.weight} ${set.unit}`).join(' · ')}</Text></View>)}</Card> : null}
     </> : null}
   </Screen>;
+}
+
+type SetDraft = { reps: string; weight: string; unit: 'kg' | 'lb' };
+const blankSet = (): SetDraft => ({ reps: '', weight: '0', unit: 'kg' });
+
+function WorkoutForm({ exercise, request, onSaved }: { exercise: Exercise; request: <T>(path: string, options?: { method?: 'POST'; body?: unknown }) => Promise<T>; onSaved: (value: WorkoutToday) => void }) {
+  const [count, setCount] = useState(1);
+  const [rows, setRows] = useState<SetDraft[]>(() => Array.from({ length: 10 }, blankSet));
+  const [key, setKey] = useState(() => Crypto.randomUUID());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+  const submitting = useRef(false);
+  const change = (index: number, patch: Partial<SetDraft>) => { setRows((previous) => previous.map((row, i) => i === index ? { ...row, ...patch } : row)); setKey(Crypto.randomUUID()); setError(''); setSaved(false); };
+  const changeCount = (next: number) => { setCount(next); setKey(Crypto.randomUUID()); setSaved(false); setError(''); };
+  const submit = async () => {
+    if (submitting.current) return;
+    const sets = rows.slice(0, count);
+    if (sets.some((row) => !Number.isInteger(Number(row.reps)) || Number(row.reps) < 1 || Number(row.reps) > 1000 || !/^\d+(\.\d{1,2})?$/.test(row.weight) || Number(row.weight) > 9999.99)) { setError('Enter 1–1000 whole reps and a non-negative weight up to 9999.99 for each set.'); return; }
+    submitting.current = true; setBusy(true); setError('');
+    try {
+      const result = await request<WorkoutToday>('/training/workouts/today/exercises', { method: 'POST', body: { exercise_id: exercise.id, idempotency_key: key, sets: sets.map((row) => ({ reps: Number(row.reps), weight: row.weight, unit: row.unit })) } });
+      onSaved(result); setSaved(true); setKey(Crypto.randomUUID()); setRows(Array.from({ length: 10 }, blankSet)); setCount(1);
+    } catch (cause) { setError(errorMessage(cause)); }
+    finally { submitting.current = false; setBusy(false); }
+  };
+  return <Card><Text style={textStyles.subheading}>Add Exercise</Text><Text style={textStyles.muted}>Record external load in kg or lb. Use 0 kg for bodyweight or no added load; it does not mean zero effort.</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}><View style={{ flex: 1 }}><Action label="− Remove set" outline disabled={busy || count <= 1} onPress={() => changeCount(count - 1)} /></View><Text accessibilityLabel={`${count} sets`} style={textStyles.body}>{count} {count === 1 ? 'set' : 'sets'}</Text><View style={{ flex: 1 }}><Action label="+ Add set" outline disabled={busy || count >= 10} onPress={() => changeCount(count + 1)} /></View></View>
+    {rows.slice(0, count).map((row, index) => <View key={index} style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 }}><Text style={textStyles.body}>Set {index + 1}</Text><Field label={`Set ${index + 1} reps`} value={row.reps} onChangeText={(value) => change(index, { reps: value })} keyboardType="number-pad" editable={!busy} /><Field label={`Set ${index + 1} external weight`} value={row.weight} onChangeText={(value) => change(index, { weight: value })} keyboardType="decimal-pad" editable={!busy} /><View style={{ flexDirection: 'row', gap: 8 }}><View style={{ flex: 1 }}><Action label={`kg${row.unit === 'kg' ? ' selected' : ''}`} outline={row.unit !== 'kg'} disabled={busy} onPress={() => change(index, { unit: 'kg' })} /></View><View style={{ flex: 1 }}><Action label={`lb${row.unit === 'lb' ? ' selected' : ''}`} outline={row.unit !== 'lb'} disabled={busy} onPress={() => change(index, { unit: 'lb' })} /></View></View></View>)}
+    {error ? <Message title="Could not save exercise" detail={error} tone="error" /> : null}{saved ? <Message title="Exercise saved" detail="It now appears in today's workout." tone="success" /> : null}<Action label={busy ? 'Saving…' : 'Save exercise'} disabled={busy} onPress={() => void submit()} />
+  </Card>;
 }

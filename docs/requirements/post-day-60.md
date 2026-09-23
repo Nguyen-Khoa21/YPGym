@@ -11,8 +11,8 @@ Created September 20, 2026 and revised September 21, 2026 for the owner-approved
 | FR44 | Staff clock-in/clock-out records and manager reporting | Planned | Feature 10 |
 | FR45 | Admin machine/exercise catalogue management | Implemented in Feature 5; isolated and client verification recorded in the tracker | Feature 5 |
 | FR46 | Upper/lower exercise browse and search | Implemented against one member API on web and Expo | Feature 5 |
-| FR47 | Guided exercise logging with 1–10 sets, reps and weight | Planned | Feature 6 |
-| FR48 | Attendance-linked workout session per gym-local calendar date | Planned | Feature 6 |
+| FR47 | Guided exercise logging with 1–10 sets, reps and weight | Implemented on web and Expo against one member API; physical/native-device verification remains pending | Feature 6 |
+| FR48 | Attendance-linked workout session per gym-local calendar date | Implemented with server-derived member/date, scanner attendance proof, eligible membership, daily uniqueness and idempotency/concurrency guards | Feature 6 |
 | FR49 | Workout history calendar and same-exercise comparisons | Planned | Feature 7 |
 | FR50 | Weekly front/back muscle heatmap | Planned | Feature 7 |
 | FR51 | Guarded AI weekly training review | Architecture/provider decision required before live integration | Feature 8 |
@@ -62,3 +62,12 @@ The YPTrain Features 5–9 replace all previously proposed food catalogue, cart,
 | FR45 | PostgreSQL training exercises, muscle tags and sanitized images; manager/admin create/edit/archive/restore and same-transaction audit; `frontend/src/features/training/pages/AdminTrainingPage.tsx` | `test_training_catalogue.py` validates RBAC, records, archive, image handling and audit; web lint/build |
 | FR46 | Member API search/filter/pagination and upper/lower web + Expo browse/detail screens | Same API contract exercised from both clients; isolated API test and web/mobile type/lint/export checks |
 | FR52 | Usage, primary/secondary muscles, safety and illustrative labeling | Seed repeatability test, guide detail and image fallback; physical machine presence remains unconfirmed |
+
+## Feature 6 traceability
+
+| Requirement | Implementation | Verification |
+|---|---|---|
+| FR47 | Web and Expo Add Exercise forms with a 1–10 stepper, retained hidden-row values, positive reps, non-negative two-decimal external load, explicit kg/lb unit, bodyweight/zero-load guidance and confirmed server success | `test_workout_logging.py`; web lint/build; mobile typecheck/lint/nine tests/Android export; authenticated web and Expo-web form/session parity |
+| FR48 | `workout_sessions`, `workout_exercises`, `workout_sets`; one member/gym-date constraint; attendance FK; scanner event and membership gate; user locking; request-key idempotency; catalogue snapshots | Isolated real PostgreSQL concurrency, denial, checkout, revocation, snapshot and timezone-boundary coverage; Alembic current/check at `20260922_0011` |
+
+Feature 6 permits writes only for the current configured gym-local day. Checkout, timeout and QR expiry leave an already recorded check-in and workout history intact. Editing, deletion and historical backfill are intentionally unavailable; Feature 7 owns historical reads and comparisons.

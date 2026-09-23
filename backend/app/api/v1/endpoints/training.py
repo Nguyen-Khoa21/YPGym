@@ -8,11 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import require_roles
 from app.db.session import get_db_session
 from app.models.user import User
-from app.schemas.training_schema import ExerciseItem, ExercisePage, ExerciseUpdate, ExerciseWrite, Muscle, Region
+from app.schemas.training_schema import ExerciseItem, ExercisePage, ExerciseUpdate, ExerciseWrite, Muscle, Region, WorkoutExerciseWrite, WorkoutToday
 from app.services.training_service import TrainingService
+from app.services.workout_service import WorkoutService
 
 router = APIRouter(prefix="/training/exercises", tags=["training catalogue"])
 admin_router = APIRouter(prefix="/admin/training/exercises", tags=["training catalogue administration"])
+workout_router = APIRouter(prefix="/training/workouts", tags=["member workouts"])
 
 
 @router.get("", response_model=ExercisePage)
@@ -70,3 +72,13 @@ async def update_exercise(exercise_id: UUID, payload: ExerciseUpdate, current_us
 async def set_exercise_image(exercise_id: UUID, current_user: Annotated[User, Depends(require_roles("manager", "admin"))], session: Annotated[AsyncSession, Depends(get_db_session)], file: UploadFile = File(...)) -> ExerciseItem:
     content = await file.read(2_000_001)
     return await TrainingService(session).set_image(exercise_id=exercise_id, actor=current_user, content=content)
+
+
+@workout_router.get("/today", response_model=WorkoutToday)
+async def get_today_workout(current_user: Annotated[User, Depends(require_roles("member"))], session: Annotated[AsyncSession, Depends(get_db_session)]) -> WorkoutToday:
+    return await WorkoutService(session).today(current_user)
+
+
+@workout_router.post("/today/exercises", response_model=WorkoutToday)
+async def add_today_exercise(payload: WorkoutExerciseWrite, current_user: Annotated[User, Depends(require_roles("member"))], session: Annotated[AsyncSession, Depends(get_db_session)]) -> WorkoutToday:
+    return await WorkoutService(session).add_exercise(current_user, payload)

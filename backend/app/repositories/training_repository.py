@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from datetime import date, datetime
 from uuid import UUID
 
 from sqlalchemy import exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.training import TrainingExercise, TrainingExerciseImage, TrainingExerciseMuscle
+from app.models.attendance import AttendanceEvent, AttendanceSession
+from app.models.training import TrainingExercise, TrainingExerciseImage, TrainingExerciseMuscle, WorkoutExercise, WorkoutSession, WorkoutSet
 
 
 class TrainingRepository:
@@ -56,3 +58,32 @@ class TrainingRepository:
             await self.session.delete(row)
         await self.session.flush()
         self.session.add_all([TrainingExerciseMuscle(exercise_id=exercise_id, muscle=muscle, role=role) for role, muscles in (("primary", primary), ("secondary", secondary)) for muscle in muscles])
+
+    async def qualifying_check_in(self, user_id: UUID, start: datetime, end: datetime) -> AttendanceSession | None:
+        query = (
+            select(AttendanceSession)
+            .join(AttendanceEvent, AttendanceEvent.session_id == AttendanceSession.id)
+            .where(
+                AttendanceSession.user_id == user_id,
+                AttendanceSession.source == "iot_scanner",
+                AttendanceEvent.user_id == user_id,
+                AttendanceEvent.event_type == "check_in",
+                AttendanceEvent.source == "iot_scanner",
+                AttendanceSession.checked_in_at >= start,
+                AttendanceSession.checked_in_at < end,
+            )
+            .order_by(AttendanceSession.checked_in_at.desc())
+            .limit(1)
+        )
+        return (await self.session.execute(query)).scalar_one_or_none()
+
+    async def workout(self, user_id: UUID, workout_date: date) -> WorkoutSession | None:
+        return (await self.session.execute(select(WorkoutSession).where(WorkoutSession.user_id == user_id, WorkoutSession.workout_date == workout_date))).scalar_one_or_none()
+
+    async def workout_exercises(self, session_id: UUID) -> list[WorkoutExercise]:
+        return list((await self.session.execute(select(WorkoutExercise).where(WorkoutExercise.session_id == session_id).order_by(WorkoutExercise.created_at, WorkoutExercise.id))).scalars().all())
+
+    async def workout_sets(self, exercise_ids: list[UUID]) -> list[WorkoutSet]:
+        if not exercise_ids:
+            return []
+        return list((await self.session.execute(select(WorkoutSet).where(WorkoutSet.workout_exercise_id.in_(exercise_ids)).order_by(WorkoutSet.set_order))).scalars().all())

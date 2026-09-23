@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Dumbbell, Search } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { apiRequest, apiUrl } from "@/lib/apiClient";
 import { toUiError } from "@/lib/apiErrors";
-import { MUSCLES, exerciseImage, type Exercise, type ExercisePage, type Muscle } from "@/features/training/types";
+import { MUSCLES, exerciseImage, type Exercise, type ExercisePage, type Muscle, type WorkoutToday } from "@/features/training/types";
 
 export function MemberTrainingPage() {
   const { id } = useParams();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
   const [region, setRegion] = useState<"all" | "upper" | "lower">("all");
   const [search, setSearch] = useState("");
   const [muscle, setMuscle] = useState<Muscle | "">("");
@@ -24,6 +25,7 @@ export function MemberTrainingPage() {
   if (muscle) params.set("muscle", muscle);
   const list = useQuery({ queryKey: ["training", "exercises", params.toString()], queryFn: ({ signal }) => apiRequest<ExercisePage>(`/training/exercises?${params}`, { token, signal }), enabled: !id });
   const detail = useQuery({ queryKey: ["training", "exercise", id], queryFn: ({ signal }) => apiRequest<Exercise>(`/training/exercises/${id}`, { token, signal }), enabled: !!id });
+  const today = useQuery({ queryKey: ["training", "workout", "today"], queryFn: ({ signal }) => apiRequest<WorkoutToday>("/training/workouts/today", { token, signal }) });
 
   return <MemberShell><div className="mx-auto max-w-6xl">
     {id ? <>
@@ -36,11 +38,13 @@ export function MemberTrainingPage() {
           <section><h2 className="text-xl font-bold">How to use</h2><p className="mt-2 whitespace-pre-line text-muted-foreground">{detail.data.usage_steps}</p></section>
           <section><h2 className="text-xl font-bold">Muscles</h2><p className="mt-2"><strong>Primary:</strong> {detail.data.primary_muscles.join(", ")}</p><p><strong>Secondary:</strong> {detail.data.secondary_muscles.join(", ") || "None listed"}</p></section>
           <section className="rounded-xl bg-muted/60 p-4"><h2 className="font-bold">Safety note</h2><p className="mt-1 text-sm">{detail.data.safety_note}</p></section>
-          <div><Button disabled>Add Exercise</Button><p className="mt-2 text-sm text-muted-foreground">Workout logging arrives in the next YPTrain update. A verified gym check-in will be required.</p></div>
+          <div><h2 className="text-xl font-bold">Add Exercise</h2>{today.isLoading ? <LoadingState title="Checking today's gym visit" /> : null}{today.isError ? <ErrorState title="Workout unavailable" message={toUiError(today.error).message} action={<Button variant="outline" onClick={() => today.refetch()}>Retry</Button>} /> : null}{today.data?.eligible ? <WorkoutForm key={detail.data.id} exercise={detail.data} token={token} onSaved={(value) => { queryClient.setQueryData(["training", "workout", "today"], value); }} /> : today.data ? <p className="mt-2 text-sm text-muted-foreground">{today.data.reason} <Button variant="outline" onClick={() => today.refetch()}>Check again</Button></p> : null}</div>
         </div>
       </article> : null}
+      {today.data?.session ? <WorkoutSummary value={today.data} /> : null}
     </> : <>
       <p className="page-kicker">YPTrain · equipment guide</p><h1 className="page-title">Find your next exercise.</h1><p className="page-description">Browse the shared exercise catalogue by body region or muscle. Illustrative machine entries do not confirm what is installed at YPGym.</p>
+      {today.data?.session ? <WorkoutSummary value={today.data} /> : today.data ? <p className="mt-5 rounded-xl border border-border bg-card p-4 text-sm">{today.data.eligible ? "Your gym check-in is confirmed. Open an exercise to start today's workout." : today.data.reason}</p> : null}
       <div className="mt-7 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-[1fr_auto]"><label className="flex h-11 items-center gap-2 rounded-md border border-input px-3"><Search className="size-4 text-muted-foreground" aria-hidden /><span className="sr-only">Search exercise name or muscle</span><input className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Search name or muscle" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} /></label><select aria-label="Filter by muscle" className="h-11 rounded-md border border-input bg-card px-3 text-sm" value={muscle} onChange={(event) => { setMuscle(event.target.value as Muscle | ""); setPage(1); }}><option value="">All muscles</option>{MUSCLES.map((value) => <option key={value} value={value}>{value}</option>)}</select></div>
       <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Body region">{(["all", "upper", "lower"] as const).map((value) => <Button key={value} variant={region === value ? "primary" : "outline"} onClick={() => { setRegion(value); setPage(1); }}>{value === "all" ? "All exercises" : `${value} body`}</Button>)}</div>
       {list.isLoading ? <LoadingState className="mt-5" title="Loading exercises" /> : null}
@@ -54,4 +58,47 @@ export function MemberTrainingPage() {
 
 function ExerciseVisual({ item, large = false }: { item: Exercise; large?: boolean }) {
   return <div className={`flex items-center justify-center bg-primary/10 ${large ? "h-64" : "h-36"}`}>{item.has_image ? <img className="h-full w-full object-cover" src={apiUrl(exerciseImage(item))} alt={`${item.name} exercise guide`} /> : <div className="flex items-center gap-2 text-primary"><Dumbbell className="size-12" aria-hidden /><span className="text-sm font-semibold">Image pending</span></div>}</div>;
+}
+
+type SetDraft = { reps: string; weight: string; unit: "kg" | "lb" };
+const blankSet = (): SetDraft => ({ reps: "", weight: "0", unit: "kg" });
+
+function WorkoutForm({ exercise, token, onSaved }: { exercise: Exercise; token: string | null; onSaved: (value: WorkoutToday) => void }) {
+  const [count, setCount] = useState(1);
+  const [rows, setRows] = useState<SetDraft[]>(() => Array.from({ length: 10 }, blankSet));
+  const [key, setKey] = useState(() => crypto.randomUUID());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const submitting = useRef(false);
+  const change = (index: number, patch: Partial<SetDraft>) => { setRows((previous) => previous.map((row, i) => i === index ? { ...row, ...patch } : row)); setKey(crypto.randomUUID()); setError(""); setSaved(false); };
+  const changeCount = (next: number) => { setCount(next); setKey(crypto.randomUUID()); setSaved(false); setError(""); };
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (submitting.current) return;
+    const sets = rows.slice(0, count);
+    if (sets.some((row) => !Number.isInteger(Number(row.reps)) || Number(row.reps) < 1 || Number(row.reps) > 1000 || !/^\d+(\.\d{1,2})?$/.test(row.weight) || Number(row.weight) > 9999.99)) { setError("Enter 1–1000 whole reps and a non-negative weight up to 9999.99 for every set."); return; }
+    submitting.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await apiRequest<WorkoutToday>("/training/workouts/today/exercises", { method: "POST", token, body: { exercise_id: exercise.id, idempotency_key: key, sets: sets.map((row) => ({ reps: Number(row.reps), weight: row.weight, unit: row.unit })) } });
+      onSaved(result);
+      setSaved(true);
+      setKey(crypto.randomUUID());
+      setRows(Array.from({ length: 10 }, blankSet));
+      setCount(1);
+    } catch (cause) { setError(toUiError(cause).message); }
+    finally { submitting.current = false; setBusy(false); }
+  };
+  return <form onSubmit={submit} className="mt-4 space-y-4"><p className="text-sm text-muted-foreground">Log external load in kg or lb. Use 0 kg for bodyweight or no added load; it does not mean zero effort.</p>
+    <div className="flex items-center gap-3"><span className="font-semibold">Sets</span><Button type="button" variant="outline" disabled={busy || count <= 1} aria-label="Remove one set" onClick={() => changeCount(count - 1)}>−</Button><output aria-live="polite">{count}</output><Button type="button" variant="outline" disabled={busy || count >= 10} aria-label="Add one set" onClick={() => changeCount(count + 1)}>+</Button></div>
+    {rows.slice(0, count).map((row, index) => <div key={index} className="grid gap-3 rounded-xl border border-border p-3 sm:grid-cols-[auto_1fr_1fr_100px] sm:items-end"><strong>Set {index + 1}</strong><label className="grid gap-1 text-sm">Reps<input required type="number" min="1" max="1000" step="1" value={row.reps} disabled={busy} onChange={(event) => change(index, { reps: event.target.value })} className="h-11 rounded-md border border-input bg-card px-3" /></label><label className="grid gap-1 text-sm">External weight<input required type="number" min="0" max="9999.99" step="0.01" value={row.weight} disabled={busy} onChange={(event) => change(index, { weight: event.target.value })} className="h-11 rounded-md border border-input bg-card px-3" /></label><label className="grid gap-1 text-sm">Unit<select value={row.unit} disabled={busy} onChange={(event) => change(index, { unit: event.target.value as "kg" | "lb" })} className="h-11 rounded-md border border-input bg-card px-3"><option value="kg">kg</option><option value="lb">lb</option></select></label></div>)}
+    {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}{saved ? <p role="status" className="text-sm font-semibold text-primary">Exercise saved to today's workout.</p> : null}<Button type="submit" disabled={busy}>{busy ? "Saving…" : "Save exercise"}</Button>
+  </form>;
+}
+
+function WorkoutSummary({ value }: { value: WorkoutToday }) {
+  if (!value.session) return null;
+  return <section className="mt-6 rounded-2xl border border-border bg-card p-5" aria-label="Today's workout"><p className="page-kicker">{value.gym_date} · {value.gym_timezone}</p><h2 className="text-xl font-bold">Today's workout</h2>{value.session.exercises.map((exercise) => <div key={exercise.id} className="mt-4 border-t border-border pt-3"><h3 className="font-semibold">{exercise.name}</h3><p className="text-sm text-muted-foreground">{exercise.sets.map((set) => `${set.set_order}: ${set.reps} reps × ${set.weight} ${set.unit}`).join(" · ")}</p></div>)}</section>;
 }

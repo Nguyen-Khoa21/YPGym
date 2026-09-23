@@ -1,6 +1,16 @@
 # YPGym Handoff
 
-Last updated: 2026-09-22, post-Day-60 Feature 5 shared YPTrain catalogue.
+Last updated: 2026-09-23, post-Day-60 Feature 6 attendance-linked workout logging.
+
+## September 23 continuation — Feature 6 attendance-linked workout logging
+
+- Feature 5 was pushed to `origin/main` as `80e6505fed9f56be9e0da10d0dcb9246cf7a573c` (`feat(yptrain): add shared exercise catalogue and guide`) on the owner's exact request. Feature 6 began from synchronized `main`; user-owned `README.md`, `RUN_GUIDE.md`, `tmp/` and the generated `mobile/dist-feature5/` export remain excluded.
+- Migration `20260922_0011` adds one daily `workout_sessions` row per member/gym-local date, attendance-session linkage, idempotent catalogue exercise entries and ordered 1–10 sets. Reps must be positive whole numbers; external load is non-negative with two decimal places and an explicit `kg`/`lb` unit. `0 kg` means bodyweight or no added load, not zero effort. Exercise name and primary/secondary muscles are snapshotted so later catalogue edits do not rewrite history.
+- Member-only `GET /training/workouts/today` and `POST /training/workouts/today/exercises` derive identity and the current date server-side. Writes require an eligible membership plus an existing same-day `iot_scanner` attendance session and its check-in event. Checkout/timeout and later QR expiry do not erase or invalidate a legitimate workout. User-row locking, the member/date constraint and request UUID constraint protect concurrent/duplicate submissions; a reused request key with different details returns 409.
+- Web and Expo YPTrain now show check-in eligibility, an accessible 1–10 set stepper, reps/load/unit controls, bodyweight guidance, in-flight submission lock, confirmed server success and the same current-day session. Hidden set rows preserve input while the count changes. Neither client supports edit/delete or historical backfill in this slice; Feature 7 owns historical reads and comparisons.
+- Fresh isolated PostgreSQL/Redis verification passed **117 tests with seven Starlette deprecation warnings in 54.29 seconds** after migrations through `20260922_0011`. Tests cover no-check-in and ownership denial, scanner-backed eligibility, membership revocation, checkout persistence, set bounds, idempotency conflict/retry, catalogue snapshots, concurrent writes and the Asia/Ho_Chi_Minh UTC boundary. The test stack was removed.
+- Web lint/build passed with the existing TanStack Compiler and bundle-size warnings. Mobile typecheck/lint, nine Node tests and Android export passed. Normal Compose was rebuilt; health passed; Alembic is `20260922_0011 (head)` with no drift. Browser QA confirmed blocked/no-check-in copy, the web form retaining set 2 across decrement/increment, confirmed web save, and Expo reading the exact same two-set workout. The disposable QA attendance/workout was removed and the seeded membership restored to `cancelled`.
+- `docs/api/workout-logging.md` documents the contract, storage and manual check. A generated Android export at `C:\Users\Admin\ypgym-feature6-export` remains outside the repository because automatic approval review blocked its recursive removal after an exact path check. Physical Android/iOS/phone testing of this new flow was not performed. Feature 7 is next only after the local Feature 6 commit's exact push gate.
 
 ## September 22 continuation — Feature 5 YPTrain catalogue and equipment guide
 

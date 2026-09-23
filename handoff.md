@@ -1,5 +1,12 @@
 # YPGym Codex Handoff
 
+## September 23 post-Day-60 Feature 6 checkpoint
+
+- Feature 5 was pushed as `80e6505` on `origin/main`. Feature 6 now adds attendance-linked daily workouts through one shared FastAPI/PostgreSQL contract for member web and Expo; authoritative details are in [`docs/HANDOFF.md`](docs/HANDOFF.md) and [`docs/api/workout-logging.md`](docs/api/workout-logging.md).
+- Server-side identity, gym-local date, scanner check-in evidence, eligible membership, daily uniqueness, row locking and request idempotency guard all writes. Catalogue names/muscles are snapshotted; checkout/timeout does not erase history. Web/Expo provide the same 1–10 set form and current-day results.
+- Migration `20260922_0011` is applied to the normal database with no drift. The isolated suite passed **117 tests**; web lint/build, mobile typecheck/lint/nine tests/Android export, normal health/Alembic and rendered web/Expo parity checks passed with documented existing warnings. Disposable QA records were removed and the seeded cancelled membership restored.
+- User-owned `README.md`, `RUN_GUIDE.md`, `tmp/` and `mobile/dist-feature5/` remain excluded. The generated external Feature 6 Android export could not be recursively removed because automatic approval review blocked the exact-path cleanup. Physical phone/iOS testing is unverified. Feature 7 starts only after the Feature 6 local commit and explicit push approval.
+
 ## September 22 post-Day-60 Feature 5 checkpoint
 
 - Feature 4 welcome email was pushed as `cd154024` on `origin/main`. Feature 5 developed from synchronized `main`; the authoritative details are in [`docs/HANDOFF.md`](docs/HANDOFF.md) and [`docs/api/training-catalogue.md`](docs/api/training-catalogue.md).

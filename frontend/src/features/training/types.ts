@@ -17,3 +17,16 @@ export type Exercise = {
 };
 export type ExercisePage = { items: Exercise[]; page: { page: number; page_size: number; total: number; pages: number } };
 export function exerciseImage(item: Exercise) { return `/training/exercises/${item.id}/image?v=${encodeURIComponent(item.updated_at)}`; }
+export type WorkoutSet = { id: string; set_order: number; reps: number; weight: string; unit: "kg" | "lb" };
+export type WorkoutToday = {
+  gym_date: string;
+  gym_timezone: string;
+  eligible: boolean;
+  reason: string | null;
+  session: null | {
+    id: string;
+    workout_date: string;
+    attendance_session_id: string;
+    exercises: { id: string; exercise_id: string; name: string; primary_muscles: Muscle[]; secondary_muscles: Muscle[]; created_at: string; sets: WorkoutSet[] }[];
+  };
+};

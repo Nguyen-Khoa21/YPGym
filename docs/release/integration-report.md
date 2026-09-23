@@ -1,5 +1,11 @@
 # Isolated integration evidence
 
+## September 23 post-Day-60 Feature 6
+
+The final isolated command `docker compose -p ypgym-tests -f compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner --attach test-runner` migrated temporary PostgreSQL through `20260922_0011` and completed **117 passed, 7 warnings in 54.29 seconds**. The warnings remain Starlette's `HTTP_422_UNPROCESSABLE_ENTITY` deprecation. The test containers, network and temporary storage were removed afterward.
+
+Feature 6 storage/API coverage proves direct no-check-in denial, member authentication/ownership, scanner-backed check-in eligibility, membership revocation denial without hiding saved history, persistence after scanner checkout, 1–10 set validation, positive reps, non-negative two-decimal kg/lb loads, zero-load bodyweight semantics, request retry/conflict behavior, one daily session under concurrent writes, preserved catalogue snapshots and the Asia/Ho_Chi_Minh UTC date boundary. Web lint/build pass with the existing TanStack Compiler and bundle warning; mobile typecheck/lint, nine Node tests and Android export pass. Normal Compose was rebuilt, API health passed, `alembic current` reports `20260922_0011 (head)`, and `alembic check` reports no new operations. Authenticated web and Expo-web QA confirmed the same saved two-set workout and the web set-count preservation behavior. Physical phone, native Android/iOS and human UAT were not exercised for this feature.
+
 ## September 22 post-Day-60 Feature 4
 
 The fresh isolated command `docker compose -p ypgym-yptrain-f4-tests -f compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner --attach test-runner` migrated temporary PostgreSQL through `20260922_0009` and completed **111 passed, 5 warnings in 46.84 seconds**. The warnings remain Starlette's `HTTP_422_UNPROCESSABLE_ENTITY` deprecation. The test project and volumes were removed afterward.

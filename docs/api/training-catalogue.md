@@ -1,6 +1,6 @@
 # YPTrain shared exercise catalogue
 
-Feature 5 adds one PostgreSQL exercise catalogue for the member web and Expo clients. Both read `/api/v1/training/exercises`; there is no client-only catalogue or YPFood data source. Existing equipment seed, admin source, and upload handler were searched before this migration and none existed.
+Feature 5 adds one PostgreSQL exercise catalogue for the member web and Expo clients. Both read `/api/v1/training/exercises`; there is no client-only catalogue or YPFood data source. Existing equipment seed, admin source, and upload handler were searched before this migration and none existed. Feature 6 workout records reference this catalogue; see `workout-logging.md`.
 
 ## Data and access
 
@@ -25,7 +25,7 @@ Image uploads are limited to 2 MB input and 4 megapixels, decoded as PNG/JPEG/We
 
 The default development seed adds four **illustrative** examples and never overwrites manager edits on rerun. Lat pulldown and leg press explicitly say that machine availability is unconfirmed. Admins should confirm actual on-site equipment before clearing the illustrative flag or publishing local photos.
 
-Member cards use a branded barbell fallback until a manager uploads an image. Detail shows steps, primary/secondary muscles, safety text, and a disabled “Add Exercise” entry point with the Feature 6 check-in requirement explained. It becomes interactive only when attendance-linked logging is implemented and verified.
+Member cards use a branded barbell fallback until a manager uploads an image. Detail shows steps, primary/secondary muscles and safety text. Feature 6 enables Add Exercise only after a server-confirmed same-day scanner check-in and eligible membership.
 
 ## Local check
 
@@ -36,4 +36,4 @@ docker compose exec -T backend-api alembic upgrade head
 docker compose exec -T backend-api python -m app.db.seed
 ```
 
-Sign in as manager/admin on the web and open `/admin/exercises`. Create an exercise, assign primary and secondary muscles, upload a small PNG/JPEG/WebP, then sign in as a member in the web or Expo app. Open YPTrain, search/filter and open the same detail. Archive the exercise as manager and verify it disappears from member results while staying in management and the audit log. Workout logging is Feature 6 and remains unavailable here.
+Sign in as manager/admin on the web and open `/admin/exercises`. Create an exercise, assign primary and secondary muscles, upload a small PNG/JPEG/WebP, then sign in as a member in the web or Expo app. Open YPTrain, search/filter and open the same detail. Archive the exercise as manager and verify it disappears from member results while staying in management and the audit log. For workout logging, see `workout-logging.md`.

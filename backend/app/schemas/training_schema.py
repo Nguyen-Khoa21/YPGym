@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
@@ -64,3 +65,45 @@ class ExerciseItem(ExerciseWrite):
 class ExercisePage(BaseModel):
     items: list[ExerciseItem]
     page: PageInfo
+
+
+class WorkoutSetWrite(BaseModel):
+    reps: int = Field(ge=1, le=1000)
+    weight: Decimal = Field(ge=0, max_digits=6, decimal_places=2)
+    unit: Literal["kg", "lb"] = "kg"
+
+
+class WorkoutExerciseWrite(BaseModel):
+    exercise_id: UUID
+    idempotency_key: UUID
+    sets: list[WorkoutSetWrite] = Field(min_length=1, max_length=10)
+
+
+class WorkoutSetItem(WorkoutSetWrite):
+    id: UUID
+    set_order: int
+
+
+class WorkoutExerciseItem(BaseModel):
+    id: UUID
+    exercise_id: UUID
+    name: str
+    primary_muscles: list[Muscle]
+    secondary_muscles: list[Muscle]
+    created_at: datetime
+    sets: list[WorkoutSetItem]
+
+
+class WorkoutSessionItem(BaseModel):
+    id: UUID
+    workout_date: date
+    attendance_session_id: UUID
+    exercises: list[WorkoutExerciseItem]
+
+
+class WorkoutToday(BaseModel):
+    gym_date: date
+    gym_timezone: str
+    eligible: bool
+    reason: str | None
+    session: WorkoutSessionItem | None
