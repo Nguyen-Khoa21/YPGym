@@ -22,7 +22,7 @@ async def test_catalogue_roles_filters_archive_and_member_contract(client, stora
     headers = {user.role: {"Authorization": f"Bearer {create_access_token(user_id=user.id, role=user.role, tier=user.tier)[0]}"} for user in users}
     member_path = "/api/v1/training/exercises"
     admin_path = "/api/v1/admin/training/exercises"
-    payload = {"name": "Seated row", "description": "Illustrative cable pulling movement.", "region": "upper", "usage_steps": "Sit upright and pull the handle toward your torso with control.", "safety_note": "Avoid jerking the handle or rounding your back.", "primary_muscles": ["back"], "secondary_muscles": ["biceps"], "is_illustrative": True}
+    payload = {"name": "Seated row", "description": "Illustrative cable pulling movement.", "region": "upper", "usage_steps": "Sit upright and pull the handle toward your torso with control.", "safety_note": "Avoid jerking the handle or rounding your back.", "primary_muscles": ["back", "rhomboids"], "secondary_muscles": ["biceps"], "is_illustrative": True}
     assert (await client.get(member_path)).status_code == 401
     assert (await client.get(member_path, headers=headers["staff"])).status_code == 403
     assert (await client.post(admin_path, headers=headers["member"], json=payload)).status_code == 403
@@ -33,7 +33,7 @@ async def test_catalogue_roles_filters_archive_and_member_contract(client, stora
     assert created.status_code == 201, created.text
     item = created.json()
     exercise_id = item["id"]
-    assert item["primary_muscles"] == ["back"] and item["has_image"] is False
+    assert item["primary_muscles"] == ["back", "rhomboids"] and item["has_image"] is False
     listed = await client.get(member_path, headers=headers["member"], params={"region": "upper", "search": "biceps", "muscle": "back"})
     assert listed.status_code == 200 and [row["id"] for row in listed.json()["items"]] == [exercise_id]
     assert (await client.get(f"{member_path}/{exercise_id}", headers=headers["member"])).json()["usage_steps"] == payload["usage_steps"]
@@ -48,7 +48,7 @@ async def test_catalogue_roles_filters_archive_and_member_contract(client, stora
     assert (await client.get(admin_path, headers=headers["manager"])).json()["items"][0]["name"] == "Seated cable row"
     async with sessions() as session:
         assert await session.scalar(select(func.count()).select_from(TrainingExercise)) == 1
-        assert await session.scalar(select(func.count()).select_from(TrainingExerciseMuscle)) == 2
+        assert await session.scalar(select(func.count()).select_from(TrainingExerciseMuscle)) == 3
         assert await session.scalar(select(func.count()).select_from(AuditLog).where(AuditLog.entity_id == exercise_id)) == 2
 
 

@@ -98,7 +98,7 @@ DEMO_MEMBERS = [
 ]
 
 ILLUSTRATIVE_EXERCISES = [
-    ("Push-up", "upper", "A bodyweight pressing exercise for upper-body strength.", "Start in a plank with hands below shoulders. Lower with control, then press back up.", "Keep your trunk steady and use an incline if the floor version is too demanding.", ["chest", "triceps"], ["shoulders", "core"]),
+    ("Push-up", "upper", "A bodyweight pressing exercise for upper-body strength.", "Start in a plank with hands below shoulders. Lower with control, then press back up.", "Keep your trunk steady and use an incline if the floor version is too demanding.", ["chest", "triceps"], ["front_delts", "core"]),
     ("Lat pulldown", "upper", "An illustrative cable-machine pulling exercise; equipment availability is unconfirmed.", "Adjust the thigh pad. Pull the bar toward the upper chest without leaning far back, then return slowly.", "Avoid pulling behind the neck and stop if movement causes pain.", ["back"], ["biceps", "forearms"]),
     ("Bodyweight squat", "lower", "A bodyweight lower-body squat.", "Stand with feet comfortable apart. Bend hips and knees, then stand back up with control.", "Keep heels grounded and use a comfortable depth.", ["quadriceps", "glutes"], ["hamstrings", "core"]),
     ("Leg press", "lower", "An illustrative machine-based leg press; equipment availability is unconfirmed.", "Adjust the seat and place feet on the platform. Extend the legs without locking knees, then lower slowly.", "Keep your lower back on the pad and use a manageable load.", ["quadriceps", "glutes"], ["hamstrings", "calves"]),

@@ -14,19 +14,29 @@ import { toUiError } from "@/lib/apiErrors";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
 import type { AdminMemberDetail, MembershipRequest } from "@/types/operations";
+import type { MembershipPlan, PurchaseResponse } from "@/types/api";
 
 type Decision = { request: MembershipRequest; approve: boolean; outcome?: string };
 
 export function AdminMemberDetailPage() {
   const { id = "" } = useParams();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [decision, setDecision] = useState<Decision | null>(null);
   const [revokeOpen, setRevokeOpen] = useState(false);
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [planId, setPlanId] = useState("");
+  const [enrollReason, setEnrollReason] = useState("");
   const [reason, setReason] = useState("");
   const detail = useQuery({ queryKey: ["admin", "members", id], queryFn: ({ signal }) => apiRequest<AdminMemberDetail>(`/admin/members/${id}`, { token, signal }), enabled: Boolean(id) });
+  const plans = useQuery({ queryKey: ["membership-plans"], queryFn: ({ signal }) => apiRequest<MembershipPlan[]>("/membership-plans", { signal }) });
   const action = useMutation({
     mutationFn: ({ path, body }: { path: string; body: unknown }) => apiRequest(path, { method: "POST", token, body }),
     onSuccess: async () => { setDecision(null); setRevokeOpen(false); setReason(""); await queryClient.invalidateQueries({ queryKey: ["admin", "members"] }); toast.success("Membership action recorded"); },
+    onError: (error) => toast.error(toUiError(error).message),
+  });
+  const enroll = useMutation({
+    mutationFn: () => apiRequest<PurchaseResponse>(`/admin/members/${id}/membership`, { method: "POST", token, body: { plan_id: planId, idempotency_key: crypto.randomUUID(), reason: enrollReason.trim() } }),
+    onSuccess: async () => { setEnrollOpen(false); setPlanId(""); setEnrollReason(""); await queryClient.invalidateQueries({ queryKey: ["admin", "members"] }); toast.success("Membership enrolled and invoice issued"); },
     onError: (error) => toast.error(toUiError(error).message),
   });
 
@@ -36,7 +46,7 @@ export function AdminMemberDetailPage() {
   const current = data.memberships[0];
   return <AdminShell><div className="mx-auto max-w-7xl">
     <Link className="mb-5 inline-flex items-center gap-2 text-xs font-extrabold text-muted-foreground hover:text-foreground" to="/admin/members"><ArrowLeft className="size-4" /> Back to CRM</Link>
-    <OperationsHeader kicker="Admin member details" title={data.profile.name} description={`${data.profile.email} · ${data.profile.phone}`} actions={<Button variant="danger" disabled={!current || current.status === "revoked"} onClick={() => setRevokeOpen(true)}><Ban className="size-4" /> Revoke access</Button>} />
+    <OperationsHeader kicker="Member details" title={data.profile.name} description={`${data.profile.email} · ${data.profile.phone}`} actions={<><Button variant="secondary" onClick={() => setEnrollOpen(true)}>Enroll membership</Button>{user?.role === "admin" ? <Button variant="danger" disabled={!current || current.status === "revoked"} onClick={() => setRevokeOpen(true)}><Ban className="size-4" /> Revoke access</Button> : null}</>} />
     <div className="ops-metrics"><MetricCard label="Membership" value={current?.status ?? "None"} tone="forest" detail={current?.plan_name} /><MetricCard label="Total visits" value={data.attendance_summary.total_visits} tone="lime" /><MetricCard label="Payments" value={data.payments.length} detail={data.payments[0] ? formatMoney(data.payments[0].amount) + " latest" : "No payments"} /><MetricCard label="Bookings" value={data.booking_summary.total} tone="coral" detail={`${data.booking_summary.waitlisted} waitlisted`} /></div>
     <div className="mt-5 grid gap-5 xl:grid-cols-[0.72fr_1.28fr]">
       <div><Panel title="Customer profile"><div className="grid gap-4 p-5 text-sm"><div className="grid size-16 place-items-center rounded-2xl bg-secondary text-2xl font-black">{data.profile.name[0]}</div><Info label="Role and tier" value={`${data.profile.role} · ${data.profile.tier}`} /><Info label="Email" value={data.profile.email} /><Info label="Phone" value={data.profile.phone} /><Info label="Verification" value={data.profile.is_email_verified ? "Verified" : "Pending"} /></div></Panel>
@@ -47,6 +57,7 @@ export function AdminMemberDetailPage() {
     </div>
     {decision ? <Modal error={(action).isError ? toUiError((action).error).message : undefined} title={`${decision.approve ? "Approve" : "Reject"} ${decision.request.request_type}`} description="This reason becomes part of the permanent audit record." onClose={() => { setDecision(null); setReason(""); }}><div className="ops-modal__body"><label>Decision reason<textarea value={reason} onChange={(event) => setReason(event.target.value)} /></label><div className="ops-modal__actions"><Button variant="outline" onClick={() => setDecision(null)}>Cancel</Button><Button variant={decision.approve ? "primary" : "danger"} disabled={reason.trim().length < 10 || action.isPending} onClick={() => action.mutate({ path: decision.request.request_type === "freeze" ? `/admin/freeze-requests/${decision.request.id}/decision` : `/admin/cancellation-requests/${decision.request.id}/decision`, body: { approve: decision.approve, decision_reason: reason, outcome: decision.outcome } })}>Confirm decision</Button></div></div></Modal> : null}
     {revokeOpen ? <Modal error={(action).isError ? toUiError((action).error).message : undefined} title="Revoke membership access" description="QR generation and class access will be blocked immediately." onClose={() => { setRevokeOpen(false); setReason(""); }}><div className="ops-modal__body"><div className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive"><ShieldAlert className="mb-2 size-5" /> Revocation is a sensitive action and cannot be silent.</div><label>Mandatory reason<textarea value={reason} onChange={(event) => setReason(event.target.value)} /></label><div className="ops-modal__actions"><Button variant="outline" onClick={() => setRevokeOpen(false)}>Cancel</Button><Button variant="danger" disabled={reason.trim().length < 10 || action.isPending} onClick={() => action.mutate({ path: `/admin/members/${id}/revoke`, body: { reason } })}>Revoke membership</Button></div></div></Modal> : null}
+    {enrollOpen ? <Modal error={enroll.isError ? toUiError(enroll.error).message : undefined} title="Enroll membership" description="This creates the member coverage, payment record, invoice and audit entry in one transaction." onClose={() => { setEnrollOpen(false); setPlanId(""); setEnrollReason(""); }}><div className="ops-modal__body"><label>Membership plan<select value={planId} onChange={(event) => setPlanId(event.target.value)}><option value="">Select a plan</option>{plans.data?.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} · {formatMoney(plan.final_price)}</option>)}</select></label>{plans.isError ? <p className="text-xs text-destructive">Could not load active plans: {toUiError(plans.error).message}</p> : null}<label>Reason<textarea placeholder="e.g. Paid at reception on 24 September" value={enrollReason} onChange={(event) => setEnrollReason(event.target.value)} /></label><div className="ops-modal__actions"><Button variant="outline" onClick={() => setEnrollOpen(false)}>Cancel</Button><Button disabled={!planId || enrollReason.trim().length < 10 || enroll.isPending} onClick={() => enroll.mutate()}>{enroll.isPending ? "Enrolling…" : "Confirm enrollment"}</Button></div></div></Modal> : null}
   </div></AdminShell>;
 }
 

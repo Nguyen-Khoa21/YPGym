@@ -33,6 +33,12 @@ class PurchaseMembershipRequest(BaseModel):
     mock_payment_confirmed: bool
 
 
+class AdminMembershipEnrollmentRequest(BaseModel):
+    plan_id: UUID
+    idempotency_key: str = Field(min_length=8, max_length=120)
+    reason: str = Field(min_length=10, max_length=500)
+
+
 class PaymentSummary(BaseModel):
     id: UUID
     amount: Decimal

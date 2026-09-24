@@ -33,7 +33,7 @@ from app.schemas.training_schema import (
 )
 from app.services.lifecycle_service import MembershipLifecycleService
 
-MUSCLES = ("chest", "back", "shoulders", "biceps", "triceps", "forearms", "core", "quadriceps", "hamstrings", "glutes", "calves")
+MUSCLES = ("chest", "back", "front_delts", "lateral_delts", "rear_delts", "rhomboids", "traps", "shoulders", "biceps", "triceps", "forearms", "core", "quadriceps", "hamstrings", "glutes", "calves")
 PRIMARY_EXPOSURE = Decimal("1.0")
 SECONDARY_EXPOSURE = Decimal("0.5")
 ZERO = Decimal("0.0")

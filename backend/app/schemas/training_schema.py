@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.operations_schema import PageInfo
 
-Muscle = Literal["chest", "back", "shoulders", "biceps", "triceps", "forearms", "core", "quadriceps", "hamstrings", "glutes", "calves"]
+Muscle = Literal["chest", "back", "front_delts", "lateral_delts", "rear_delts", "rhomboids", "traps", "shoulders", "biceps", "triceps", "forearms", "core", "quadriceps", "hamstrings", "glutes", "calves"]
 Region = Literal["upper", "lower"]
 
 
@@ -17,8 +17,8 @@ class ExerciseWrite(BaseModel):
     region: Region
     usage_steps: str = Field(min_length=10, max_length=4000)
     safety_note: str = Field(min_length=10, max_length=2000)
-    primary_muscles: list[Muscle] = Field(min_length=1, max_length=11)
-    secondary_muscles: list[Muscle] = Field(default_factory=list, max_length=11)
+    primary_muscles: list[Muscle] = Field(min_length=1, max_length=16)
+    secondary_muscles: list[Muscle] = Field(default_factory=list, max_length=16)
     is_illustrative: bool = False
     is_active: bool = True
 

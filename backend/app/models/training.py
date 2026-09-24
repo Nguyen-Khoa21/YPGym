@@ -32,7 +32,7 @@ class TrainingExerciseMuscle(Base):
     __table_args__ = (
         UniqueConstraint("exercise_id", "muscle", name="uq_training_exercise_muscles_exercise_muscle"),
         CheckConstraint("role IN ('primary', 'secondary')", name="ck_training_exercise_muscles_role"),
-        CheckConstraint("muscle IN ('chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms', 'core', 'quadriceps', 'hamstrings', 'glutes', 'calves')", name="ck_training_exercise_muscles_muscle"),
+        CheckConstraint("muscle IN ('chest', 'back', 'front_delts', 'lateral_delts', 'rear_delts', 'rhomboids', 'traps', 'shoulders', 'biceps', 'triceps', 'forearms', 'core', 'quadriceps', 'hamstrings', 'glutes', 'calves')", name="ck_training_exercise_muscles_muscle"),
         Index("ix_training_exercise_muscles_muscle", "muscle"),
     )
 

@@ -9,7 +9,7 @@ import { Action, Busy, Card, Field, Message, PageTop, Screen, textStyles } from 
 import { apiUrl, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { colors } from '@/lib/theme';
-import { exerciseImage, type Exercise, type ExerciseHistoryPage, type WorkoutToday } from '@/lib/training';
+import { exerciseImage, muscleLabels, type Exercise, type ExerciseHistoryPage, type WorkoutToday } from '@/lib/training';
 
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,11 +22,11 @@ export default function ExerciseDetailScreen() {
   return <Screen><PageTop title="Exercise guide" fallback="/(member)/(tabs)/train" />
     {exercise.isLoading ? <Busy label="Loading exercise" /> : null}
     {exercise.isError ? <Message title="Exercise unavailable" detail={errorMessage(exercise.error)} action="Retry" onAction={() => void exercise.refetch()} tone="error" /> : null}
-    {exercise.data ? <><View style={{ height: 220, borderRadius: 18, backgroundColor: colors.primarySurface, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 16 }}>{exercise.data.has_image ? <Image source={{ uri: apiUrl(exerciseImage(exercise.data)) }} style={{ width: '100%', height: '100%' }} resizeMode="cover" accessibilityLabel={`${exercise.data.name} exercise guide image`} /> : <Ionicons name="barbell-outline" size={70} color={colors.primary} />}</View>
+    {exercise.data ? <><View style={{ width: '100%', aspectRatio: 800 / 448, maxHeight: 448, borderRadius: 18, backgroundColor: colors.primarySurface, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 16 }}>{exercise.data.has_image ? <Image source={{ uri: apiUrl(exerciseImage(exercise.data)) }} style={{ width: '100%', height: '100%' }} resizeMode="contain" accessibilityLabel={`${exercise.data.name} exercise guide image`} /> : <Ionicons name="barbell-outline" size={70} color={colors.primary} />}</View>
       <Text style={textStyles.accent}>{exercise.data.region.toUpperCase()} BODY · YPTRAIN</Text><Text style={[textStyles.subheading, { fontSize: 30, marginTop: 8 }]}>{exercise.data.name}</Text><Text style={[textStyles.muted, { marginVertical: 12 }]}>{exercise.data.description}</Text>
       {exercise.data.is_illustrative ? <Message title="Illustrative guide" detail="Confirm on-site equipment availability where applicable." /> : null}
       <Card><Text style={textStyles.subheading}>How to use</Text><Text style={textStyles.body}>{exercise.data.usage_steps}</Text></Card>
-      <Card><Text style={textStyles.subheading}>Muscles</Text><Text style={textStyles.body}>Primary: {exercise.data.primary_muscles.join(', ')}</Text><Text style={textStyles.body}>Secondary: {exercise.data.secondary_muscles.join(', ') || 'None listed'}</Text></Card>
+      <Card><Text style={textStyles.subheading}>Muscles</Text><Text style={textStyles.body}>Primary: {exercise.data.primary_muscles.map((value) => muscleLabels[value]).join(', ')}</Text><Text style={textStyles.body}>Secondary: {exercise.data.secondary_muscles.map((value) => muscleLabels[value]).join(', ') || 'None listed'}</Text></Card>
       <Card><Text style={textStyles.subheading}>Safety note</Text><Text style={textStyles.body}>{exercise.data.safety_note}</Text></Card>
       {today.isLoading ? <Busy label="Checking today's gym visit" /> : null}{today.isError ? <Message title="Workout unavailable" detail={errorMessage(today.error)} action="Retry" onAction={() => void today.refetch()} tone="error" /> : null}
       {today.data?.eligible ? <WorkoutForm exercise={exercise.data} request={request} onSaved={saved} /> : today.data ? <Message title="Check-in required" detail={today.data.reason ?? ''} action="Check again" onAction={() => void today.refetch()} /> : null}

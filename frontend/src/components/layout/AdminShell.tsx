@@ -19,7 +19,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 
 const adminNav = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, roles: ["staff", "manager", "admin"] },
-  { to: "/admin/members", label: "Members", icon: UsersRound, roles: ["admin"] },
+  { to: "/admin/members", label: "Members", icon: UsersRound, roles: ["manager", "admin"] },
   { to: "/admin/billing", label: "Billing", icon: CreditCard, roles: ["admin"] },
   { to: "/admin/attendance", label: "Attendance", icon: ClipboardList, roles: ["staff", "manager", "admin"] },
   { to: "/admin/classes", label: "Classes", icon: CalendarDays, roles: ["admin"] },

@@ -126,4 +126,4 @@ async def test_empty_week_has_zero_exposure_and_complete_days(client, eligible_m
     assert payload["week_start"] == "2025-12-29" and payload["week_end"] == "2026-01-04"
     assert payload["total_exposure_score"] == "0.0"
     assert len(payload["days"]) == 7 and all(item["intensity_level"] == 0 for item in payload["days"])
-    assert len(payload["muscles"]) == 11 and all(item["intensity_level"] == 0 for item in payload["muscles"])
+    assert len(payload["muscles"]) == 16 and all(item["intensity_level"] == 0 for item in payload["muscles"])

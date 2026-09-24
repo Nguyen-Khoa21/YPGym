@@ -6,7 +6,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/common/Feedba
 import { Button } from "@/components/ui/Button";
 import { apiRequest } from "@/lib/apiClient";
 import { toUiError } from "@/lib/apiErrors";
-import { type Muscle, type WorkoutDayDetail, type WorkoutHistoryDay, type WorkoutHistoryPage, type WorkoutWeekSummary } from "@/features/training/types";
+import { MUSCLE_LABELS, type Muscle, type WorkoutDayDetail, type WorkoutHistoryDay, type WorkoutHistoryPage, type WorkoutWeekSummary } from "@/features/training/types";
 
 const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const intensityClass = ["bg-muted text-foreground", "bg-red-100 text-red-950", "bg-red-300 text-red-950", "bg-red-500 text-white", "bg-red-700 text-white"];
@@ -80,7 +80,7 @@ function DayDetail({ value }: { value: WorkoutDayDetail }) {
 
 function MuscleMap({ value }: { value: WorkoutWeekSummary }) {
   const scores = Object.fromEntries(value.muscles.map((item) => [item.muscle, item.intensity_level])) as Record<Muscle, 0 | 1 | 2 | 3 | 4>;
-  return <div className="mt-5"><p className="text-sm text-muted-foreground">{formatIsoDate(value.week_start)}–{formatIsoDate(value.week_end)} · {value.total_exposure_score} total exposure</p><p className="mt-2 text-sm">{value.metric.description} {value.metric.bodyweight_handling}</p><div className="mt-5 grid gap-6 lg:grid-cols-[minmax(280px,0.8fr)_1.2fr]"><div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-3"><BodyFigure side="Front" scores={scores} /><BodyFigure side="Back" scores={scores} /></div><div><h3 className="font-bold">Muscle-by-muscle exposure</h3><ul className="mt-3 grid gap-2 sm:grid-cols-2">{value.muscles.map((item) => <li key={item.muscle} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm"><span className="capitalize">{item.muscle}</span><span className="font-semibold">{item.exposure_score} · {intensityLabel[item.intensity_level]}</span></li>)}</ul></div></div><p className="mt-4 text-xs text-muted-foreground">This diagram summarizes logged set exposure. It does not measure anatomical activation or provide a training prescription.</p></div>;
+  return <div className="mt-5"><p className="text-sm text-muted-foreground">{formatIsoDate(value.week_start)}–{formatIsoDate(value.week_end)} · {value.total_exposure_score} total exposure</p><p className="mt-2 text-sm">{value.metric.description} {value.metric.bodyweight_handling}</p><div className="mt-5 grid gap-6 lg:grid-cols-[minmax(280px,0.8fr)_1.2fr]"><div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-3"><BodyFigure side="Front" scores={scores} /><BodyFigure side="Back" scores={scores} /></div><div><h3 className="font-bold">Muscle-by-muscle exposure</h3><ul className="mt-3 grid gap-2 sm:grid-cols-2">{value.muscles.map((item) => <li key={item.muscle} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm"><span>{MUSCLE_LABELS[item.muscle]}</span><span className="font-semibold">{item.exposure_score} · {intensityLabel[item.intensity_level]}</span></li>)}</ul></div></div><p className="mt-4 text-xs text-muted-foreground">This diagram summarizes logged set exposure. It does not measure anatomical activation or provide a training prescription.</p></div>;
 }
 
 function BodyFigure({ side, scores }: { side: "Front" | "Back"; scores: Record<Muscle, 0 | 1 | 2 | 3 | 4> }) {

@@ -1,5 +1,24 @@
-export const MUSCLES = ["chest", "back", "shoulders", "biceps", "triceps", "forearms", "core", "quadriceps", "hamstrings", "glutes", "calves"] as const;
+export const MUSCLES = ["chest", "back", "front_delts", "lateral_delts", "rear_delts", "rhomboids", "traps", "shoulders", "biceps", "triceps", "forearms", "core", "quadriceps", "hamstrings", "glutes", "calves"] as const;
 export type Muscle = typeof MUSCLES[number];
+
+export const MUSCLE_LABELS: Record<Muscle, string> = {
+  chest: "Chest",
+  back: "Back",
+  front_delts: "Front delts",
+  lateral_delts: "Lateral delts",
+  rear_delts: "Rear delts",
+  rhomboids: "Rhomboids",
+  traps: "Traps",
+  shoulders: "Shoulders (legacy)",
+  biceps: "Biceps",
+  triceps: "Triceps",
+  forearms: "Forearms",
+  core: "Core",
+  quadriceps: "Quadriceps",
+  hamstrings: "Hamstrings",
+  glutes: "Glutes",
+  calves: "Calves",
+};
 export type Exercise = {
   id: string;
   name: string;

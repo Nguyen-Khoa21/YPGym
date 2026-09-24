@@ -5,7 +5,7 @@ Created September 20, 2026 and revised September 21, 2026 for the owner-approved
 | ID | Requirement | Current status | Planned feature slice |
 |---|---|---|---|
 | FR40 | Reliable mobile back navigation, session restoration and logout | Verified in Feature 1 on an Android emulator; physical-device and iOS verification remain pending | Feature 1 |
-| FR41 | Mobile membership purchase/renewal/cancellation state consistency | Verified across Features 1 and 3, including registration/verification, plans, simulated purchase/renewal, invoices, lifecycle requests, live membership/QR/attendance/crowdedness and class booking/waitlists | Features 1 and 3 |
+| FR41 | Mobile membership purchase/renewal/cancellation state consistency | Verified across Features 1 and 3, including registration/verification, plans, server-backed membership registration/renewal, invoices, lifecycle requests, live membership/QR/attendance/crowdedness and class booking/waitlists; external card settlement remains unconfigured | Features 1, 3 and current YPTrain operations update |
 | FR42 | Upcoming booked-class reminders and notification navigation | Verified for preference-aware deduplicated in-app reminders and booking navigation; device push remains credential/environment gated | Feature 3 |
 | FR43 | Individual manager-created staff and trainer accounts | Planned | Feature 10 |
 | FR44 | Staff clock-in/clock-out records and manager reporting | Planned | Feature 10 |

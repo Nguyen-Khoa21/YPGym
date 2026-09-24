@@ -13,6 +13,7 @@ from app.repositories.membership_repository import (
     MembershipPlanRepository,
     UserMembershipRepository,
 )
+from app.repositories.operations_repository import AuditRepository
 from app.schemas.membership_schema import (
     InvoiceSummary,
     MembershipSummary,
@@ -37,15 +38,19 @@ class MembershipService:
         *,
         current_user: User,
         payload: PurchaseMembershipRequest,
+        actor: User | None = None,
+        manual_reason: str | None = None,
     ) -> PurchaseMembershipResponse:
-        if not current_user.is_email_verified:
+        operator = actor or current_user
+        manual = operator.id != current_user.id
+        if not manual and not current_user.is_email_verified:
             raise AppError(
                 "EMAIL_NOT_VERIFIED",
                 "Please verify your email before purchasing a membership.",
                 403,
             )
 
-        if not payload.mock_payment_confirmed:
+        if not manual and not payload.mock_payment_confirmed:
             raise AppError(
                 "PAYMENT_NOT_CONFIRMED",
                 "Mock payment confirmation is required.",
@@ -103,7 +108,7 @@ class MembershipService:
             )
 
         transaction_date = datetime.now(UTC)
-        mock_reference = f"MOCK-{uuid4().hex[:12].upper()}"
+        payment_reference = f"STAFF-{uuid4().hex[:12].upper()}" if manual else f"MOCK-{uuid4().hex[:12].upper()}"
         payment = await self.payments.create(
             user_id=current_user.id,
             membership_id=membership.id,
@@ -112,7 +117,7 @@ class MembershipService:
             amount=final_amount,
             discount_amount=discount_amount,
             status=PaymentStatus.SUCCEEDED.value,
-            mock_reference=mock_reference,
+            mock_reference=payment_reference,
         )
 
         invoice_number = self.invoice_pdf.build_invoice_number(
@@ -143,6 +148,18 @@ class MembershipService:
             pdf_path=pdf_path,
         )
 
+        if manual:
+            await AuditRepository(self.session).create(
+                actor_user_id=operator.id,
+                target_user_id=current_user.id,
+                action="membership.manual_enrollment.created",
+                entity_type="membership",
+                entity_id=str(membership.id),
+                reason=manual_reason,
+                outcome=f"{plan.name} · {final_amount}",
+                summary="Staff manually enrolled a member and issued a membership invoice.",
+            )
+
         try:
             await self.session.commit()
         except IntegrityError as exc:
@@ -158,7 +175,7 @@ class MembershipService:
         await self.session.refresh(invoice)
 
         return self._purchase_response(
-            message="Membership purchase successful.",
+            message="Membership manually enrolled successfully." if manual else "Membership purchase successful.",
             membership=membership,
             payment=payment,
             invoice=invoice,

@@ -113,11 +113,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/admin/members",
-    element: <ProtectedRoute roles={["admin"]}><AdminMembersPage /></ProtectedRoute>,
+    element: <ProtectedRoute roles={["manager", "admin"]}><AdminMembersPage /></ProtectedRoute>,
   },
   {
     path: "/admin/members/:id",
-    element: <ProtectedRoute roles={["admin"]}><AdminMemberDetailPage /></ProtectedRoute>,
+    element: <ProtectedRoute roles={["manager", "admin"]}><AdminMemberDetailPage /></ProtectedRoute>,
   },
   {
     path: "/admin/attendance",

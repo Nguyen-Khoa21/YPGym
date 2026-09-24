@@ -26,7 +26,7 @@ const columns: ColumnDef<AdminMember>[] = [
 ];
 
 export function AdminMembersPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get("search") ?? "");
   const page = Number(params.get("page") ?? "1");
@@ -57,7 +57,7 @@ export function AdminMembersPage() {
   }
 
   return <AdminShell><div className="mx-auto max-w-7xl">
-    <OperationsHeader kicker="Member CRM" title="Know every member." description="Search and filter live profiles, membership state and expiry data without exposing account secrets." actions={<Button variant="outline" onClick={exportCsv}><Download className="size-4" /> Export filtered CSV</Button>} />
+    <OperationsHeader kicker="Member CRM" title="Know every member." description="Search and filter live profiles, membership state and expiry data without exposing account secrets." actions={user?.role === "admin" ? <Button variant="outline" onClick={exportCsv}><Download className="size-4" /> Export filtered CSV</Button> : undefined} />
     {members.data ? <div className="ops-metrics"><MetricCard label="Visible records" value={members.data.summary.total} detail="Current filter set" /><MetricCard label="Active" value={members.data.summary.active} tone="forest" /><MetricCard label="Expiring soon" value={members.data.summary.expiring_soon} tone="lime" /><MetricCard label="Needs attention" value={members.data.summary.expired_or_inactive + members.data.summary.frozen} tone="coral" /></div> : null}
     <Panel title="Member directory" detail="Filters are encoded in the URL and applied by PostgreSQL.">
       <form className="ops-toolbar" onSubmit={(event) => { event.preventDefault(); updateParam("search", search); }}>

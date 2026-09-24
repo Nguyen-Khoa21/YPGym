@@ -19,13 +19,13 @@ Only members can list and read active exercise JSON. Managers and admins can lis
 | PATCH | `/api/v1/admin/training/exercises/{id}` | Manager/admin | Validated partial edit; `is_active=false` archives |
 | PUT | `/api/v1/admin/training/exercises/{id}/image` | Manager/admin | Multipart `file`; replaces prior image |
 
-`search` matches exercise name or any tagged muscle, case-insensitively, with SQL wildcard characters escaped. The controlled taxonomy is chest, back, shoulders, biceps, triceps, forearms, core, quadriceps, hamstrings, glutes and calves. A muscle may be primary or secondary, but never both on one record.
+`search` matches exercise name or any tagged muscle, case-insensitively, with SQL wildcard characters escaped. The controlled taxonomy is chest, back, front delts, lateral delts, rear delts, rhomboids, traps, shoulders, biceps, triceps, forearms, core, quadriceps, hamstrings, glutes and calves. `shoulders` remains accepted for historical catalogue and workout snapshots; new exercises should use the more specific delt or upper-back tags. A muscle may be primary or secondary, but never both on one record.
 
 Image uploads are limited to 2 MB input and 4 megapixels, decoded as PNG/JPEG/WebP with Pillow, re-encoded as JPEG to remove uploaded metadata and other embedded content, and limited to 4 MB output. API image responses use `image/jpeg`, `nosniff`, and a short cache lifetime. Because image URLs are public for native image compatibility, do not upload sensitive or licensed material to the catalogue. The URL includes an update timestamp in both clients to refresh after replacement.
 
 The default development seed adds four **illustrative** examples and never overwrites manager edits on rerun. Lat pulldown and leg press explicitly say that machine availability is unconfirmed. Admins should confirm actual on-site equipment before clearing the illustrative flag or publishing local photos.
 
-Member cards use a branded barbell fallback until a manager uploads an image. Detail shows steps, primary/secondary muscles and safety text. Feature 6 enables Add Exercise only after a server-confirmed same-day scanner check-in and eligible membership.
+Member cards use a branded barbell fallback until a manager uploads an image. Web and Expo detail views use an 800:448 contain-fit frame so uploaded exercise form remains visible without cropping. Detail shows steps, primary/secondary muscles and safety text. Feature 6 enables Add Exercise only after a server-confirmed same-day scanner check-in and eligible membership.
 
 ## Local check
 

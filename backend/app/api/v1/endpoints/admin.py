@@ -8,9 +8,15 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import require_roles
+from app.core.exceptions import ResourceNotFoundError
 from app.db.redis import get_redis_client
 from app.db.session import get_db_session
 from app.models.user import User
+from app.schemas.membership_schema import (
+    AdminMembershipEnrollmentRequest,
+    PurchaseMembershipRequest,
+    PurchaseMembershipResponse,
+)
 from app.schemas.notification_schema import BroadcastCreate, BroadcastItem, BroadcastUpdate
 from app.schemas.operations_schema import (
     AdminBillingInvoicePage,
@@ -29,6 +35,8 @@ from app.schemas.operations_schema import (
 )
 from app.services.configuration_service import ConfigurationService
 from app.services.lifecycle_service import MembershipLifecycleService
+from app.repositories.user_repository import UserRepository
+from app.services.membership_service import MembershipService
 from app.services.notification_service import NotificationService
 from app.services.operations_service import AuditService, BillingAdminService, CrmService
 
@@ -52,7 +60,7 @@ async def list_membership_requests(
 
 @router.get("/members", response_model=AdminMemberListResponse)
 async def list_members(
-    current_user: Annotated[User, Depends(require_roles("admin"))],
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -109,10 +117,32 @@ async def export_members(
 @router.get("/members/{user_id}", response_model=AdminMemberDetailResponse)
 async def member_detail(
     user_id: UUID,
-    current_user: Annotated[User, Depends(require_roles("admin"))],
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> AdminMemberDetailResponse:
     return await CrmService(session).member_detail(user_id)
+
+
+@router.post("/members/{user_id}/membership", response_model=PurchaseMembershipResponse)
+async def manually_enroll_membership(
+    user_id: UUID,
+    payload: AdminMembershipEnrollmentRequest,
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> PurchaseMembershipResponse:
+    target = await UserRepository(session).get_by_id(user_id)
+    if not target or target.role != "member":
+        raise ResourceNotFoundError("Member was not found.")
+    return await MembershipService(session).purchase(
+        current_user=target,
+        actor=current_user,
+        manual_reason=payload.reason,
+        payload=PurchaseMembershipRequest(
+            plan_id=payload.plan_id,
+            idempotency_key=payload.idempotency_key,
+            mock_payment_confirmed=True,
+        ),
+    )
 
 
 @router.post("/freeze-requests/{request_id}/decision", response_model=MembershipRequestItem)

@@ -7,7 +7,7 @@ import { Action, Busy, Card, Message, textStyles } from '@/components/ui';
 import { errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { colors } from '@/lib/theme';
-import { type Muscle, type WorkoutDayDetail, type WorkoutHistoryDay, type WorkoutHistoryPage, type WorkoutWeekSummary } from '@/lib/training';
+import { muscleLabels, type Muscle, type WorkoutDayDetail, type WorkoutHistoryDay, type WorkoutHistoryPage, type WorkoutWeekSummary } from '@/lib/training';
 
 const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const intensityColors = [colors.surface, '#FEE2E2', '#FCA5A5', '#F87171', '#B91C1C'];
@@ -52,7 +52,7 @@ function DayDetail({ value }: { value: WorkoutDayDetail }) {
 
 function MuscleMap({ value }: { value: WorkoutWeekSummary }) {
   const levels = Object.fromEntries(value.muscles.map((item) => [item.muscle, item.intensity_level])) as Record<Muscle, 0 | 1 | 2 | 3 | 4>;
-  return <View style={styles.map}><Text style={textStyles.muted}>{formatIsoDate(value.week_start)}–{formatIsoDate(value.week_end)} · {value.total_exposure_score} total exposure</Text><Text style={textStyles.body}>{value.metric.description} {value.metric.bodyweight_handling}</Text><View style={styles.figures}><BodyFigure side="Front" levels={levels} /><BodyFigure side="Back" levels={levels} /></View><Text style={textStyles.subheading}>Muscle-by-muscle exposure</Text>{value.muscles.map((item) => <View key={item.muscle} style={styles.muscleRow}><Text style={styles.muscleName}>{item.muscle}</Text><Text style={styles.muscleValue}>{item.exposure_score} · {intensityNames[item.intensity_level]}</Text></View>)}<Text style={textStyles.muted}>This diagram summarizes logged set exposure. It does not measure anatomical activation or provide a training prescription.</Text></View>;
+  return <View style={styles.map}><Text style={textStyles.muted}>{formatIsoDate(value.week_start)}–{formatIsoDate(value.week_end)} · {value.total_exposure_score} total exposure</Text><Text style={textStyles.body}>{value.metric.description} {value.metric.bodyweight_handling}</Text><View style={styles.figures}><BodyFigure side="Front" levels={levels} /><BodyFigure side="Back" levels={levels} /></View><Text style={textStyles.subheading}>Muscle-by-muscle exposure</Text>{value.muscles.map((item) => <View key={item.muscle} style={styles.muscleRow}><Text style={styles.muscleName}>{muscleLabels[item.muscle]}</Text><Text style={styles.muscleValue}>{item.exposure_score} · {intensityNames[item.intensity_level]}</Text></View>)}<Text style={textStyles.muted}>This diagram summarizes logged set exposure. It does not measure anatomical activation or provide a training prescription.</Text></View>;
 }
 
 function BodyFigure({ side, levels }: { side: 'Front' | 'Back'; levels: Record<Muscle, 0 | 1 | 2 | 3 | 4> }) {

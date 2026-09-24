@@ -1,6 +1,15 @@
 # YPGym Handoff
 
-Last updated: 2026-09-24, post-Day-60 Feature 7 workout history and weekly muscle map.
+Last updated: 2026-09-24, YPTrain taxonomy, image presentation, manual enrollment and mobile registration updates.
+
+## September 24 continuation — YPTrain usability and membership operations
+
+- The admin YPTrain Add Exercise muscle editor now explicitly labels `Primary muscles trained` and `Secondary muscles trained`, with compact circular radio-style controls and native checkbox semantics because both roles remain multi-select. The same shared options include front delts, lateral delts, rear delts, rhomboids and traps. `shoulders` remains accepted as a legacy value so existing catalogue rows and attendance-linked workout snapshots remain valid; new seeded push-ups use `front_delts`.
+- Migration `20260924_0012` expands the PostgreSQL muscle constraint and the web, Expo, Pydantic and weekly exposure taxonomy. The exercise detail image on web and Expo now renders in an 800:448 frame with contain-fit so the complete form stays visible rather than being cropped/zoomed.
+- Managers and admins can open `/admin/members`, select a member, choose an active plan and record a reason to enroll coverage manually. The API reuses the membership extension, billing, invoice PDF, idempotency and transaction flow, then writes `membership.manual_enrollment.created` to the audit trail. Manager member-list/detail access is now enabled; CRM CSV export and revocation remain admin-only.
+- Expo membership registration now calls the existing idempotent server purchase endpoint directly without the simulated-payment switch or mock-payment wording. The server still uses the repository's development settlement contract (`mock_payment_confirmed` and `mock_reference`) because no real payment provider, checkout SDK, webhook secret or merchant credentials are configured. A provider integration remains a separate required decision before claiming card settlement.
+- Fresh isolated PostgreSQL/Redis verification passed **120 tests with seven existing Starlette deprecation warnings in 53.90 seconds** after migration `20260924_0012`. Web lint/build passed with the existing TanStack Compiler and bundle-size warnings. Mobile typecheck, lint and the existing nine Node tests passed. Normal development Alembic upgrade/check passed at `20260924_0012` with no drift.
+- Existing user-owned `README.md`, `RUN_GUIDE.md`, `tmp/`, `mobile/dist-feature5/` and the prior `MemberTrainingPage.tsx` card-height edit remain preserved outside this feature change.
 
 ## September 24 continuation — Feature 7 history, comparisons and muscle map
 
