@@ -1,6 +1,16 @@
 # YPGym Handoff
 
-Last updated: 2026-09-23, post-Day-60 Feature 6 attendance-linked workout logging.
+Last updated: 2026-09-24, post-Day-60 Feature 7 workout history and weekly muscle map.
+
+## September 24 continuation — Feature 7 history, comparisons and muscle map
+
+- Feature 6 was pushed to `origin/main` as `013fd9926e7ec3149f139f293e042a21537c88df` (`feat(yptrain): add attendance linked workout logging`). Feature 7 began from synchronized `main`; user-owned `README.md`, `RUN_GUIDE.md`, `tmp/`, `mobile/dist-feature5/` and the existing exercise-card height change remain excluded from the feature commit.
+- Member-only APIs now provide paginated activity history, exact day details, prior sessions for one exercise and the current gym-local Monday–Sunday muscle summary. Identity always comes from the authenticated token. History combines scanner attendance and logged workouts while keeping attended-only days distinct; underlying attendance and snapshotted workout sets remain authoritative.
+- One documented metric is used across calendar intensity and the map: each completed set contributes `1.0` weighted set exposure to every snapshotted primary muscle and `0.5` to every snapshotted secondary muscle. Zero-load/bodyweight sets count normally. Load and reps remain exact separate values; comparison labels are descriptive `more`/`same`/`less` values and never prescribe a target.
+- Web and Expo YPTrain include an accessible contribution calendar, exact selected-day sets, front/back weekly muscle diagrams, text legends and muscle-by-muscle values. Exercise details show prior-session comparisons and the no-prescription disclosure. The empty month/week state and cross-year week boundary are covered, and catalogue edits cannot rewrite historical attribution because Feature 6 snapshots are used.
+- Feature 7 adds no model or migration. The final isolated PostgreSQL/Redis suite migrated through `20260922_0011` and passed **119 tests with seven existing Starlette deprecation warnings in 61.62 seconds**. Focused history/logging verification passed **5 tests**. Web lint/build passed with the existing TanStack Compiler and bundle-size warnings. Mobile typecheck/lint, **9 Node tests** and Android export passed.
+- Normal Compose health passed, Alembic remains `20260922_0011 (head)` with no drift, and the rebuilt web client rendered the live empty history/map at desktop and phone widths. Authenticated Expo-web QA rendered the same calendar, metric, map/list and exercise-history state at desktop and 390×844 widths. A React Native SVG accessibility prop found during QA was removed; the corrected preview rebuilt without a new error overlay. Physical Android/iOS/phone testing and populated client rendering remain unverified; persisted-data parity is covered by backend integration tests.
+- `docs/api/workout-history.md` is the metric and endpoint authority. Feature 8 is next only after the local Feature 7 commit and explicit push approval. Its guarded AI review remains decision-gated because no approved provider or existing FR39 pipeline has been verified.
 
 ## September 23 continuation — Feature 6 attendance-linked workout logging
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import exists, func, or_, select
+from sqlalchemy import Date, cast, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.attendance import AttendanceEvent, AttendanceSession
@@ -80,8 +80,48 @@ class TrainingRepository:
     async def workout(self, user_id: UUID, workout_date: date) -> WorkoutSession | None:
         return (await self.session.execute(select(WorkoutSession).where(WorkoutSession.user_id == user_id, WorkoutSession.workout_date == workout_date))).scalar_one_or_none()
 
+    async def workouts_between(self, user_id: UUID, date_from: date, date_to: date) -> list[WorkoutSession]:
+        return list((await self.session.execute(
+            select(WorkoutSession)
+            .where(WorkoutSession.user_id == user_id, WorkoutSession.workout_date >= date_from, WorkoutSession.workout_date <= date_to)
+            .order_by(WorkoutSession.workout_date.desc()),
+        )).scalars().all())
+
+    async def attendance_days_between(self, user_id: UUID, date_from: date, date_to: date, gym_timezone: str) -> list[date]:
+        local_day = cast(func.timezone(gym_timezone, AttendanceSession.checked_in_at), Date)
+        return list((await self.session.execute(
+            select(local_day)
+            .where(AttendanceSession.user_id == user_id, local_day >= date_from, local_day <= date_to)
+            .distinct()
+            .order_by(local_day.desc()),
+        )).scalars().all())
+
     async def workout_exercises(self, session_id: UUID) -> list[WorkoutExercise]:
         return list((await self.session.execute(select(WorkoutExercise).where(WorkoutExercise.session_id == session_id).order_by(WorkoutExercise.created_at, WorkoutExercise.id))).scalars().all())
+
+    async def workout_exercises_for_sessions(self, session_ids: list[UUID]) -> list[WorkoutExercise]:
+        if not session_ids:
+            return []
+        return list((await self.session.execute(
+            select(WorkoutExercise)
+            .where(WorkoutExercise.session_id.in_(session_ids))
+            .order_by(WorkoutExercise.created_at, WorkoutExercise.id),
+        )).scalars().all())
+
+    async def exercise_history(self, *, user_id: UUID, exercise_id: UUID, page: int, page_size: int) -> tuple[list[tuple[WorkoutExercise, WorkoutSession]], int]:
+        conditions = (WorkoutSession.user_id == user_id, WorkoutExercise.exercise_id == exercise_id)
+        total = int((await self.session.execute(
+            select(func.count(WorkoutExercise.id)).join(WorkoutSession, WorkoutSession.id == WorkoutExercise.session_id).where(*conditions),
+        )).scalar_one())
+        rows = (await self.session.execute(
+            select(WorkoutExercise, WorkoutSession)
+            .join(WorkoutSession, WorkoutSession.id == WorkoutExercise.session_id)
+            .where(*conditions)
+            .order_by(WorkoutSession.workout_date.desc(), WorkoutExercise.created_at.desc(), WorkoutExercise.id.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size + 1),
+        )).all()
+        return [(row[0], row[1]) for row in rows], total
 
     async def workout_sets(self, exercise_ids: list[UUID]) -> list[WorkoutSet]:
         if not exercise_ids:

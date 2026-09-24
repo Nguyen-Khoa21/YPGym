@@ -13,8 +13,8 @@ Created September 20, 2026 and revised September 21, 2026 for the owner-approved
 | FR46 | Upper/lower exercise browse and search | Implemented against one member API on web and Expo | Feature 5 |
 | FR47 | Guided exercise logging with 1–10 sets, reps and weight | Implemented on web and Expo against one member API; physical/native-device verification remains pending | Feature 6 |
 | FR48 | Attendance-linked workout session per gym-local calendar date | Implemented with server-derived member/date, scanner attendance proof, eligible membership, daily uniqueness and idempotency/concurrency guards | Feature 6 |
-| FR49 | Workout history calendar and same-exercise comparisons | Planned | Feature 7 |
-| FR50 | Weekly front/back muscle heatmap | Planned | Feature 7 |
+| FR49 | Workout history calendar and same-exercise comparisons | Implemented from member-owned attendance/workout snapshots on web and Expo; physical/native-device verification remains pending | Feature 7 |
+| FR50 | Weekly front/back muscle heatmap | Implemented with one documented weighted-set-exposure metric, Monday–Sunday gym-local boundary, text legend/list and non-prescriptive disclosure on web and Expo | Feature 7 |
 | FR51 | Guarded AI weekly training review | Architecture/provider decision required before live integration | Feature 8 |
 | FR52 | Live gym equipment/exercise guide | Shared guide implemented; illustrative machine entries do not confirm installation and logging awaits Feature 6 | Feature 5 |
 | FR53 | Registration welcome email through configurable SMTP delivery | Provider-neutral development delivery and SMTP adapter verified in Feature 4; live delivery remains credential gated | Feature 4 |
@@ -71,3 +71,12 @@ The YPTrain Features 5–9 replace all previously proposed food catalogue, cart,
 | FR48 | `workout_sessions`, `workout_exercises`, `workout_sets`; one member/gym-date constraint; attendance FK; scanner event and membership gate; user locking; request-key idempotency; catalogue snapshots | Isolated real PostgreSQL concurrency, denial, checkout, revocation, snapshot and timezone-boundary coverage; Alembic current/check at `20260922_0011` |
 
 Feature 6 permits writes only for the current configured gym-local day. Checkout, timeout and QR expiry leave an already recorded check-in and workout history intact. Editing, deletion and historical backfill are intentionally unavailable; Feature 7 owns historical reads and comparisons.
+
+## Feature 7 traceability
+
+| Requirement | Implementation | Verification |
+|---|---|---|
+| FR49 | Member-only paginated activity history, exact day detail and exercise-history APIs; web/Expo contribution calendars distinguish attendance from logged workouts and show snapshotted sets plus descriptive prior-session changes | `test_workout_history.py` covers pagination, account isolation, attended-only days, exact sets, catalogue rename stability and comparison baselines; web build/lint and mobile typecheck/lint |
+| FR50 | Current gym-local Monday–Sunday summary; each set contributes 1.0 primary and 0.5 secondary muscle exposure; accessible front/back red map plus raw text list on both clients | Empty week, cross-year week, bodyweight, primary/secondary attribution and calendar/map parity coverage in `test_workout_history.py`; metric contract in `docs/api/workout-history.md` |
+
+Weighted set exposure is descriptive and load-independent: bodyweight/zero-load sets count, while exact reps and kg/lb values remain visible separately. Intensity uses the same 0–4 relative thresholds in each displayed scope. The map does not claim measured anatomical activation, and comparisons do not prescribe a next-session target.

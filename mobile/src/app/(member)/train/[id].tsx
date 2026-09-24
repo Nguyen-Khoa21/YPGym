@@ -9,14 +9,16 @@ import { Action, Busy, Card, Field, Message, PageTop, Screen, textStyles } from 
 import { apiUrl, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { colors } from '@/lib/theme';
-import { exerciseImage, type Exercise, type WorkoutToday } from '@/lib/training';
+import { exerciseImage, type Exercise, type ExerciseHistoryPage, type WorkoutToday } from '@/lib/training';
 
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { request, user } = useAuth();
   const queryClient = useQueryClient();
   const exercise = useQuery({ queryKey: ['training', 'exercise', user?.id, id], queryFn: ({ signal }) => request<Exercise>(`/training/exercises/${id}`, { signal }), enabled: !!id });
+  const history = useQuery({ queryKey: ['training', 'exercise-history', user?.id, id], queryFn: ({ signal }) => request<ExerciseHistoryPage>(`/training/exercises/${id}/history?page_size=10`, { signal }), enabled: !!id });
   const today = useQuery({ queryKey: ['training', 'workout', 'today', user?.id], queryFn: ({ signal }) => request<WorkoutToday>('/training/workouts/today', { signal }) });
+  const saved = (value: WorkoutToday) => { queryClient.setQueryData(['training', 'workout', 'today', user?.id], value); void Promise.all([queryClient.invalidateQueries({ queryKey: ['training', 'history', user?.id] }), queryClient.invalidateQueries({ queryKey: ['training', 'muscle-map', user?.id] }), queryClient.invalidateQueries({ queryKey: ['training', 'exercise-history', user?.id, id] })]); };
   return <Screen><PageTop title="Exercise guide" fallback="/(member)/(tabs)/train" />
     {exercise.isLoading ? <Busy label="Loading exercise" /> : null}
     {exercise.isError ? <Message title="Exercise unavailable" detail={errorMessage(exercise.error)} action="Retry" onAction={() => void exercise.refetch()} tone="error" /> : null}
@@ -27,8 +29,9 @@ export default function ExerciseDetailScreen() {
       <Card><Text style={textStyles.subheading}>Muscles</Text><Text style={textStyles.body}>Primary: {exercise.data.primary_muscles.join(', ')}</Text><Text style={textStyles.body}>Secondary: {exercise.data.secondary_muscles.join(', ') || 'None listed'}</Text></Card>
       <Card><Text style={textStyles.subheading}>Safety note</Text><Text style={textStyles.body}>{exercise.data.safety_note}</Text></Card>
       {today.isLoading ? <Busy label="Checking today's gym visit" /> : null}{today.isError ? <Message title="Workout unavailable" detail={errorMessage(today.error)} action="Retry" onAction={() => void today.refetch()} tone="error" /> : null}
-      {today.data?.eligible ? <WorkoutForm exercise={exercise.data} request={request} onSaved={(value) => queryClient.setQueryData(['training', 'workout', 'today', user?.id], value)} /> : today.data ? <Message title="Check-in required" detail={today.data.reason ?? ''} action="Check again" onAction={() => void today.refetch()} /> : null}
+      {today.data?.eligible ? <WorkoutForm exercise={exercise.data} request={request} onSaved={saved} /> : today.data ? <Message title="Check-in required" detail={today.data.reason ?? ''} action="Check again" onAction={() => void today.refetch()} /> : null}
       {today.data?.session ? <Card><Text style={textStyles.subheading}>{`Today's workout · ${today.data.gym_date}`}</Text>{today.data.session.exercises.map((item) => <View key={item.id}><Text style={textStyles.body}>{item.name}</Text><Text style={textStyles.muted}>{item.sets.map((set) => `${set.set_order}: ${set.reps} reps × ${set.weight} ${set.unit}`).join(' · ')}</Text></View>)}</Card> : null}
+      <Card><Text style={textStyles.subheading}>Your prior sessions</Text><Text style={textStyles.muted}>Descriptive comparisons use your previous logged session. They are not a next-session target.</Text>{history.isLoading ? <Busy label="Loading prior sessions" /> : null}{history.isError ? <Message title="Prior sessions unavailable" detail={errorMessage(history.error)} action="Retry" onAction={() => void history.refetch()} tone="error" /> : null}{history.data?.items.length === 0 ? <Message title="No prior sessions" detail="Your logged sessions for this exercise will appear here." /> : null}{history.data?.items.map((item) => <View key={item.workout_exercise_id} style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, gap: 4 }}><Text style={textStyles.body}>{item.workout_date}</Text><Text style={textStyles.muted}>{item.comparison_to_previous ? `Sets ${item.comparison_to_previous.sets} · reps ${item.comparison_to_previous.reps} · load ${item.comparison_to_previous.external_load}` : 'First recorded baseline'}</Text><Text style={textStyles.body}>{item.set_count} sets · {item.total_reps} total reps · {item.max_external_load_kg} kg max external load</Text><Text style={textStyles.muted}>{item.sets.map((set) => `${set.set_order}: ${set.reps} reps × ${set.weight} ${set.unit}`).join(' · ')}</Text></View>)}</Card>
     </> : null}
   </Screen>;
 }

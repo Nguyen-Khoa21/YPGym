@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 from uuid import UUID
 
@@ -8,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import require_roles
 from app.db.session import get_db_session
 from app.models.user import User
-from app.schemas.training_schema import ExerciseItem, ExercisePage, ExerciseUpdate, ExerciseWrite, Muscle, Region, WorkoutExerciseWrite, WorkoutToday
+from app.schemas.training_schema import ExerciseHistoryPage, ExerciseItem, ExercisePage, ExerciseUpdate, ExerciseWrite, Muscle, Region, WorkoutDayDetail, WorkoutExerciseWrite, WorkoutHistoryPage, WorkoutToday, WorkoutWeekSummary
 from app.services.training_service import TrainingService
 from app.services.workout_service import WorkoutService
 
@@ -33,6 +34,17 @@ async def list_exercises(
 @router.get("/{exercise_id}", response_model=ExerciseItem)
 async def get_exercise(exercise_id: UUID, current_user: Annotated[User, Depends(require_roles("member"))], session: Annotated[AsyncSession, Depends(get_db_session)]) -> ExerciseItem:
     return await TrainingService(session).get(exercise_id)
+
+
+@router.get("/{exercise_id}/history", response_model=ExerciseHistoryPage)
+async def get_exercise_history(
+    exercise_id: UUID,
+    current_user: Annotated[User, Depends(require_roles("member"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=50),
+) -> ExerciseHistoryPage:
+    return await WorkoutService(session).exercise_history(current_user, exercise_id=exercise_id, page=page, page_size=page_size)
 
 
 @router.get("/{exercise_id}/image")
@@ -82,3 +94,29 @@ async def get_today_workout(current_user: Annotated[User, Depends(require_roles(
 @workout_router.post("/today/exercises", response_model=WorkoutToday)
 async def add_today_exercise(payload: WorkoutExerciseWrite, current_user: Annotated[User, Depends(require_roles("member"))], session: Annotated[AsyncSession, Depends(get_db_session)]) -> WorkoutToday:
     return await WorkoutService(session).add_exercise(current_user, payload)
+
+
+@workout_router.get("/history", response_model=WorkoutHistoryPage)
+async def get_workout_history(
+    current_user: Annotated[User, Depends(require_roles("member"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    date_from: date,
+    date_to: date,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(31, ge=1, le=100),
+) -> WorkoutHistoryPage:
+    return await WorkoutService(session).history(current_user, date_from=date_from, date_to=date_to, page=page, page_size=page_size)
+
+
+@workout_router.get("/muscle-map", response_model=WorkoutWeekSummary)
+async def get_workout_muscle_map(
+    current_user: Annotated[User, Depends(require_roles("member"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    week_of: date | None = None,
+) -> WorkoutWeekSummary:
+    return await WorkoutService(session).week(current_user, week_of=week_of)
+
+
+@workout_router.get("/{workout_date}", response_model=WorkoutDayDetail)
+async def get_workout_day(workout_date: date, current_user: Annotated[User, Depends(require_roles("member"))], session: Annotated[AsyncSession, Depends(get_db_session)]) -> WorkoutDayDetail:
+    return await WorkoutService(session).day(current_user, workout_date)

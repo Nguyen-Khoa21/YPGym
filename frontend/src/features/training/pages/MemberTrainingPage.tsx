@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { ArrowLeft, Dumbbell, Search } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
@@ -7,9 +7,10 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/common/Feedba
 import { MemberShell } from "@/components/layout/MemberShell";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthContext";
+import { TrainingHistory } from "@/features/training/components/TrainingHistory";
 import { apiRequest, apiUrl } from "@/lib/apiClient";
 import { toUiError } from "@/lib/apiErrors";
-import { MUSCLES, exerciseImage, type Exercise, type ExercisePage, type Muscle, type WorkoutToday } from "@/features/training/types";
+import { MUSCLES, exerciseImage, type Exercise, type ExerciseHistoryPage, type ExercisePage, type Muscle, type WorkoutToday } from "@/features/training/types";
 
 export function MemberTrainingPage() {
   const { id } = useParams();
@@ -25,7 +26,9 @@ export function MemberTrainingPage() {
   if (muscle) params.set("muscle", muscle);
   const list = useQuery({ queryKey: ["training", "exercises", params.toString()], queryFn: ({ signal }) => apiRequest<ExercisePage>(`/training/exercises?${params}`, { token, signal }), enabled: !id });
   const detail = useQuery({ queryKey: ["training", "exercise", id], queryFn: ({ signal }) => apiRequest<Exercise>(`/training/exercises/${id}`, { token, signal }), enabled: !!id });
+  const exerciseHistory = useQuery({ queryKey: ["training", "exercise-history", id], queryFn: ({ signal }) => apiRequest<ExerciseHistoryPage>(`/training/exercises/${id}/history?page_size=10`, { token, signal }), enabled: !!id });
   const today = useQuery({ queryKey: ["training", "workout", "today"], queryFn: ({ signal }) => apiRequest<WorkoutToday>("/training/workouts/today", { token, signal }) });
+  const saved = (value: WorkoutToday) => { queryClient.setQueryData(["training", "workout", "today"], value); void Promise.all([queryClient.invalidateQueries({ queryKey: ["training", "history"] }), queryClient.invalidateQueries({ queryKey: ["training", "muscle-map"] }), queryClient.invalidateQueries({ queryKey: ["training", "exercise-history", id] })]); };
 
   return <MemberShell><div className="mx-auto max-w-6xl">
     {id ? <>
@@ -38,13 +41,15 @@ export function MemberTrainingPage() {
           <section><h2 className="text-xl font-bold">How to use</h2><p className="mt-2 whitespace-pre-line text-muted-foreground">{detail.data.usage_steps}</p></section>
           <section><h2 className="text-xl font-bold">Muscles</h2><p className="mt-2"><strong>Primary:</strong> {detail.data.primary_muscles.join(", ")}</p><p><strong>Secondary:</strong> {detail.data.secondary_muscles.join(", ") || "None listed"}</p></section>
           <section className="rounded-xl bg-muted/60 p-4"><h2 className="font-bold">Safety note</h2><p className="mt-1 text-sm">{detail.data.safety_note}</p></section>
-          <div><h2 className="text-xl font-bold">Add Exercise</h2>{today.isLoading ? <LoadingState title="Checking today's gym visit" /> : null}{today.isError ? <ErrorState title="Workout unavailable" message={toUiError(today.error).message} action={<Button variant="outline" onClick={() => today.refetch()}>Retry</Button>} /> : null}{today.data?.eligible ? <WorkoutForm key={detail.data.id} exercise={detail.data} token={token} onSaved={(value) => { queryClient.setQueryData(["training", "workout", "today"], value); }} /> : today.data ? <p className="mt-2 text-sm text-muted-foreground">{today.data.reason} <Button variant="outline" onClick={() => today.refetch()}>Check again</Button></p> : null}</div>
+          <div><h2 className="text-xl font-bold">Add Exercise</h2>{today.isLoading ? <LoadingState title="Checking today's gym visit" /> : null}{today.isError ? <ErrorState title="Workout unavailable" message={toUiError(today.error).message} action={<Button variant="outline" onClick={() => today.refetch()}>Retry</Button>} /> : null}{today.data?.eligible ? <WorkoutForm key={detail.data.id} exercise={detail.data} token={token} onSaved={saved} /> : today.data ? <p className="mt-2 text-sm text-muted-foreground">{today.data.reason} <Button variant="outline" onClick={() => today.refetch()}>Check again</Button></p> : null}</div>
         </div>
       </article> : null}
       {today.data?.session ? <WorkoutSummary value={today.data} /> : null}
+      <ExerciseHistory query={exerciseHistory} />
     </> : <>
       <p className="page-kicker">YPTrain · equipment guide</p><h1 className="page-title">Find your next exercise.</h1><p className="page-description">Browse the shared exercise catalogue by body region or muscle. Illustrative machine entries do not confirm what is installed at YPGym.</p>
       {today.data?.session ? <WorkoutSummary value={today.data} /> : today.data ? <p className="mt-5 rounded-xl border border-border bg-card p-4 text-sm">{today.data.eligible ? "Your gym check-in is confirmed. Open an exercise to start today's workout." : today.data.reason}</p> : null}
+      <TrainingHistory token={token} />
       <div className="mt-7 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-[1fr_auto]"><label className="flex h-11 items-center gap-2 rounded-md border border-input px-3"><Search className="size-4 text-muted-foreground" aria-hidden /><span className="sr-only">Search exercise name or muscle</span><input className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Search name or muscle" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} /></label><select aria-label="Filter by muscle" className="h-11 rounded-md border border-input bg-card px-3 text-sm" value={muscle} onChange={(event) => { setMuscle(event.target.value as Muscle | ""); setPage(1); }}><option value="">All muscles</option>{MUSCLES.map((value) => <option key={value} value={value}>{value}</option>)}</select></div>
       <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Body region">{(["all", "upper", "lower"] as const).map((value) => <Button key={value} variant={region === value ? "primary" : "outline"} onClick={() => { setRegion(value); setPage(1); }}>{value === "all" ? "All exercises" : `${value} body`}</Button>)}</div>
       {list.isLoading ? <LoadingState className="mt-5" title="Loading exercises" /> : null}
@@ -101,4 +106,13 @@ function WorkoutForm({ exercise, token, onSaved }: { exercise: Exercise; token: 
 function WorkoutSummary({ value }: { value: WorkoutToday }) {
   if (!value.session) return null;
   return <section className="mt-6 rounded-2xl border border-border bg-card p-5" aria-label="Today's workout"><p className="page-kicker">{value.gym_date} · {value.gym_timezone}</p><h2 className="text-xl font-bold">Today's workout</h2>{value.session.exercises.map((exercise) => <div key={exercise.id} className="mt-4 border-t border-border pt-3"><h3 className="font-semibold">{exercise.name}</h3><p className="text-sm text-muted-foreground">{exercise.sets.map((set) => `${set.set_order}: ${set.reps} reps × ${set.weight} ${set.unit}`).join(" · ")}</p></div>)}</section>;
+}
+
+function ExerciseHistory({ query }: { query: UseQueryResult<ExerciseHistoryPage> }) {
+  return <section className="mt-6 rounded-2xl border border-border bg-card p-5" aria-labelledby="exercise-history-title"><h2 id="exercise-history-title" className="text-xl font-bold">Your prior sessions</h2><p className="mt-1 text-sm text-muted-foreground">Descriptive comparisons use your previous logged session for this exercise. They are not a next-session target.</p>
+    {query.isLoading ? <LoadingState className="mt-4" title="Loading prior sessions" /> : null}
+    {query.isError ? <ErrorState className="mt-4" title="Prior sessions unavailable" message={toUiError(query.error).message} action={<Button variant="outline" onClick={() => query.refetch()}>Retry</Button>} /> : null}
+    {query.data?.items.length === 0 ? <EmptyState className="mt-4" title="No prior sessions" message="Your logged sessions for this exercise will appear here." /> : null}
+    {query.data?.items.map((item) => <article key={item.workout_exercise_id} className="mt-4 rounded-xl border border-border p-4"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{item.workout_date}</strong>{item.comparison_to_previous ? <span className="text-xs font-semibold text-muted-foreground">Sets {item.comparison_to_previous.sets} · reps {item.comparison_to_previous.reps} · load {item.comparison_to_previous.external_load}</span> : <span className="text-xs text-muted-foreground">First recorded baseline</span>}</div><p className="mt-2 text-sm">{item.set_count} sets · {item.total_reps} total reps · {item.max_external_load_kg} kg max external load</p><p className="mt-1 text-sm text-muted-foreground">{item.sets.map((set) => `${set.set_order}: ${set.reps} reps × ${set.weight} ${set.unit}`).join(" · ")}</p></article>)}
+  </section>;
 }

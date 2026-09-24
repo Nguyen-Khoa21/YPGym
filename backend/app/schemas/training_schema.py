@@ -107,3 +107,84 @@ class WorkoutToday(BaseModel):
     eligible: bool
     reason: str | None
     session: WorkoutSessionItem | None
+
+
+class ExposureMetric(BaseModel):
+    key: Literal["weighted_set_exposure"] = "weighted_set_exposure"
+    label: str = "Weighted set exposure"
+    description: str = "Each completed set contributes 1.0 exposure to every primary muscle and 0.5 to every secondary muscle. External load and reps are shown separately."
+    bodyweight_handling: str = "Bodyweight and zero-load sets count normally because exposure is set-based, not kilograms lifted."
+    primary_weight: Decimal = Decimal("1.0")
+    secondary_weight: Decimal = Decimal("0.5")
+
+
+class WorkoutHistoryDay(BaseModel):
+    workout_date: date
+    attended: bool
+    has_workout: bool
+    exercise_count: int
+    set_count: int
+    exposure_score: Decimal
+    intensity_level: int = Field(ge=0, le=4)
+
+
+class WorkoutHistoryPage(BaseModel):
+    gym_timezone: str
+    date_from: date
+    date_to: date
+    metric: ExposureMetric
+    max_exposure_score: Decimal
+    items: list[WorkoutHistoryDay]
+    page: PageInfo
+
+
+class WorkoutDayDetail(BaseModel):
+    gym_timezone: str
+    workout_date: date
+    attended: bool
+    exposure_score: Decimal
+    metric: ExposureMetric
+    session: WorkoutSessionItem | None
+
+
+ChangeDirection = Literal["more", "same", "less"]
+
+
+class WorkoutComparison(BaseModel):
+    sets: ChangeDirection
+    reps: ChangeDirection
+    external_load: ChangeDirection
+
+
+class ExerciseHistoryItem(BaseModel):
+    workout_date: date
+    workout_exercise_id: UUID
+    name: str
+    sets: list[WorkoutSetItem]
+    set_count: int
+    total_reps: int
+    max_external_load_kg: Decimal
+    comparison_to_previous: WorkoutComparison | None
+
+
+class ExerciseHistoryPage(BaseModel):
+    gym_timezone: str
+    items: list[ExerciseHistoryItem]
+    page: PageInfo
+
+
+class MuscleExposure(BaseModel):
+    muscle: Muscle
+    exposure_score: Decimal
+    intensity_level: int = Field(ge=0, le=4)
+
+
+class WorkoutWeekSummary(BaseModel):
+    gym_timezone: str
+    week_start: date
+    week_end: date
+    metric: ExposureMetric
+    total_exposure_score: Decimal
+    max_muscle_exposure_score: Decimal
+    days: list[WorkoutHistoryDay]
+    muscles: list[MuscleExposure]

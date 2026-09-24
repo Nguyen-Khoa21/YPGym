@@ -1,5 +1,12 @@
 # YPGym Codex Handoff
 
+## September 24 post-Day-60 Feature 7 checkpoint
+
+- Feature 6 was pushed as `013fd99` on `origin/main`. Feature 7 adds authenticated workout history, exact day details, same-exercise prior-session comparisons and a current Monday–Sunday muscle map through the shared FastAPI/PostgreSQL backend. The authoritative details are in [`docs/HANDOFF.md`](docs/HANDOFF.md) and [`docs/api/workout-history.md`](docs/api/workout-history.md).
+- Calendar and muscle intensity use documented weighted set exposure: `1.0` for each primary-muscle set and `0.5` for each secondary-muscle set, including bodyweight/zero-load sets. Exact reps and load remain separate, and comparisons are descriptive rather than prescriptive. Web and Expo expose text legends and muscle lists alongside the visual map.
+- No migration or dependency changed. The isolated suite passed **119 tests**; web lint/build and mobile typecheck/lint/nine tests/Android export passed. Normal health/Alembic checks and responsive authenticated web/Expo-web QA passed after correcting one SVG accessibility prop. Physical Android/iOS/phone rendering and populated-history client QA remain unverified.
+- User-owned `README.md`, `RUN_GUIDE.md`, `tmp/`, `mobile/dist-feature5/` and the existing exercise-card height edit remain excluded. Feature 8 requires an owner decision on an approved AI provider and guarded pipeline after Feature 7's local commit/push gate.
+
 ## September 23 post-Day-60 Feature 6 checkpoint
 
 - Feature 5 was pushed as `80e6505` on `origin/main`. Feature 6 now adds attendance-linked daily workouts through one shared FastAPI/PostgreSQL contract for member web and Expo; authoritative details are in [`docs/HANDOFF.md`](docs/HANDOFF.md) and [`docs/api/workout-logging.md`](docs/api/workout-logging.md).
