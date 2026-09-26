@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     SMTP_USERNAME: str = ""
     SMTP_PASSWORD: SecretStr = SecretStr("")
     SMTP_TIMEOUT_SECONDS: int = Field(default=10, ge=1, le=60)
+    EMAIL_REPLY_TO: str = ""
     EMAIL_MAX_DELIVERY_ATTEMPTS: int = Field(default=5, ge=1, le=20)
     EMAIL_RETRY_DELAY_SECONDS: int = Field(default=300, ge=1, le=86400)
     EMAIL_DELIVERY_BATCH_SIZE: int = Field(default=25, ge=1, le=100)
@@ -40,6 +41,15 @@ class Settings(BaseSettings):
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 60
     DEVELOPMENT_MAIL_DIR: str = "storage/mail"
     INVOICE_STORAGE_DIR: str = "storage/invoices"
+    OAUTH_CALLBACK_BASE_URL: str = "http://localhost:8001/api/v1"
+    OAUTH_STATE_TTL_SECONDS: int = Field(default=600, ge=60, le=1800)
+    OAUTH_EXCHANGE_TTL_SECONDS: int = Field(default=120, ge=30, le=600)
+    OAUTH_RECENT_AUTH_SECONDS: int = Field(default=600, ge=60, le=3600)
+    GOOGLE_OAUTH_WEB_CLIENT_ID: str = ""
+    GOOGLE_OAUTH_WEB_CLIENT_SECRET: SecretStr = SecretStr("")
+    FACEBOOK_APP_ID: str = ""
+    FACEBOOK_APP_SECRET: SecretStr = SecretStr("")
+    FACEBOOK_GRAPH_API_VERSION: str = "v24.0"
 
     @field_validator("GYM_TIMEZONE")
     @classmethod
@@ -50,12 +60,28 @@ class Settings(BaseSettings):
             raise ValueError("GYM_TIMEZONE must be a valid IANA timezone.") from exc
         return value
 
-    @field_validator("EMAIL_SENDER_NAME", "EMAIL_SENDER_ADDRESS", "SMTP_HOST", "SMTP_USERNAME")
+    @field_validator(
+        "EMAIL_SENDER_NAME",
+        "EMAIL_SENDER_ADDRESS",
+        "EMAIL_REPLY_TO",
+        "SMTP_HOST",
+        "SMTP_USERNAME",
+        "GOOGLE_OAUTH_WEB_CLIENT_ID",
+        "FACEBOOK_APP_ID",
+    )
     @classmethod
     def reject_email_header_injection(cls, value: str) -> str:
         if "\r" in value or "\n" in value:
             raise ValueError("Email and SMTP settings cannot contain line breaks.")
         return value.strip()
+
+    @field_validator("OAUTH_CALLBACK_BASE_URL")
+    @classmethod
+    def validate_oauth_callback_base(cls, value: str) -> str:
+        value = value.rstrip("/")
+        if not value.startswith(("https://", "http://localhost", "http://127.0.0.1")):
+            raise ValueError("OAUTH_CALLBACK_BASE_URL must use HTTPS outside localhost.")
+        return value
 
     @model_validator(mode="after")
     def validate_smtp_configuration(self) -> "Settings":

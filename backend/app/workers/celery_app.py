@@ -41,6 +41,10 @@ celery_app.conf.beat_schedule = {
         "task": "app.workers.send_welcome_emails",
         "schedule": 60.0,
     },
+    "membership-emails-minute": {
+        "task": "app.workers.send_membership_emails",
+        "schedule": 60.0,
+    },
 }
 
 
@@ -106,6 +110,16 @@ async def _send_welcome_emails() -> int:
 @celery_app.task(name="app.workers.send_welcome_emails")
 def send_welcome_emails() -> int:
     return _run_async_task(_send_welcome_emails)
+
+
+async def _send_membership_emails() -> int:
+    async with AsyncSessionLocal() as session:
+        return await EmailDeliveryService(session).deliver_pending_membership_emails()
+
+
+@celery_app.task(name="app.workers.send_membership_emails")
+def send_membership_emails() -> int:
+    return _run_async_task(_send_membership_emails)
 
 
 async def _close_timed_out_attendance() -> int:

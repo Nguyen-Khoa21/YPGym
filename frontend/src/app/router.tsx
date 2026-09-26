@@ -18,6 +18,7 @@ import { AdminMembersPage } from "@/features/admin/pages/AdminMembersPage";
 import { AdminSettingsPage } from "@/features/admin/pages/AdminSettingsPage";
 import { ForgotPasswordPage } from "@/features/auth/pages/ForgotPasswordPage";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
+import { OAuthCallbackPage } from "@/features/auth/pages/OAuthCallbackPage";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
 import { RegisterPage } from "@/features/auth/pages/RegisterPage";
 import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
@@ -32,6 +33,8 @@ import { MembershipRequestsPage } from "@/features/member/pages/MembershipReques
 import { NotificationPreferencesPage } from "@/features/member/pages/NotificationPreferencesPage";
 import { NotificationsPage } from "@/features/member/pages/NotificationsPage";
 import { ProfileSettingsPage } from "@/features/member/pages/ProfileSettingsPage";
+import { AccountSecurityPage } from "@/features/member/pages/AccountSecurityPage";
+import { AdminEmailDeliveriesPage } from "@/features/admin/pages/AdminEmailDeliveriesPage";
 import { PtDashboardPage } from "@/features/member/pages/PtDashboardPage";
 import { BuyMembershipPage } from "@/features/memberships/pages/BuyMembershipPage";
 import { MembershipPlansPage } from "@/features/memberships/pages/MembershipPlansPage";
@@ -45,6 +48,7 @@ export const router = createBrowserRouter([
   { path: "/", element: <HomePage /> },
   { path: "/register", element: <RegisterPage /> },
   { path: "/login", element: <LoginPage /> },
+  { path: "/oauth/callback", element: <OAuthCallbackPage /> },
   { path: "/forgot-password", element: <ForgotPasswordPage /> },
   { path: "/reset-password", element: <ResetPasswordPage /> },
   { path: "/verify-email", element: <VerifyEmailPage /> },
@@ -62,6 +66,10 @@ export const router = createBrowserRouter([
   {
     path: "/app/profile",
     element: <ProtectedRoute><ProfileSettingsPage /></ProtectedRoute>,
+  },
+  {
+    path: "/app/security",
+    element: <ProtectedRoute><AccountSecurityPage /></ProtectedRoute>,
   },
   {
     path: "/app/billing",
@@ -110,6 +118,10 @@ export const router = createBrowserRouter([
   {
     path: "/admin/billing",
     element: <ProtectedRoute roles={["admin"]}><AdminBillingPage /></ProtectedRoute>,
+  },
+  {
+    path: "/admin/email-deliveries",
+    element: <ProtectedRoute roles={[...managerRoles]}><AdminEmailDeliveriesPage /></ProtectedRoute>,
   },
   {
     path: "/admin/members",

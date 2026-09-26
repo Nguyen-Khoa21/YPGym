@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 import { Action, Brand, Card, Field, Heading, Message, Screen, textStyles } from '@/components/ui';
 import { apiRequest, errorMessage } from '@/lib/api';
 import type { RegisterResponse } from '@/lib/types';
+import { SocialLoginActions } from '@/components/SocialLoginActions';
 
 type Errors = Partial<Record<'name' | 'email' | 'phone' | 'password' | 'confirmPassword', string>>;
 
@@ -50,6 +51,7 @@ export default function RegisterScreen() {
       <Field label="Confirm password" value={confirmPassword} onChangeText={change('confirmPassword', setConfirmPassword)} error={errors.confirmPassword} secureTextEntry autoComplete="new-password" />
       {apiError ? <Message title="Registration failed" detail={apiError} tone="error" /> : null}
       <Action label={busy ? 'Creating account…' : 'Create account'} onPress={() => void submit()} disabled={busy} />
+      <SocialLoginActions />
       <Action label="Back to sign in" onPress={() => router.replace('/login')} outline />
     </View>
   </Screen>;

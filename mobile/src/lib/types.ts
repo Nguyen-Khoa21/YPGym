@@ -1,5 +1,5 @@
 // Transport shapes mirror the existing FastAPI response schemas; no browser code is imported.
-export type User = { id: string; name: string; email: string; phone: string; role: string; tier: string; is_email_verified: boolean };
+export type User = { id: string; name: string; email: string; phone: string | null; role: string; tier: string; is_email_verified: boolean };
 export type LoginResponse = { access_token: string; expires_at: string; user: User };
 export type RegisterResponse = { message: string; user: User };
 export type VerifyEmailResponse = { message: string; user: User | null };

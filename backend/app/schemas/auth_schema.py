@@ -8,7 +8,7 @@ class UserPublic(BaseModel):
     id: UUID
     name: str
     email: EmailStr
-    phone: str
+    phone: str | None
     role: str
     tier: str
     is_email_verified: bool

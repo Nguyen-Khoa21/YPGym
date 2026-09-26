@@ -1,6 +1,20 @@
 # YPGym Handoff
 
-Last updated: 2026-09-24, YPTrain taxonomy, image presentation, manual enrollment and mobile registration updates.
+Last updated: 2026-09-26, Feature 0 identity and transactional-email foundation completed locally.
+
+## September 26 implementation contract — identity and membership email foundation
+
+- Preserve the canonical `users` table, email/password verification/reset flow, password hashing, YPGym JWT format and role authorization. Add one normalized external-identity table keyed by immutable Google/Facebook subject. Social attributes can create only the default member role. Matching email alone never links an identity; an existing owner must sign in and explicitly link it.
+- Use backend Authorization Code flows. Redis holds short-lived, single-use OAuth state, PKCE verifier, OIDC nonce and one-time YPGym exchange codes. Web returns only to the configured frontend callback. Mobile returns only through `ypgym://oauth/callback`; neither callback includes a provider token or YPGym access token. Provider access tokens are validated and discarded.
+- Add authenticated identity list/link/unlink routes. Link and unlink require a recently issued YPGym access token, and unlink refuses to remove the final usable sign-in method. Google/Facebook login buttons remain disabled when that provider is not configured; live provider success is not claimed until owner-managed credentials and console redirect URIs are supplied.
+- Add a dedicated PostgreSQL transactional-email outbox linked to the successful payment and immutable invoice. Membership purchase/renewal creates exactly one confirmation intent and one invoice-delivery intent inside the same database transaction as membership, payment and invoice. Stable unique keys prevent replay from creating duplicate intents.
+- Celery claims due records with PostgreSQL row locking, sends through the existing Maildir/SMTP adapter, records `sent_to_provider` rather than claiming inbox delivery, and uses bounded exponential retry. SMTP failure never rolls back committed membership or billing state. The invoice email attaches the existing immutable server PDF.
+- Add manager/admin paginated delivery visibility with masked recipients and sanitized failure categories. Manual retry is server-authorized, rate-limited, restricted to eligible failed records and audited. Existing admin-only billing CSV export remains admin-only.
+- Environment-only settings cover provider enablement/credentials, exact callback URLs, OAuth TTLs and SMTP sender/reply-to values. Secrets stay server-side and examples contain placeholders only. Provider-neutral tests and development Maildir run first; real Google, Facebook and Gmail checks are credential-gated.
+- Final isolated PostgreSQL/Redis verification migrated through `20260926_0013` and passed **125 backend tests with seven existing Starlette warnings in 80.41 seconds**. Alembic reports `20260926_0013 (head)` with no pending upgrade operations.
+- Web lint/build passed with the existing TanStack Compiler and bundle-size warnings. Mobile typecheck, lint, **9 Node tests** and Android export passed. Expo Doctor passed 20 of 21 checks and reported only the repository's existing Expo patch-version mismatches.
+- The normal Compose stack was rebuilt successfully. Health and provider-discovery requests returned `200`; Google and Facebook are correctly reported disabled while credentials are absent. Celery registered and successfully ran the new membership-email task with an empty queue.
+- No dependency changed. Live Google, Facebook and Gmail delivery remain credential-gated and unclaimed. The generated Android export under the system temp directory remains because automatic policy blocked its cleanup; it is outside the repository.
 
 ## September 24 continuation — YPTrain usability and membership operations
 

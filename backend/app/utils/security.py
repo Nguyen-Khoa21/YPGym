@@ -17,8 +17,8 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def verify_password(password: str, password_hash: str) -> bool:
-    return pwd_context.verify(password, password_hash)
+def verify_password(password: str, password_hash: str | None) -> bool:
+    return bool(password_hash) and pwd_context.verify(password, password_hash)
 
 
 def generate_url_token() -> str:
@@ -44,6 +44,7 @@ def create_access_token(
         "role": role,
         "tier": tier,
         "type": "access",
+        "iat": datetime.now(UTC),
         "exp": expires_at,
     }
     token = jwt.encode(

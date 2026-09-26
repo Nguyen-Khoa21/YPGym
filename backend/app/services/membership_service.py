@@ -9,6 +9,7 @@ from app.core.exceptions import AppError, ResourceNotFoundError
 from app.models.enums import MembershipStatus, PaymentStatus
 from app.models.user import User
 from app.repositories.billing_repository import InvoiceRepository, PaymentRepository
+from app.repositories.email_delivery_repository import EmailDeliveryRepository
 from app.repositories.membership_repository import (
     MembershipPlanRepository,
     UserMembershipRepository,
@@ -32,6 +33,7 @@ class MembershipService:
         self.payments = PaymentRepository(session)
         self.invoices = InvoiceRepository(session)
         self.invoice_pdf = InvoicePdfService()
+        self.email_deliveries = EmailDeliveryRepository(session)
 
     async def purchase(
         self,
@@ -90,7 +92,9 @@ class MembershipService:
         current_membership = await self.memberships.get_current_for_user(current_user.id)
         coverage_start_date = today
 
+        transaction_kind = "purchase"
         if current_membership and current_membership.expiry_date >= today:
+            transaction_kind = "renewal"
             coverage_start_date = current_membership.expiry_date + timedelta(days=1)
             current_membership.plan_id = plan.id
             current_membership.expiry_date = current_membership.expiry_date + timedelta(
@@ -147,6 +151,23 @@ class MembershipService:
             membership_expiry_date=membership.expiry_date,
             pdf_path=pdf_path,
         )
+
+        recipient = current_user.email.lower()
+        local, domain = recipient.rsplit("@", 1)
+        masked_recipient = f"{local[:1]}{'*' * max(2, len(local) - 1)}@{domain}"
+        for template_type in (f"membership_{transaction_kind}", "membership_invoice"):
+            await self.email_deliveries.enqueue_once(
+                idempotency_key=f"{template_type}:{invoice.id}:{recipient}:v1",
+                template_type=template_type,
+                template_version=1,
+                user_id=current_user.id,
+                membership_id=membership.id,
+                payment_id=payment.id,
+                invoice_id=invoice.id,
+                recipient_email=recipient,
+                recipient_masked=masked_recipient,
+                status="queued",
+            )
 
         if manual:
             await AuditRepository(self.session).create(

@@ -12,6 +12,7 @@ import { Field, FieldError, Input, Label } from "@/components/ui/Form";
 import { useAuth } from "@/features/auth/AuthContext";
 import { workspacePathForRole } from "@/features/auth/workspace";
 import { toUiError, type UiError } from "@/lib/apiErrors";
+import { SocialLoginButtons } from "@/features/auth/SocialLoginButtons";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email address."),
@@ -69,6 +70,7 @@ export function LoginPage() {
             {form.formState.isSubmitting ? "Signing in..." : <>Sign in <ArrowRight className="size-4" aria-hidden /></>}
           </Button>
         </form>
+        <SocialLoginButtons />
         <p className="mt-6 text-center text-sm text-muted-foreground">New to YPGym? <Link className="font-extrabold text-primary underline-offset-4 hover:underline" to="/register">Create an account</Link></p>
       </section>
     </AuthShell>

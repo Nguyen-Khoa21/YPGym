@@ -12,6 +12,7 @@ import { Field, FieldError, Input, Label } from "@/components/ui/Form";
 import { apiRequest } from "@/lib/apiClient";
 import { toUiError, type UiError } from "@/lib/apiErrors";
 import type { User } from "@/types/api";
+import { SocialLoginButtons } from "@/features/auth/SocialLoginButtons";
 
 const schema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -63,6 +64,7 @@ export function RegisterPage() {
           <Field><Label htmlFor="password">Password</Label><Input id="password" type="password" autoComplete="new-password" {...form.register("password")} /><FieldError message={form.formState.errors.password?.message} /></Field>
           <Button type="submit" className="mt-2 w-full rounded-full sm:col-span-2" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Creating account..." : <>Create account <ArrowRight className="size-4" aria-hidden /></>}</Button>
         </form> : null}
+        {!registered ? <SocialLoginButtons /> : null}
         <p className="mt-6 text-center text-sm text-muted-foreground">Already registered? <Link className="font-extrabold text-primary underline-offset-4 hover:underline" to="/login">Log in</Link></p>
       </section>
     </AuthShell>

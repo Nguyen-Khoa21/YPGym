@@ -28,6 +28,7 @@ type Options = { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown; s
 type Session = {
   ready: boolean; token: string | null; user: User | null; restoreError: string | null;
   login: (email: string, password: string) => Promise<void>;
+  completeOAuth: (provider: 'google' | 'facebook', code: string) => Promise<void>;
   logout: () => Promise<void>;
   retryRestore: () => void;
   refreshUser: () => Promise<void>;
@@ -105,6 +106,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setRestoreError(null);
   }, []);
 
+  const completeOAuth = useCallback(async (provider: 'google' | 'facebook', code: string) => {
+    const result = await apiRequest<LoginResponse>(`/auth/oauth/${provider}/mobile/exchange`, undefined, { method: 'POST', body: { code } });
+    if (result.user.role !== 'member') throw new ApiError('This app is for members. Use the web workspace for your role.', 403, 'PERMISSION_DENIED');
+    await saveToken(result.access_token);
+    clearMemberQueryData();
+    currentToken.current = result.access_token;
+    setToken(result.access_token);
+    setUser(result.user);
+    setRestoreError(null);
+  }, []);
+
   const request = useCallback(async <T,>(path: string, options?: Options) => {
     try { return await apiRequest<T>(path, token, options); }
     catch (error) {
@@ -119,7 +131,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setUser(refreshed);
   }, [request, token]);
 
-  return <Context.Provider value={{ ready, token, user, restoreError, login, logout: () => logout(), retryRestore: () => setRestoreAttempt((n) => n + 1), refreshUser, request }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ ready, token, user, restoreError, login, completeOAuth, logout: () => logout(), retryRestore: () => setRestoreAttempt((n) => n + 1), refreshUser, request }}>{children}</Context.Provider>;
 }
 
 export function useAuth() {

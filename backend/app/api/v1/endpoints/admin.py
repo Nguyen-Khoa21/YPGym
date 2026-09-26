@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import require_roles
+from app.core.rate_limit import rate_limits
 from app.core.exceptions import ResourceNotFoundError
 from app.db.redis import get_redis_client
 from app.db.session import get_db_session
@@ -17,6 +18,7 @@ from app.schemas.membership_schema import (
     PurchaseMembershipRequest,
     PurchaseMembershipResponse,
 )
+from app.schemas.email_delivery_schema import EmailDeliveryPage, EmailDeliveryRetryResponse
 from app.schemas.notification_schema import BroadcastCreate, BroadcastItem, BroadcastUpdate
 from app.schemas.operations_schema import (
     AdminBillingInvoicePage,
@@ -39,8 +41,41 @@ from app.repositories.user_repository import UserRepository
 from app.services.membership_service import MembershipService
 from app.services.notification_service import NotificationService
 from app.services.operations_service import AuditService, BillingAdminService, CrmService
+from app.services.email_delivery_admin_service import EmailDeliveryAdminService
+from app.utils.security import hash_token
 
 router = APIRouter(prefix="/admin", tags=["admin operations"])
+
+
+@router.get("/email-deliveries", response_model=EmailDeliveryPage)
+async def list_email_deliveries(
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    status: str | None = Query(None, max_length=32),
+    template_type: str | None = Query(None, max_length=64),
+    member: str | None = Query(None, max_length=160),
+) -> EmailDeliveryPage:
+    return await EmailDeliveryAdminService(session).list(
+        page=page, page_size=page_size, status=status, template_type=template_type, member=member
+    )
+
+
+@router.post("/email-deliveries/{delivery_id}/retry", response_model=EmailDeliveryRetryResponse)
+async def retry_email_delivery(
+    delivery_id: UUID,
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> EmailDeliveryRetryResponse:
+    await rate_limits.enforce(
+        redis,
+        key=f"ypgym:rate:email-retry:{hash_token(str(current_user.id))}",
+        limit=10,
+        window_seconds=60,
+    )
+    return await EmailDeliveryAdminService(session).retry(delivery_id=delivery_id, actor=current_user)
 
 
 @router.get("/membership-requests", response_model=MembershipApprovalPage)

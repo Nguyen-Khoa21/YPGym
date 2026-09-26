@@ -16,6 +16,7 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 | Freeze/cancel requests | `/app/membership-requests` | Member | `/memberships/freeze-requests`, `/memberships/cancellation-requests`, `/memberships/requests/me` | Connected |
 | Notifications | `/app/notifications` | Member | `/notifications/me`, read-one/read-all | Connected and paginated |
 | Notification preferences | `/app/notifications/preferences` | Member | `/notifications/preferences/me` | Connected |
+| Account security | `/app/security` | Authenticated user | `/account/identities`, provider link/unlink | Connected provider status, explicit link/unlink, recent-auth and last-method states |
 | Member class booking | `/app/classes` | Member | `/classes/upcoming`, `/classes/{id}/book`, waitlist join/leave | Connected responsive class cards, PT cards, capacity, eligible/ineligible, booked/full/waitlisted/cancelled states |
 | My bookings | `/app/bookings` | Member | `/bookings/me`, booking cancel, waitlist leave | Connected confirmed/cancelled/promoted/waiting states and configured cancellation cutoff |
 | YPTrain exercise guide, workout history and weekly muscle map | `/app/train`, `/app/train/:id` | Member | `/training/exercises`, `/training/workouts/today`, `/training/workouts/history`, `/training/workouts/{date}`, `/training/workouts/muscle-map` | Shared upper/lower browse, guide and attendance-gated 1–10 set logging; contribution calendar distinguishes attendance from workouts; exact day detail, descriptive prior-session comparisons and accessible front/back weighted-set-exposure map derive from member-owned records |
@@ -32,6 +33,7 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 | Admin Member Details | `/admin/members/:id` | Admin | detail composite, decisions, revocation | Connected profile, membership, billing, attendance, booking summary, requests, audit, reasoned actions |
 | Membership approvals | `/admin/approvals` | Manager/admin | `/admin/membership-requests`, decision endpoints | Connected limited queue without full CRM/billing exposure |
 | Billing ledger | `/admin/billing` | Admin | `/admin/billing/payments`, `/invoices`, exact-filter CSV | Connected member/status/date/plan/tier filters |
+| Email delivery operations | `/admin/email-deliveries` | Manager/admin | `/admin/email-deliveries`, retry action | Connected masked recipient, invoice reference, honest delivery state, safe failure and audited retry |
 | Attendance dashboard | `/admin/attendance` | Staff/manager/admin | attendance admin list, manual close, crowdedness; analytics for manager/admin | Connected table, filters, KPI cards, manual-close dialog, accessible 7x24 heatmap |
 | Manager analytics summary | `/admin/attendance` (manager/admin panel) | Manager/admin | `/admin/analytics/summary` | Connected persisted membership trends, class popularity, attendance patterns, successful revenue, 60-second Redis freshness window; staff is denied |
 | Class schedule | `/admin/classes` | Admin | class list/trainers/create/update/cancel | Connected table, filters, side card, create/edit dialog, cancellation confirmation |

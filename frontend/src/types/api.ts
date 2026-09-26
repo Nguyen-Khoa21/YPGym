@@ -4,7 +4,7 @@ export type User = {
   id: string;
   name: string;
   email: string;
-  phone: string;
+  phone: string | null;
   role: UserRole;
   tier: "normal" | "advance" | "vip";
   is_email_verified: boolean;

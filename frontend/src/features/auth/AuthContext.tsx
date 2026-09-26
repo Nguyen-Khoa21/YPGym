@@ -19,6 +19,7 @@ type AuthContextValue = {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
+  completeOAuth: (provider: "google" | "facebook", code: string) => Promise<User>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
@@ -80,16 +81,29 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return response.user;
   }, []);
 
+  const completeOAuth = useCallback(async (provider: "google" | "facebook", code: string) => {
+    const response = await apiRequest<LoginResponse>(`/auth/oauth/${provider}/exchange`, {
+      method: "POST",
+      body: { code },
+    });
+    queryClient.clear();
+    window.localStorage.setItem(TOKEN_KEY, response.access_token);
+    setToken(response.access_token);
+    setUser(response.user);
+    return response.user;
+  }, []);
+
   const value = useMemo(
     () => ({
       token,
       user,
       isLoading,
       login,
+      completeOAuth,
       logout: clearAuth,
       refreshUser,
     }),
-    [clearAuth, isLoading, login, refreshUser, token, user],
+    [clearAuth, completeOAuth, isLoading, login, refreshUser, token, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

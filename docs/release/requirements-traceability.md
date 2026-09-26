@@ -63,6 +63,13 @@ Path conventions: backend service files are under `backend/app/services/`; tests
 | FR37 Notification preferences | `/app/notifications/preferences`; own preferences API | `(member)/preferences.tsx` | `notification_service.py`; preference-aware reminder/promotion tests and demo fixtures | Implemented supported flags; email opt-in does not prove delivered mail |
 | FR38 Admin broadcast announcement | `/admin/broadcasts`; dashboard/notifications | Dashboard active broadcasts | `NotificationService`; broadcast date validation/role tests and demo | Implemented manager/admin web administration and member display |
 | FR39 AI chatbot with authenticated context and guardrails | No released chatbot route/API | None | [Feature freeze](feature-freeze.md) and post-release backlog | Deferred by revised release scope; High-priority BRD requirement remains unmet, no supervisor approval inferred |
+| FR57 Existing email/password registration and sign-in | `/register`, `/login`; existing auth endpoints | Native register/login/verification routes | Existing `AuthService`, hashed tokens/passwords; full regression suite | Implemented and preserved |
+| FR58 Google sign-up/sign-in | Provider start/callback/exchange; `/oauth/callback` | System-browser flow and `ypgym://oauth/callback` | `OAuthService`; mocked new-account, state and exchange tests | Implemented; live provider credentials/approval unverified |
+| FR59 Facebook sign-up/sign-in | Provider start/callback/exchange | System-browser flow and cold-start callback | `OAuthService`; mocked missing/conflicting identity behavior | Implemented; live provider credentials/approval unverified |
+| FR60 Canonical linked identities | `/app/security`; account identity routes | `(member)/security.tsx` | Subject constraints, explicit link, recent-auth and last-method guards | Implemented; matching email never auto-links |
+| FR61 Purchase/renewal confirmation and invoice email | Membership purchase plus Celery outbox | Shared purchase endpoint triggers server event | `EmailDelivery`, migration `0013`, Maildir/PDF/idempotency tests | Implemented locally; live Gmail inbox delivery unverified |
+| FR62 Authorized delivery tracking and retry | `/admin/email-deliveries`; admin email APIs | Outside member app scope | Manager/admin RBAC, retry limiter/audit tests | Implemented; SMTP acceptance shown honestly |
+| FR63 Environment-managed identity/SMTP secrets | Backend settings/Compose examples | No secret included in app bundle | Config validation, tracked-file review and runbook | Implemented configuration; production credentials absent |
 
 ## Verification and academic distinction
 

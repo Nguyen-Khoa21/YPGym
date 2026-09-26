@@ -27,7 +27,7 @@ const schema = z.object({
 type ProfileForm = z.infer<typeof schema>;
 const profileRows = [
   { label: "Personal information", detail: "Name, phone and protected email", icon: CircleUserRound, connected: true, href: "#personal-information" },
-  { label: "Account security", detail: "Password changes are connected", icon: LockKeyhole, connected: true, href: "#account-security" },
+  { label: "Account security", detail: "Passwords and linked providers", icon: LockKeyhole, connected: true, href: "/app/security" },
   { label: "Personalization profile", detail: "Planned after Day 20", icon: Palette, connected: false },
   { label: "Notification preferences", detail: "Email, in-app, reminders, and broadcasts", icon: Bell, connected: true, href: "/app/notifications/preferences" },
 ];
@@ -40,7 +40,7 @@ export function ProfileSettingsPage() {
 
   useEffect(() => {
     if (!profile.data) return;
-    form.reset({ name: profile.data.name, phone: profile.data.phone, current_password: "", new_password: "" });
+    form.reset({ name: profile.data.name, phone: profile.data.phone ?? "", current_password: "", new_password: "" });
   }, [form, profile.data]);
 
   const updateProfile = useMutation({

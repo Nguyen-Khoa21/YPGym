@@ -1,6 +1,8 @@
 from app.models.auth_token import EmailVerification, PasswordReset
 from app.models.attendance import AttendanceEvent, AttendanceSession, IoTDevice
 from app.models.billing import Invoice, Payment
+from app.models.email_delivery import EmailDelivery
+from app.models.identity import ExternalIdentity
 from app.models.classes import ClassBooking, ClassWaitlist, GymClass, PersonalTrainer
 from app.models.enums import (
     AttendanceEventType,
