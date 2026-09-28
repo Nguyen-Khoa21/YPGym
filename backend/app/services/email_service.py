@@ -17,8 +17,10 @@ from app.core.config import Settings, get_settings
 from app.models.operations import Notification
 from app.models.user import User
 from app.repositories.email_delivery_repository import EmailDeliveryRepository
+from app.repositories.identity_repository import OAuthPendingLinkRepository
 from app.repositories.operations_repository import NotificationRepository
 from app.services.invoice_service import format_vnd
+from app.utils.security import generate_url_token, hash_token
 
 logger = logging.getLogger(__name__)
 
@@ -79,13 +81,14 @@ class EmailDeliveryService:
         self.settings = settings or get_settings()
         self.notifications = NotificationRepository(session)
         self.deliveries = EmailDeliveryRepository(session)
+        self.pending_links = OAuthPendingLinkRepository(session)
         self.transport = transport or ConfiguredEmailTransport(self.settings)
 
     async def deliver_pending_welcome_emails(self) -> int:
         delivered = 0
         for _ in range(self.settings.EMAIL_DELIVERY_BATCH_SIZE):
             now = datetime.now(UTC)
-            candidate = await self.notifications.next_welcome_email_for_delivery(
+            candidate = await self.notifications.next_auth_email_for_delivery(
                 retry_before=now - timedelta(seconds=self.settings.EMAIL_RETRY_DELAY_SECONDS),
                 max_attempts=self.settings.EMAIL_MAX_DELIVERY_ATTEMPTS,
             )
@@ -97,7 +100,7 @@ class EmailDeliveryService:
             notification.delivery_attempts += 1
             notification.last_delivery_attempt_at = now
             try:
-                message = self._welcome_message(notification, user)
+                message = self._welcome_message(notification, user) if notification.notification_type == "registration_welcome" else self._security_message(notification, user)
                 await asyncio.to_thread(self.transport.send, message)
             except Exception as exc:  # Transport failures must not expose recipient or credentials.
                 if notification.delivery_attempts >= self.settings.EMAIL_MAX_DELIVERY_ATTEMPTS:
@@ -113,6 +116,57 @@ class EmailDeliveryService:
 
             notification.delivery_state = "delivered"
             notification.delivered_at = datetime.now(UTC)
+            await self.session.commit()
+            delivered += 1
+        return delivered
+
+    async def deliver_pending_oauth_link_emails(self) -> int:
+        delivered = 0
+        for _ in range(self.settings.EMAIL_DELIVERY_BATCH_SIZE):
+            now = datetime.now(UTC)
+            item = await self.pending_links.claim_email(now=now, max_attempts=self.settings.EMAIL_MAX_DELIVERY_ATTEMPTS)
+            if item is None:
+                await self.session.rollback()
+                break
+            item_id = item.id
+            token = generate_url_token()
+            item.email_token_hash = hash_token(token)
+            await self.session.commit()
+            item = await self.pending_links.get_by_id(item_id)
+            user = await self.session.get(User, item.user_id) if item else None
+            if item is None or user is None:
+                continue
+            try:
+                message = self._oauth_link_confirmation_message(item, user, token)
+                await asyncio.to_thread(self.transport.send, message)
+            except Exception as exc:
+                locked = await self.pending_links.get_by_id(item_id, for_update=True)
+                if locked is None:
+                    await self.session.rollback()
+                    continue
+                exhausted = locked.email_attempt_count >= self.settings.EMAIL_MAX_DELIVERY_ATTEMPTS
+                locked.email_delivery_state = "failed" if exhausted else "retrying"
+                locked.email_error_code = type(exc).__name__[:64]
+                if not exhausted:
+                    locked.email_next_attempt_at = datetime.now(UTC) + timedelta(
+                        seconds=self.settings.EMAIL_RETRY_DELAY_SECONDS,
+                    )
+                await self.session.commit()
+                logger.warning(
+                    "oauth_link_email_delivery_failed pending_id=%s attempt=%s exception_type=%s",
+                    item_id,
+                    locked.email_attempt_count,
+                    type(exc).__name__,
+                )
+                continue
+            locked = await self.pending_links.get_by_id(item_id, for_update=True)
+            if locked is None:
+                await self.session.rollback()
+                continue
+            locked.email_delivery_state = "sent"
+            locked.email_sent_at = datetime.now(UTC)
+            locked.email_next_attempt_at = None
+            locked.email_error_code = None
             await self.session.commit()
             delivered += 1
         return delivered
@@ -264,4 +318,47 @@ class EmailDeliveryService:
             "</body></html>",
             subtype="html",
         )
+        return message
+
+    def _security_message(self, notification: Notification, user: User) -> EmailMessage:
+        message = self._base_message(user.email, notification.title, f"security.{notification.id}")
+        message.set_content(f"Hi {user.name},\n\n{notification.message}\n\nYPGym Team\n")
+        message.add_alternative(
+            "<!doctype html><html><body>"
+            f"<p>Hi {html.escape(user.name, quote=True)},</p>"
+            f"<p>{html.escape(notification.message, quote=True)}</p>"
+            "<p>YPGym Team</p></body></html>",
+            subtype="html",
+        )
+        return message
+
+    def _oauth_link_confirmation_message(self, item, user: User, token: str) -> EmailMessage:
+        link = f"{self.settings.FRONTEND_URL.rstrip('/')}/auth/link-account?email_token={token}"
+        provider = item.provider.title()
+        message = self._base_message(user.email, f"Confirm {provider} sign-in for YPGym", f"oauth-link.{item.id}")
+        message.set_content(
+            f"Hi {user.name},\n\nConfirm connecting {provider} sign-in to your YPGym account:\n{link}\n\n"
+            "This single-use link expires shortly. If you did not request it, ignore this message.\n\nYPGym Team\n",
+        )
+        message.add_alternative(
+            "<!doctype html><html><body>"
+            f"<p>Hi {html.escape(user.name, quote=True)},</p>"
+            f"<p>Confirm connecting {provider} sign-in to your YPGym account.</p>"
+            f'<p><a href="{html.escape(link, quote=True)}">Confirm secure account link</a></p>'
+            "<p>This single-use link expires shortly. If you did not request it, ignore this message.</p>"
+            "<p>YPGym Team</p></body></html>",
+            subtype="html",
+        )
+        return message
+
+    def _base_message(self, recipient: str, subject: str, message_key: str) -> EmailMessage:
+        sender_domain = self.settings.EMAIL_SENDER_ADDRESS.rsplit("@", 1)[-1] or "example.com"
+        message = EmailMessage()
+        message["From"] = formataddr((self.settings.EMAIL_SENDER_NAME, self.settings.EMAIL_SENDER_ADDRESS))
+        message["To"] = recipient
+        message["Subject"] = subject
+        message["Date"] = format_datetime(datetime.now(UTC))
+        message["Message-ID"] = f"<{message_key}@{sender_domain}>"
+        if self.settings.EMAIL_REPLY_TO:
+            message["Reply-To"] = self.settings.EMAIL_REPLY_TO
         return message

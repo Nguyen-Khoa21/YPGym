@@ -2,7 +2,7 @@
 
 ## Implemented contract
 
-YPGym keeps one canonical `users` row and the existing JWT/RBAC system. `external_identities` stores only a provider key (`google` or `facebook`), immutable provider subject, email snapshot, provider verification assertion, login timestamps and revocation state. Provider email is never the identity key. A matching email on an unlinked YPGym account returns `ACCOUNT_LINK_REQUIRED`; the owner must sign in normally and connect the provider from Account Security. OAuth attributes can create only a `member` role.
+YPGym keeps one canonical `users` row and the existing JWT/RBAC system. `external_identities` stores only a provider key (`google` or `facebook`), immutable provider subject, email snapshot, provider verification assertion, login timestamps and revocation state. Provider email is never the identity key. A matching verified provider email on an unlinked YPGym account creates a short-lived pending-link request; the owner completes it with the current YPGym password or a hashed, one-time email link. The provider is never auto-linked from email alone. OAuth attributes can create only a `member` role.
 
 Email/password registration, hashed one-time verification/reset records and password hashing remain unchanged. Provider-created users may have no password or phone. Google email is marked verified only when the validated ID token asserts `email_verified=true`. Facebook's profile response does not supply an equivalent verification assertion, so YPGym does not mark it verified. Facebook login requires a usable email and does not fabricate one.
 
@@ -18,8 +18,16 @@ Routes:
 - `GET /api/v1/account/identities`
 - `POST /api/v1/account/identities/{provider}/link/start?platform={web|mobile}`
 - `DELETE /api/v1/account/identities/{provider}`
+- `GET /api/v1/auth/oauth/link/pending?code=...`
+- `POST /api/v1/auth/oauth/link/password`
+- `POST /api/v1/auth/oauth/link/email`
+- `POST /api/v1/auth/oauth/link/email/confirm`
 
 Link/unlink requires a JWT issued within the configured recent-auth window. Unlink cannot remove the final usable method. If a provider later changes its email, YPGym updates only the provider snapshot; the canonical account email does not change.
+
+Pending links live in PostgreSQL with only hashed browser/email codes, a 15-minute expiry, single-use consumption, bounded password attempts, delivery retry state and a sanitized correlation ID. Celery claims provider-link confirmation email; the random raw token exists only while the worker builds the message. Provider linked/unlinked notices reuse the durable notification email queue. SMTP failure never rolls back a completed identity transaction.
+
+For provider publication and unrestricted-user setup, see [`docs/oauth-production-checklist.md`](../oauth-production-checklist.md).
 
 ## Redirect configuration
 

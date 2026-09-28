@@ -69,8 +69,9 @@ export function Card({ children, accent = false, style }: PropsWithChildren<{ ac
   </View>;
 }
 
-export function Action({ label, onPress, outline = false, danger = false, disabled = false }: { label: string; onPress: () => void; outline?: boolean; danger?: boolean; disabled?: boolean }) {
+export function Action({ label, onPress, icon, outline = false, danger = false, disabled = false }: { label: string; onPress: () => void; icon?: ReactNode; outline?: boolean; danger?: boolean; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.action, outline && styles.outline, danger && styles.danger, pressed && !disabled && styles.pressed, disabled && styles.disabled]}>
+    {icon}
     <Text style={[styles.actionText, outline && styles.outlineText, danger && styles.dangerText]}>{label}</Text>
   </Pressable>;
 }
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
   cardContent: { padding: 20, gap: 11, zIndex: 1 },
   accentCard: { backgroundColor: colors.primarySurface, borderColor: colors.positiveBorder },
   cardMotif: { position: 'absolute', right: -13, top: -13, opacity: 0.12, transform: [{ rotate: '-18deg' }] },
-  action: { minHeight: 52, paddingHorizontal: 18, borderRadius: radii.md, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  action: { minHeight: 52, paddingHorizontal: 18, borderRadius: radii.md, backgroundColor: colors.primary, flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center' },
   outline: { backgroundColor: colors.white, borderColor: colors.primary, borderWidth: 1 },
   danger: { backgroundColor: colors.dangerSurface, borderColor: colors.dangerBorder, borderWidth: 1 },
   actionText: { color: colors.white, fontSize: 16, fontWeight: '800' },

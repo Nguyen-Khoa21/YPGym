@@ -20,6 +20,7 @@ type AuthContextValue = {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
   completeOAuth: (provider: "google" | "facebook", code: string) => Promise<User>;
+  completeOAuthLink: (path: "/auth/oauth/link/password" | "/auth/oauth/link/email/confirm", body: unknown) => Promise<User>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
@@ -81,17 +82,26 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return response.user;
   }, []);
 
-  const completeOAuth = useCallback(async (provider: "google" | "facebook", code: string) => {
-    const response = await apiRequest<LoginResponse>(`/auth/oauth/${provider}/exchange`, {
-      method: "POST",
-      body: { code },
-    });
+  const acceptLogin = useCallback((response: LoginResponse) => {
     queryClient.clear();
     window.localStorage.setItem(TOKEN_KEY, response.access_token);
     setToken(response.access_token);
     setUser(response.user);
     return response.user;
   }, []);
+
+  const completeOAuth = useCallback(async (provider: "google" | "facebook", code: string) => {
+    const response = await apiRequest<LoginResponse>(`/auth/oauth/${provider}/exchange`, {
+      method: "POST",
+      body: { code },
+    });
+    return acceptLogin(response);
+  }, [acceptLogin]);
+
+  const completeOAuthLink = useCallback(async (
+    path: "/auth/oauth/link/password" | "/auth/oauth/link/email/confirm",
+    body: unknown,
+  ) => acceptLogin(await apiRequest<LoginResponse>(path, { method: "POST", body })), [acceptLogin]);
 
   const value = useMemo(
     () => ({
@@ -100,10 +110,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isLoading,
       login,
       completeOAuth,
+      completeOAuthLink,
       logout: clearAuth,
       refreshUser,
     }),
-    [clearAuth, completeOAuth, isLoading, login, refreshUser, token, user],
+    [clearAuth, completeOAuth, completeOAuthLink, isLoading, login, refreshUser, token, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     FRONTEND_URL: str = "http://localhost:5174"
     MOBILE_APP_URL: str = "ypgym://"
+    MOBILE_WEB_URL: str = "http://localhost:8081"
     GYM_TIMEZONE: str = "Asia/Ho_Chi_Minh"
     CORS_EXTRA_ORIGINS: str = ""
     DATABASE_URL: str = "postgresql+asyncpg://ypgym:ypgym_dev_password@localhost:5433/ypgym"
@@ -45,6 +46,8 @@ class Settings(BaseSettings):
     OAUTH_STATE_TTL_SECONDS: int = Field(default=600, ge=60, le=1800)
     OAUTH_EXCHANGE_TTL_SECONDS: int = Field(default=120, ge=30, le=600)
     OAUTH_RECENT_AUTH_SECONDS: int = Field(default=600, ge=60, le=3600)
+    OAUTH_LINK_TTL_SECONDS: int = Field(default=900, ge=300, le=1800)
+    OAUTH_LINK_MAX_PASSWORD_ATTEMPTS: int = Field(default=5, ge=3, le=10)
     GOOGLE_OAUTH_WEB_CLIENT_ID: str = ""
     GOOGLE_OAUTH_WEB_CLIENT_SECRET: SecretStr = SecretStr("")
     FACEBOOK_APP_ID: str = ""
@@ -75,12 +78,12 @@ class Settings(BaseSettings):
             raise ValueError("Email and SMTP settings cannot contain line breaks.")
         return value.strip()
 
-    @field_validator("OAUTH_CALLBACK_BASE_URL")
+    @field_validator("OAUTH_CALLBACK_BASE_URL", "MOBILE_WEB_URL")
     @classmethod
     def validate_oauth_callback_base(cls, value: str) -> str:
         value = value.rstrip("/")
         if not value.startswith(("https://", "http://localhost", "http://127.0.0.1")):
-            raise ValueError("OAUTH_CALLBACK_BASE_URL must use HTTPS outside localhost.")
+            raise ValueError("OAuth browser URLs must use HTTPS outside localhost.")
         return value
 
     @model_validator(mode="after")
@@ -96,6 +99,19 @@ class Settings(BaseSettings):
             raise ValueError("SMTP_USERNAME and SMTP_PASSWORD must be configured together.")
         if self.SMTP_USERNAME and self.SMTP_TLS_MODE == "none":
             raise ValueError("SMTP authentication requires TLS.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_oauth_configuration(self) -> "Settings":
+        for provider, client_id, secret in (
+            ("Google", self.GOOGLE_OAUTH_WEB_CLIENT_ID, self.GOOGLE_OAUTH_WEB_CLIENT_SECRET.get_secret_value()),
+            ("Facebook", self.FACEBOOK_APP_ID, self.FACEBOOK_APP_SECRET.get_secret_value()),
+        ):
+            if bool(client_id) != bool(secret):
+                raise ValueError(f"{provider} OAuth ID and secret must be configured together.")
+        if self.ENVIRONMENT.lower() not in ("development", "test"):
+            if not self.FRONTEND_URL.startswith("https://") or not self.MOBILE_WEB_URL.startswith("https://") or not self.OAUTH_CALLBACK_BASE_URL.startswith("https://"):
+                raise ValueError("Production OAuth frontend, mobile web and callback URLs must use HTTPS.")
         return self
 
     model_config = SettingsConfigDict(

@@ -45,6 +45,10 @@ celery_app.conf.beat_schedule = {
         "task": "app.workers.send_membership_emails",
         "schedule": 60.0,
     },
+    "oauth-link-emails-minute": {
+        "task": "app.workers.send_oauth_link_emails",
+        "schedule": 30.0,
+    },
 }
 
 
@@ -120,6 +124,16 @@ async def _send_membership_emails() -> int:
 @celery_app.task(name="app.workers.send_membership_emails")
 def send_membership_emails() -> int:
     return _run_async_task(_send_membership_emails)
+
+
+async def _send_oauth_link_emails() -> int:
+    async with AsyncSessionLocal() as session:
+        return await EmailDeliveryService(session).deliver_pending_oauth_link_emails()
+
+
+@celery_app.task(name="app.workers.send_oauth_link_emails")
+def send_oauth_link_emails() -> int:
+    return _run_async_task(_send_oauth_link_emails)
 
 
 async def _close_timed_out_attendance() -> int:

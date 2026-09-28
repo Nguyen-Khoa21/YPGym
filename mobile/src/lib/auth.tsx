@@ -107,7 +107,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const completeOAuth = useCallback(async (provider: 'google' | 'facebook', code: string) => {
-    const result = await apiRequest<LoginResponse>(`/auth/oauth/${provider}/mobile/exchange`, undefined, { method: 'POST', body: { code } });
+    const exchangePath = Platform.OS === 'web' ? `/auth/oauth/${provider}/mobile-web/exchange` : `/auth/oauth/${provider}/mobile/exchange`;
+    const result = await apiRequest<LoginResponse>(exchangePath, undefined, { method: 'POST', body: { code } });
     if (result.user.role !== 'member') throw new ApiError('This app is for members. Use the web workspace for your role.', 403, 'PERMISSION_DENIED');
     await saveToken(result.access_token);
     clearMemberQueryData();

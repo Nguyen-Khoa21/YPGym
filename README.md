@@ -4,6 +4,10 @@ YPGym is a PostgreSQL/FastAPI/React gym-operations application. The connected we
 
 The implementation follows `YPGym_60_Day_Development_Plan_Revised_PostgreSQL (1).md`. Detailed recovery evidence is in `docs/recovery/day-22-38-recovery-audit.md`; the current continuation contract is in `docs/HANDOFF.md`.
 
+For Windows startup/build commands, all local demo logins, and phone/emulator/Expo web setup, see [RUN_GUIDE.md](RUN_GUIDE.md).
+
+Google/Facebook publication remains an owner-managed deployment gate. See the [OAuth production checklist](docs/oauth-production-checklist.md) for development and production callbacks, dashboard steps, and acceptance cases.
+
 ## Stack
 
 - React 19, Vite, TypeScript, Tailwind CSS, TanStack Query/Table, React Hook Form, Zod

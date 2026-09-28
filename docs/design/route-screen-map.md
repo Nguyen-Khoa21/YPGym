@@ -7,6 +7,7 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 | Screen | Route | Role | API dependencies | Status through Day 42 |
 |---|---|---|---|---|
 | Home/auth/verification/reset | `/`, `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` | Public | `/auth/*` | Connected |
+| OAuth callback/account linking | `/oauth/callback`, `/auth/link-account` | Public one-time flow | provider callback/exchange and pending-link password/email confirmation | Connected first-attempt callback guard, expiry/replay/collision states, and explicit ownership proof |
 | Membership plans/policy/purchase | `/memberships`, `/policies/membership`, `/memberships/buy/:planId` | Public/member | `/membership-plans`, `/memberships/purchase` | Connected; payment is explicitly mock-only |
 | Member dashboard | `/app/dashboard` | Member | `/dashboard/me` | Connected composite with membership/QR, crowdedness, bookings/waitlists, notifications, broadcasts, quick actions, and complete account states |
 | Profile | `/app/profile` | Authenticated | `/users/me`, notification preference link | Connected |

@@ -15,6 +15,8 @@ npx expo start --web
 
 Restart Expo after changing `.env`. The API allows the local Expo web origins on ports 8081, 8082, and 19006.
 
+Google and Facebook sign-in are supported in Expo web. Keep the preview on `http://localhost:8081`, which matches backend `MOBILE_WEB_URL`; the provider callback still remains the registered backend callback at `http://localhost:8001/api/v1/auth/oauth/<provider>/callback`. The backend returns only a short-lived, one-time completion code to `/oauth/callback` in the Expo preview.
+
 ## Run on an Android emulator (Windows PowerShell)
 
 Install Node.js 22.13 or newer and Android Studio with an Android SDK emulator. Create and start an Android Virtual Device in Android Studio. From the repository root:
@@ -40,6 +42,26 @@ Sign in as `member@ypgym.dev` with the local seed password `YPGymDemo123!`. The 
 Install the SDK 57 compatible Expo Go on the phone. Put the phone and Windows computer on the same network. In `mobile/.env`, change `EXPO_PUBLIC_API_URL` to `http://<your-computer-LAN-IPv4>:8001/api/v1`; find that IPv4 with `ipconfig`. Confirm the phone can reach the API address and that Windows Firewall allows the backend port. Then run `npm start` from `mobile/` and scan its QR code in Expo Go. Restart Metro after editing `.env`, because Expo embeds public variables in the JavaScript bundle. A phone cannot use the Android emulator's `10.0.2.2` address.
 
 On Windows, Android Studio provides the local native emulator. An iOS simulator requires macOS; a compatible Expo Go on a real iPhone can connect over the local network.
+
+### Google and Facebook sign-in on iPhone
+
+Expo Go cannot complete OAuth/OIDC flows that require YPGym's custom `ypgym://` callback scheme. Use an EAS development build registered to the iPhone instead. The backend must also have a stable public HTTPS address: set `EXPO_PUBLIC_API_URL=https://<api-host>/api/v1` in `mobile/.env`, set `OAUTH_CALLBACK_BASE_URL=https://<api-host>/api/v1` in `backend/.env`, and register these exact provider callbacks:
+
+```text
+https://<api-host>/api/v1/auth/oauth/google/callback
+https://<api-host>/api/v1/auth/oauth/facebook/callback
+```
+
+Keep `MOBILE_APP_URL=ypgym://`. Restart the API and Metro after changing environment files. An Apple Developer Program membership is required to register the device and install an EAS development build:
+
+```powershell
+cd C:\Users\Admin\ypgym\mobile
+npm install --global eas-cli
+eas login
+eas build:configure
+eas device:create
+eas build --platform ios --profile development
+```
 
 ## Verify the app
 

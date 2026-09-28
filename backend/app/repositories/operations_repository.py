@@ -701,7 +701,7 @@ class NotificationRepository:
             ).scalar_one(),
         )
 
-    async def next_welcome_email_for_delivery(
+    async def next_auth_email_for_delivery(
         self,
         *,
         retry_before: datetime,
@@ -712,7 +712,12 @@ class NotificationRepository:
                 select(Notification, User)
                 .join(User, User.id == Notification.user_id)
                 .where(
-                    Notification.notification_type == "registration_welcome",
+                    Notification.notification_type.in_((
+                        "registration_welcome",
+                        "oauth_provider_linked",
+                        "oauth_provider_unlinked",
+                        "oauth_account_created",
+                    )),
                     Notification.channel == "email",
                     Notification.delivery_state == "pending",
                     Notification.delivery_attempts < max_attempts,
