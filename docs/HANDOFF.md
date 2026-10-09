@@ -1,6 +1,14 @@
 # YPGym Handoff
 
-Last updated: 2026-09-26, Feature 0 identity and transactional-email foundation completed locally.
+Last updated: 2026-10-08, Feature 8 data-only weekly training review prepared locally.
+
+## October 8 continuation — Feature 8 data-only weekly review
+
+- The required architecture gate found no released FR39 chatbot, approved AI provider, provider key/configuration, rate-limited guarded pipeline or live AI client. No provider dependency or fake AI output was added.
+- The existing authenticated `/training/workouts/muscle-map` response now includes a deterministic `review` derived from the same Monday–Sunday weighted-set-exposure values. It identifies the groups tied for highest exposure and the remaining lower-exposure groups, including an honest empty-week state.
+- Web and Expo render the same report as **Rule-based summary · not AI** and retain the no-anatomical-activation/no-prescription disclosure. The backend remains the single calculation source; clients only map controlled muscle identifiers to display labels.
+- The isolated PostgreSQL/Redis suite passes **142 tests with 10 existing Starlette deprecation warnings**. Web lint/build, mobile typecheck/lint and all **10 mobile tests** pass; the existing TanStack compatibility, large-bundle and Node module-type warnings remain. No database model, migration, dependency or stored data changed.
+- Feature 8 remains partial. Live guarded AI cannot proceed until the owner approves a provider and supplies its server-side configuration; the deterministic report is not represented as completion of FR51.
 
 ## September 26 implementation contract — identity and membership email foundation
 

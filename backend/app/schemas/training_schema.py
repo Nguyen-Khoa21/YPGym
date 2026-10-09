@@ -179,6 +179,15 @@ class MuscleExposure(BaseModel):
     intensity_level: int = Field(ge=0, le=4)
 
 
+class DeterministicWeeklyReview(BaseModel):
+    source: Literal["deterministic"] = "deterministic"
+    title: str = "Weekly training balance"
+    summary: str
+    highest_exposure_muscles: list[Muscle]
+    lower_exposure_muscles: list[Muscle]
+    disclosure: str = "Generated from logged weighted set exposure. This is not AI-generated and does not prescribe a workout."
+
+
 class WorkoutWeekSummary(BaseModel):
     gym_timezone: str
     week_start: date
@@ -188,3 +197,4 @@ class WorkoutWeekSummary(BaseModel):
     max_muscle_exposure_score: Decimal
     days: list[WorkoutHistoryDay]
     muscles: list[MuscleExposure]
+    review: DeterministicWeeklyReview

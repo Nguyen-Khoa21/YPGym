@@ -16,6 +16,7 @@ from app.repositories.operations_repository import AuditRepository
 from app.repositories.training_repository import TrainingRepository
 from app.schemas.operations_schema import PageInfo
 from app.schemas.training_schema import (
+    DeterministicWeeklyReview,
     ExerciseHistoryItem,
     ExerciseHistoryPage,
     ExposureMetric,
@@ -177,6 +178,10 @@ class WorkoutService:
             for muscle, score in stats[row.id].muscle_exposure.items():
                 muscle_scores[muscle] += score
         muscle_maximum = max(muscle_scores.values(), default=ZERO)
+        muscles = [MuscleExposure(muscle=muscle, exposure_score=muscle_scores[muscle], intensity_level=self._intensity(muscle_scores[muscle], muscle_maximum)) for muscle in MUSCLES]
+        has_data = muscle_maximum > 0
+        highest = [item.muscle for item in muscles if has_data and item.exposure_score == muscle_maximum]
+        lower = [item.muscle for item in muscles if has_data and item.exposure_score < muscle_maximum]
         return WorkoutWeekSummary(
             gym_timezone=self.timezone.key,
             week_start=week_start,
@@ -185,7 +190,12 @@ class WorkoutService:
             total_exposure_score=sum(muscle_scores.values(), ZERO),
             max_muscle_exposure_score=muscle_maximum,
             days=[self._history_day(week_start + timedelta(days=offset), attendance_days, workout_by_day, stats, day_maximum) for offset in range(7)],
-            muscles=[MuscleExposure(muscle=muscle, exposure_score=muscle_scores[muscle], intensity_level=self._intensity(muscle_scores[muscle], muscle_maximum)) for muscle in MUSCLES],
+            muscles=muscles,
+            review=DeterministicWeeklyReview(
+                summary="Logged workouts are summarized below by relative weighted set exposure." if has_data else "No workouts are logged for this week, so there is no training balance to summarize.",
+                highest_exposure_muscles=highest,
+                lower_exposure_muscles=lower,
+            ),
         )
 
     async def exercise_history(self, user: User, *, exercise_id: UUID, page: int, page_size: int) -> ExerciseHistoryPage:

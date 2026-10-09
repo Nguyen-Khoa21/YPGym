@@ -101,6 +101,10 @@ async def test_member_history_comparisons_and_weekly_map_share_snapshot_metric(c
     assert muscles["triceps"] == {"muscle": "triceps", "exposure_score": "2.5", "intensity_level": 2}
     assert muscles["shoulders"]["exposure_score"] == "0.0"
     assert len(week["days"]) == 7
+    assert week["review"]["source"] == "deterministic"
+    assert week["review"]["highest_exposure_muscles"] == ["chest"]
+    assert "triceps" in week["review"]["lower_exposure_muscles"]
+    assert "not AI-generated" in week["review"]["disclosure"]
 
     comparisons = (await client.get(f"/api/v1/training/exercises/{exercise.id}/history", headers=headers[0])).json()
     assert comparisons["page"]["total"] == 2
@@ -127,3 +131,6 @@ async def test_empty_week_has_zero_exposure_and_complete_days(client, eligible_m
     assert payload["total_exposure_score"] == "0.0"
     assert len(payload["days"]) == 7 and all(item["intensity_level"] == 0 for item in payload["days"])
     assert len(payload["muscles"]) == 16 and all(item["intensity_level"] == 0 for item in payload["muscles"])
+    assert payload["review"]["highest_exposure_muscles"] == []
+    assert payload["review"]["lower_exposure_muscles"] == []
+    assert payload["review"]["summary"].startswith("No workouts are logged")

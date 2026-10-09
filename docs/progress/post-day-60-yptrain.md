@@ -1,6 +1,6 @@
 # Post-Day-60 mobile and YPTrain tracker
 
-Updated September 24, 2026. This tracker covers the owner-approved post-Day-60 YPTrain roadmap. The completed Day 42–60 release remains recorded separately in `day-43-60-tracker.md`.
+Updated October 8, 2026. This tracker covers the owner-approved post-Day-60 YPTrain roadmap. The completed Day 42–60 release remains recorded separately in `day-43-60-tracker.md`.
 
 ## Discovery baseline
 
@@ -20,6 +20,7 @@ Updated September 24, 2026. This tracker covers the owner-approved post-Day-60 Y
 - Feature 6 verification: final isolated PostgreSQL/Redis suite **117 passed, seven Starlette deprecation warnings in 54.29 seconds**. Web lint/build, mobile typecheck/lint/nine Node tests/Android export, normal health, Compose and Alembic current/check pass. Authenticated web and Expo-web showed the exact same saved two-set workout; the web stepper preserved hidden row input. Disposable QA data was removed and prior seed status restored. Physical phone/native Android/iOS remain unverified for this flow.
 - Feature 7 derives member history, exact day details, prior-session comparisons and one Monday–Sunday muscle summary from attendance and snapshotted workout sets. Its shared weighted set exposure metric counts `1.0` per primary-muscle set and `0.5` per secondary-muscle set, including bodyweight/zero-load sets; it does not represent anatomical activation or prescribe a workout.
 - Feature 7 verification: the isolated PostgreSQL/Redis suite **119 passed with seven existing Starlette deprecation warnings in 61.62 seconds**. Web lint/build, mobile typecheck/lint/nine Node tests/Android export, normal health and Alembic current/check pass. Responsive authenticated web and Expo-web QA covered empty calendar/week, map/list, metric disclosure and exercise-history empty state. Physical Android/iOS/phone rendering and populated-history client QA remain unverified.
+- Feature 8 data-only preparation adds a backend-derived deterministic weekly balance to the existing authenticated muscle-map response. Web and Expo label it **Rule-based summary · not AI**, list highest/lower weighted-set-exposure groups and repeat the no-prescription disclosure. The isolated suite passes **142 tests with 10 existing Starlette deprecation warnings**; web lint/build, mobile typecheck/lint and all **10 mobile tests** pass. No provider call, dependency, key, model or migration was added. Live guarded AI remains decision gated.
 
 ## Existing dependency map
 
@@ -47,7 +48,7 @@ Updated September 24, 2026. This tracker covers the owner-approved post-Day-60 Y
 | 5. YPTrain catalogue and equipment guide | FR45, FR46, FR52 | Development verified; native/physical inventory unverified | Forward migration, RBAC/audit/image and shared web/Expo browse/detail; isolated suite, browser parity, build/export and live API probe pass; Add Exercise is connected by Feature 6 |
 | 6. Attendance-linked workout logging | FR47–FR48 | Development verified; physical/native-device verification pending | Same-day scanner and membership gate, ownership, daily uniqueness, snapshots, idempotency/concurrency and normalized sets; isolated suite plus web/Expo parity and builds pass |
 | 7. History, comparisons and muscle map | FR49–FR50 | Development verified; physical/native-device verification pending | Shared weighted-set-exposure metric, paginated calendar/day detail, descriptive comparisons and accessible Monday–Sunday map pass isolated storage, client build/export and responsive web/Expo-web checks |
-| 8. Guarded weekly training review | FR51 | Decision gated | No approved provider or existing guarded FR39 pipeline has been verified |
+| 8. Guarded weekly training review | FR51 | Partial; live AI decision gated | Shared deterministic data-only balance is implemented and explicitly labelled not AI; no approved provider or existing guarded FR39 pipeline has been verified |
 | 9. Attendance renewal discount | FR56 | Decision gated | Combination and one-time consumption policy require owner approval |
 | 10. Staff accounts and time clock | FR43, FR44 | Not started | Requires migration, RBAC, audit and first-login policy |
 | 11. Management UX corrections | FR43, FR54–FR55 | Not started | Reuses the current Sonner/query patterns and Feature 10 accounts |

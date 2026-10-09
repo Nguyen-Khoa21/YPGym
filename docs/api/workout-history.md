@@ -24,6 +24,8 @@ Intensity uses the same five-level normalization in history and the muscle map: 
 
 This metric describes logged set distribution. It is not kilograms of volume, measured anatomical activation, a diagnosis, or a workout prescription. Feature 8 must reuse the same Monday–Sunday boundary and raw metric if an approved guarded review is later connected.
 
+The muscle-map response also includes `review`, a deterministic weekly balance summary derived from the same authenticated muscle scores. It identifies the muscle groups tied for the highest exposure and the remaining groups with lower exposure. The response and both clients explicitly label this as rule-based and not AI-generated. It does not call an external provider, infer medical meaning, or recommend a workout. Live guarded AI remains unavailable until an owner-approved provider and safety pipeline are supplied.
+
 Exercise comparisons convert only the maximum external load summary to kilograms (`lb × 0.45359237`, rounded to two decimals) so mixed-unit sessions can be described consistently. The API reports whether sets, total reps, and maximum external load were `more`, `same`, or `less` than the next older logged occurrence. It does not recommend a target.
 
 ## Manual check
@@ -32,6 +34,7 @@ Exercise comparisons convert only the maximum external load summary to kilograms
 2. Open web `/app/train` and the Expo YPTrain tab. Confirm both calendars distinguish the attended-only day and show the same exact day details.
 3. Open the same exercise. Confirm prior sessions preserve the logged name and sets and show descriptive changes only.
 4. Confirm the current-week front/back maps, raw muscle list, week dates, intensity labels and exposure scores match on both clients.
-5. Rename or archive the catalogue exercise as a manager. Confirm existing history still uses the original snapshot.
+5. Confirm both clients show the same **Rule-based summary · not AI** groups and disclosure.
+6. Rename or archive the catalogue exercise as a manager. Confirm existing history still uses the original snapshot.
 
 The isolated PostgreSQL suite covers empty weeks, a Monday–Sunday year transition, account isolation, bodyweight records, primary/secondary attribution, catalogue edits, comparison baselines, pagination and day/map parity.
