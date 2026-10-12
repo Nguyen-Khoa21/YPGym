@@ -37,7 +37,7 @@ class DashboardService:
             (
                 item
                 for item in booking_state.bookings
-                if item.status == "booked"
+                if item.status == "confirmed"
                 and item.gym_class.status == "scheduled"
                 and item.gym_class.start_at > now
             ),

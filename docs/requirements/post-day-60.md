@@ -20,7 +20,7 @@ Created September 20, 2026 and revised September 21, 2026 for the owner-approved
 | FR53 | Registration welcome email through configurable SMTP delivery | Provider-neutral development delivery and SMTP adapter verified in Feature 4; live delivery remains credential gated | Feature 4 |
 | FR54 | Consistent action success/error feedback and real-time UI refresh | Partially implemented in Features 1–2 and existing connected clients; later mutation corrections remain | Features 1, 2, 10 and 11 |
 | FR55 | White-and-green workout-oriented responsive design system | Verified in Feature 2 across shared mobile components/member routes and the web foundation; physical-device and iOS verification remain pending | Feature 2 and later UI slices |
-| FR56 | Previous-month attendance-based membership discount | Business combination/consumption policy required before implementation | Feature 9 |
+| FR56 | Previous-month attendance-based membership discount | Implemented with owner-approved better-of pricing and first-successful-renewal consumption; isolated backend, web and Expo verification pass | Feature 9 |
 
 ## Feature 1 traceability
 
@@ -87,3 +87,11 @@ Weighted set exposure is descriptive and load-independent: bodyweight/zero-load 
 |---|---|---|
 | FR51 data-only preparation | The authenticated weekly muscle-map response includes one backend-derived deterministic balance summary. Web and Expo render the same highest/lower exposure groups with an explicit **not AI-generated** disclosure. | `test_workout_history.py` covers populated and empty summaries; the isolated PostgreSQL/Redis suite plus web/mobile checks pass. |
 | FR51 live guarded AI | Not implemented. No approved provider, provider key/configuration, rate-limited guarded pipeline or released FR39 chatbot exists. | Remains decision gated; no template is labelled as AI-generated. |
+
+## Feature 9 traceability
+
+| Requirement | Implementation | Verification |
+|---|---|---|
+| FR56 | Member-only previous-complete-month quote from distinct gym-local `iot_scanner` dates; 80% threshold; better of plan discount or 10%; first successful renewal consumes the month; failed/cancelled/expired payment releases it; PostgreSQL reservation uniqueness and immutable payment/invoice snapshots | `test_attendance_benefit.py` and integration coverage for month boundaries, thresholds, zero attendance, source/deduplication/privacy, frozen coverage, both discount orders, replay/concurrency, mock/VNPay paths and invoice state; full isolated suite and web/mobile builds pass |
+
+The full calculation and state contract is `docs/api/attendance-renewal-benefit.md`. The server derives member identity, attendance, price and final discount; neither web nor Expo submits those values.

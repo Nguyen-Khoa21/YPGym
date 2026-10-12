@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Download, ReceiptText, Search, WalletCards } from "lucide-react";
 import { toast } from "sonner";
@@ -15,19 +15,41 @@ import { toUiError } from "@/lib/apiErrors";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import type { BillingInvoice, BillingPage, BillingPayment } from "@/types/operations";
 
+function ResolveRefundButton({ payment }: { payment: BillingPayment }) {
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
+  const resolution = useMutation({
+    mutationFn: (reason: string) => apiRequest(`/payments/${payment.payment_id}/resolve-class-refund`, { method: "POST", token, body: { reason } }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin", "billing"] });
+      toast.success("Refund resolution recorded");
+    },
+    onError: (error) => toast.error(toUiError(error).message),
+  });
+  if (payment.refund_status !== "required") return null;
+  return <Button className="mt-2" variant="outline" disabled={resolution.isPending} onClick={() => {
+    const reason = window.prompt("Record how this refund was resolved (at least 10 characters):");
+    if (reason?.trim() && reason.trim().length >= 10) resolution.mutate(reason.trim());
+    else if (reason !== null) toast.error("Enter at least 10 characters.");
+  }}>{resolution.isPending ? "Saving..." : "Mark resolved"}</Button>;
+}
+
 const paymentColumns: ColumnDef<BillingPayment>[] = [
   { header: "Member", cell: ({ row }) => <div><strong>{row.original.member_name}</strong><p className="mt-1 text-[11px] text-muted-foreground">{row.original.member_email}</p></div> },
-  { header: "Plan", accessorKey: "plan_name" },
+  { header: "Product", cell: ({ row }) => <div><strong>{row.original.product_name}</strong><p className="mt-1 text-[11px] uppercase text-primary">{row.original.product_type.replace("_", " ")}</p></div> },
   { header: "Tier", cell: ({ row }) => <span className="capitalize">{row.original.member_tier}</span> },
   { header: "Amount", cell: ({ row }) => <strong>{formatMoney(row.original.amount)}</strong> },
-  { header: "Status", cell: ({ row }) => <StatusBadge value={row.original.status} /> },
+  { header: "Provider", cell: ({ row }) => <span className="uppercase">{row.original.provider}</span> },
+  { header: "Reference", cell: ({ row }) => <div><span className="font-mono text-xs">{row.original.transaction_reference}</span>{row.original.provider_transaction_no ? <p className="mt-1 text-[11px] text-muted-foreground">VNPay {row.original.provider_transaction_no}</p> : null}</div> },
+  { header: "Status", cell: ({ row }) => <div><StatusBadge value={row.original.status} />{row.original.refund_status === "required" ? <><p className="mt-1 text-[11px] font-bold text-destructive">Refund review</p><ResolveRefundButton payment={row.original} /></> : null}</div> },
+  { header: "Settlement", cell: ({ row }) => <div><span>{row.original.bank_code ?? "—"}{row.original.card_type ? ` · ${row.original.card_type}` : ""}</span><p className="mt-1 text-[11px] text-muted-foreground">Email: {row.original.email_delivery_state ?? "not queued"}</p></div> },
   { header: "Created", cell: ({ row }) => formatDateTime(row.original.created_at) },
 ];
 
 const invoiceColumns: ColumnDef<BillingInvoice>[] = [
   { header: "Invoice", cell: ({ row }) => <strong>{row.original.invoice_number}</strong> },
   { header: "Member", cell: ({ row }) => <div><strong>{row.original.member_name}</strong><p className="mt-1 text-[11px] text-muted-foreground">{row.original.member_email}</p></div> },
-  { header: "Plan", accessorKey: "plan_name" },
+  { header: "Product", cell: ({ row }) => <div><strong>{row.original.product_name}</strong><p className="mt-1 text-[11px] uppercase text-primary">{row.original.product_type.replace("_", " ")}</p></div> },
   { header: "Amount", cell: ({ row }) => <strong>{formatMoney(row.original.amount)}</strong> },
   { header: "Transaction", cell: ({ row }) => formatDateTime(row.original.transaction_date) },
 ];
@@ -42,6 +64,7 @@ export function AdminBillingPage() {
   const [dateTo, setDateTo] = useState("");
   const [plan, setPlan] = useState("");
   const [tier, setTier] = useState("");
+  const [productType, setProductType] = useState("");
   const [page, setPage] = useState(1);
   const query = new URLSearchParams({ page: String(page), page_size: "20" });
   if (appliedMember) query.set("member", appliedMember);
@@ -50,6 +73,7 @@ export function AdminBillingPage() {
   if (dateTo) query.set("date_to", `${dateTo}T23:59:59Z`);
   if (plan) query.set("plan", plan);
   if (tier) query.set("tier", tier);
+  if (productType) query.set("product_type", productType);
   const billing = useQuery({
     queryKey: ["admin", "billing", tab, query.toString()],
     queryFn: ({ signal }) => apiRequest<BillingPage<BillingPayment> | BillingPage<BillingInvoice>>(`/admin/billing/${tab}?${query}`, { token, signal }),
@@ -72,7 +96,8 @@ export function AdminBillingPage() {
       <form className="ops-toolbar" onSubmit={(event) => { event.preventDefault(); setAppliedMember(member); setPage(1); }}>
         <Search className="size-4 text-muted-foreground" />
         <input aria-label="Search billing member" placeholder="Member name or email" value={member} onChange={(event) => setMember(event.target.value)} />
-        <select aria-label="Filter billing status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}><option value="">All statuses</option><option value="succeeded">Succeeded</option><option value="failed">Failed</option></select>
+        <select aria-label="Filter billing status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}><option value="">All statuses</option><option value="pending">Pending</option><option value="paid">Paid</option><option value="paid_review">Paid — review</option><option value="succeeded">Succeeded (legacy)</option><option value="failed">Failed</option><option value="cancelled">Cancelled</option><option value="expired">Expired</option></select>
+        <select aria-label="Filter billing product" value={productType} onChange={(event) => { setProductType(event.target.value); setPage(1); }}><option value="">All products</option><option value="membership">Memberships</option><option value="class_booking">Class bookings</option></select>
         <input aria-label="Filter billing plan" placeholder="Plan" value={plan} onChange={(event) => { setPlan(event.target.value); setPage(1); }} />
         <select aria-label="Filter billing tier" value={tier} onChange={(event) => { setTier(event.target.value); setPage(1); }}><option value="">All tiers</option><option value="normal">Normal</option><option value="advance">Advance</option><option value="vip">VIP</option></select>
         <input aria-label="Billing date from" type="date" value={dateFrom} onChange={(event) => { setDateFrom(event.target.value); setPage(1); }} />

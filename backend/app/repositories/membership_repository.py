@@ -33,8 +33,11 @@ class UserMembershipRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_by_id(self, membership_id: UUID) -> UserMembership | None:
-        return await self.session.get(UserMembership, membership_id)
+    async def get_by_id(self, membership_id: UUID, *, for_update: bool = False) -> UserMembership | None:
+        query = select(UserMembership).where(UserMembership.id == membership_id)
+        if for_update:
+            query = query.with_for_update()
+        return (await self.session.execute(query)).scalar_one_or_none()
 
     async def get_current_for_user(self, user_id: UUID) -> UserMembership | None:
         active_statuses = (
@@ -51,11 +54,38 @@ class UserMembershipRepository:
         )
         return result.scalars().first()
 
+    async def get_current_for_user_for_update(self, user_id: UUID) -> UserMembership | None:
+        active_statuses = (
+            MembershipStatus.ACTIVE.value,
+            MembershipStatus.EXPIRING_SOON.value,
+        )
+        result = await self.session.execute(
+            select(UserMembership)
+            .where(
+                UserMembership.user_id == user_id,
+                UserMembership.status.in_(active_statuses),
+            )
+            .order_by(UserMembership.expiry_date.desc(), UserMembership.created_at.desc())
+            .with_for_update()
+            .limit(1),
+        )
+        return result.scalar_one_or_none()
+
     async def get_latest_for_user(self, user_id: UUID) -> UserMembership | None:
         result = await self.session.execute(
             select(UserMembership)
             .where(UserMembership.user_id == user_id)
             .order_by(UserMembership.expiry_date.desc(), UserMembership.created_at.desc())
+            .limit(1),
+        )
+        return result.scalar_one_or_none()
+
+    async def get_latest_for_user_for_update(self, user_id: UUID) -> UserMembership | None:
+        result = await self.session.execute(
+            select(UserMembership)
+            .where(UserMembership.user_id == user_id)
+            .order_by(UserMembership.expiry_date.desc(), UserMembership.created_at.desc())
+            .with_for_update()
             .limit(1),
         )
         return result.scalar_one_or_none()

@@ -640,6 +640,7 @@
 .status-badge--active,
 .status-badge--scheduled,
 .status-badge--succeeded,
+.status-badge--paid,
 .status-badge--approved,
 .status-badge--checked_out { background: hsl(var(--secondary) / 0.35); color: hsl(var(--foreground)); }
 .status-badge--expiring_soon,

@@ -80,8 +80,9 @@ async def test_demo_accounts_have_live_access_states_booking_and_promotion(clien
     # Re-seeding retains the completed cancellation/promotion and cannot overbook.
     await seed.seed_development_data(demo=True)
     async with sessions() as session:
-        booked = (await session.scalars(select(ClassBooking).where(ClassBooking.class_id == full_class.id, ClassBooking.status == "booked"))).all()
-        assert len(booked) == 1 and booked[0].user_id == normal_id
+        holds = (await session.scalars(select(ClassBooking).where(ClassBooking.class_id == full_class.id, ClassBooking.status == "pending_payment"))).all()
+        assert len(holds) == 1 and holds[0].user_id == normal_id
+        assert holds[0].price_vnd == full_class.price_vnd and holds[0].reserved_until is not None
         promoted = (await session.scalars(select(ClassWaitlist).where(ClassWaitlist.user_id == normal_id))).one()
         assert promoted.status == "promoted"
         notifications = (await session.scalars(select(Notification).where(Notification.user_id == normal_id, Notification.notification_type == "waitlist_promoted"))).all()

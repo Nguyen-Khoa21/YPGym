@@ -10,6 +10,7 @@ from sqlalchemy.orm import aliased, selectinload
 
 from app.models.attendance import AttendanceSession
 from app.models.billing import Invoice, Payment
+from app.models.email_delivery import EmailDelivery
 from app.models.classes import ClassBooking, ClassWaitlist, GymClass
 from app.models.membership import MembershipPlan, UserMembership
 from app.models.operations import (
@@ -455,7 +456,7 @@ class CrmRepository:
                     .join(GymClass, GymClass.id == ClassBooking.class_id)
                     .where(
                         ClassBooking.user_id == user_id,
-                        ClassBooking.status == "booked",
+                        ClassBooking.status == "confirmed",
                         GymClass.start_at > func.now(),
                     ),
                 )
@@ -487,6 +488,7 @@ class BillingAdminRepository:
         date_to: datetime | None,
         plan: str | None,
         tier: str | None,
+        product_type: str | None,
     ) -> list[Any]:
         conditions: list[Any] = []
         if member:
@@ -499,9 +501,12 @@ class BillingAdminRepository:
         if date_to:
             conditions.append(Payment.created_at <= date_to)
         if plan:
-            conditions.append(MembershipPlan.name.ilike(f"%{plan.strip()}%"))
+            term = f"%{plan.strip()}%"
+            conditions.append(or_(MembershipPlan.name.ilike(term), Invoice.product_name.ilike(term)))
         if tier:
             conditions.append(User.tier == tier)
+        if product_type:
+            conditions.append(Payment.product_type == product_type)
         return conditions
 
     async def list_payments(
@@ -515,8 +520,9 @@ class BillingAdminRepository:
         date_to: datetime | None,
         plan: str | None,
         tier: str | None,
+        product_type: str | None,
         paginate: bool = True,
-    ) -> tuple[list[tuple[Payment, User, MembershipPlan]], int, Decimal]:
+    ) -> tuple[list[tuple[Payment, User, str, UUID | None, str | None, str | None]], int, Decimal]:
         conditions = self._conditions(
             member=member,
             status=status,
@@ -524,8 +530,26 @@ class BillingAdminRepository:
             date_to=date_to,
             plan=plan,
             tier=tier,
+            product_type=product_type,
         )
-        base = Payment.__table__.join(User, User.id == Payment.user_id).join(MembershipPlan, MembershipPlan.id == Payment.plan_id)
+        base = (
+            Payment.__table__
+            .join(User, User.id == Payment.user_id)
+            .outerjoin(MembershipPlan, MembershipPlan.id == Payment.plan_id)
+            .outerjoin(Invoice, Invoice.payment_id == Payment.id)
+            .outerjoin(ClassBooking, ClassBooking.id == Payment.class_booking_id)
+            .outerjoin(GymClass, GymClass.id == ClassBooking.class_id)
+        )
+        email_state = (
+            select(EmailDelivery.status)
+            .where(
+                EmailDelivery.payment_id == Payment.id,
+                EmailDelivery.template_type.in_(("membership_invoice", "class_booking_invoice")),
+            )
+            .order_by(EmailDelivery.created_at.desc())
+            .limit(1)
+            .scalar_subquery()
+        )
         summary = (
             await self.session.execute(
                 select(func.count(Payment.id), func.coalesce(func.sum(Payment.amount), 0))
@@ -534,7 +558,14 @@ class BillingAdminRepository:
             )
         ).one()
         query = (
-            select(Payment, User, MembershipPlan)
+            select(
+                Payment,
+                User,
+                func.coalesce(MembershipPlan.name, GymClass.title),
+                Invoice.id,
+                email_state,
+                ClassBooking.refund_status,
+            )
             .select_from(base)
             .where(*conditions)
             .order_by(Payment.created_at.desc(), Payment.id.desc())
@@ -542,7 +573,7 @@ class BillingAdminRepository:
         if paginate:
             query = query.offset((page - 1) * page_size).limit(page_size)
         rows = (await self.session.execute(query)).all()
-        return [(row[0], row[1], row[2]) for row in rows], int(summary[0]), Decimal(summary[1])
+        return [tuple(row) for row in rows], int(summary[0]), Decimal(summary[1])
 
     async def list_invoices(
         self,
@@ -555,6 +586,7 @@ class BillingAdminRepository:
         date_to: datetime | None,
         plan: str | None,
         tier: str | None,
+        product_type: str | None,
         paginate: bool = True,
     ) -> tuple[list[tuple[Invoice, User]], int, Decimal]:
         conditions = self._conditions(
@@ -564,12 +596,13 @@ class BillingAdminRepository:
             date_to=date_to,
             plan=plan,
             tier=tier,
+            product_type=product_type,
         )
         base = (
             Invoice.__table__
             .join(User, User.id == Invoice.user_id)
             .join(Payment, Payment.id == Invoice.payment_id)
-            .join(MembershipPlan, MembershipPlan.id == Payment.plan_id)
+            .outerjoin(MembershipPlan, MembershipPlan.id == Payment.plan_id)
         )
         summary = (
             await self.session.execute(
@@ -760,7 +793,7 @@ class NotificationRepository:
                 .join(User, User.id == ClassBooking.user_id)
                 .outerjoin(NotificationPreference, NotificationPreference.user_id == User.id)
                 .where(
-                    ClassBooking.status == "booked",
+                    ClassBooking.status == "confirmed",
                     GymClass.status == "scheduled",
                     GymClass.start_at > starts_after,
                     GymClass.start_at <= starts_before,

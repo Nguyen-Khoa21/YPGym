@@ -234,6 +234,7 @@ async def list_billing_payments(
     date_to: datetime | None = None,
     plan: str | None = Query(None, max_length=120),
     tier: Literal["normal", "advance", "vip"] | None = None,
+    product_type: Literal["membership", "class_booking"] | None = None,
 ) -> AdminBillingPaymentPage:
     return await BillingAdminService(session).list_payments(
         page=page,
@@ -244,6 +245,7 @@ async def list_billing_payments(
         date_to=date_to,
         plan=plan,
         tier=tier,
+        product_type=product_type,
     )
 
 
@@ -259,6 +261,7 @@ async def list_billing_invoices(
     date_to: datetime | None = None,
     plan: str | None = Query(None, max_length=120),
     tier: Literal["normal", "advance", "vip"] | None = None,
+    product_type: Literal["membership", "class_booking"] | None = None,
 ) -> AdminBillingInvoicePage:
     return await BillingAdminService(session).list_invoices(
         page=page,
@@ -269,6 +272,7 @@ async def list_billing_invoices(
         date_to=date_to,
         plan=plan,
         tier=tier,
+        product_type=product_type,
     )
 
 
@@ -283,6 +287,7 @@ async def export_billing(
     date_to: datetime | None = None,
     plan: str | None = Query(None, max_length=120),
     tier: Literal["normal", "advance", "vip"] | None = None,
+    product_type: Literal["membership", "class_booking"] | None = None,
 ) -> StreamingResponse:
     content = await BillingAdminService(session).export_csv(
         actor=current_user,
@@ -295,6 +300,7 @@ async def export_billing(
         date_to=date_to,
         plan=plan,
         tier=tier,
+        product_type=product_type,
     )
     return _csv_response(content, f"ypgym-{export_type}.csv")
 

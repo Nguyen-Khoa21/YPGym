@@ -54,7 +54,7 @@ async def test_trainer_deactivation_is_blocked_by_future_class() -> None:
     ("eligible", "confirmed", "booking_status", "waitlist_status", "class_status", "expected"),
     [
         (True, 0, None, None, "scheduled", "available"),
-        (True, 1, "booked", None, "scheduled", "booked"),
+        (True, 1, "confirmed", None, "scheduled", "confirmed"),
         (True, 10, None, None, "scheduled", "full"),
         (False, 0, None, None, "scheduled", "ineligible"),
         (True, 0, None, None, "cancelled", "cancelled"),
@@ -76,6 +76,7 @@ def test_member_class_state_is_derived_from_server_records(
         start_at=datetime.now(UTC) + timedelta(days=1),
         end_at=datetime.now(UTC) + timedelta(days=1, hours=1),
         capacity=10,
+        price_vnd=150_000,
         status=class_status,
         location="Studio A",
     )
@@ -87,17 +88,13 @@ def test_member_class_state_is_derived_from_server_records(
 
 
 @pytest.mark.asyncio
-async def test_full_class_rejects_confirmed_booking() -> None:
+async def test_legacy_direct_booking_requires_paid_checkout() -> None:
     gym_class = SimpleNamespace(
         id=uuid4(),
         status="scheduled",
         start_at=datetime.now(UTC) + timedelta(days=1),
         capacity=1,
     )
-
-    class FakeLifecycle:
-        async def require_eligible_membership(self, _: object) -> object:
-            return SimpleNamespace()
 
     class FakeClasses:
         async def get_class(self, *_: object, **__: object) -> object:
@@ -113,11 +110,10 @@ async def test_full_class_rejects_confirmed_booking() -> None:
             return 1
 
     service = object.__new__(BookingService)
-    service.lifecycle = FakeLifecycle()
     service.classes = FakeClasses()
     with pytest.raises(AppError) as exc_info:
-        await service.book(class_id=gym_class.id, user=SimpleNamespace(id=uuid4()))
-    assert getattr(exc_info.value, "code", None) == "CLASS_FULL"
+        await service.book(class_id=gym_class.id, user=SimpleNamespace(id=uuid4(), is_email_verified=True))
+    assert getattr(exc_info.value, "code", None) == "CLASS_PAYMENT_REQUIRED"
 
 
 def test_cancellation_cutoff_is_inclusive() -> None:
@@ -130,20 +126,14 @@ def test_cancellation_cutoff_is_inclusive() -> None:
 @pytest.mark.asyncio
 async def test_promotion_skips_ineligible_member_and_uses_next_entry() -> None:
     class_id = uuid4()
-    first_user = SimpleNamespace(id=uuid4())
-    second_user = SimpleNamespace(id=uuid4())
+    first_user = SimpleNamespace(id=uuid4(), is_email_verified=False)
+    second_user = SimpleNamespace(id=uuid4(), is_email_verified=True)
     first = SimpleNamespace(id=uuid4(), user_id=first_user.id, position=1, status="waiting")
     second = SimpleNamespace(id=uuid4(), user_id=second_user.id, position=2, status="waiting")
-    gym_class = SimpleNamespace(id=class_id, capacity=1, title="Mobility", start_at=datetime.now(UTC) + timedelta(days=1))
-
-    class FakeLifecycle:
-        async def require_eligible_membership(self, user: object) -> object:
-            if user is first_user:
-                raise AppError("MEMBERSHIP_INELIGIBLE", "Expired", 403)
-            return SimpleNamespace()
+    gym_class = SimpleNamespace(id=class_id, capacity=1, title="Mobility", price_vnd=150_000, start_at=datetime.now(UTC) + timedelta(days=1))
 
     class FakeClasses:
-        async def confirmed_booking_count(self, _: object) -> int:
+        async def occupied_booking_count(self, _: object) -> int:
             return 0
 
         async def waiting_entries_for_update(self, _: object) -> list[tuple[object, object]]:
@@ -153,7 +143,7 @@ async def test_promotion_skips_ineligible_member_and_uses_next_entry() -> None:
             return None
 
         async def create_booking(self, **values: object) -> object:
-            return SimpleNamespace(id=uuid4(), status="booked", **values)
+            return SimpleNamespace(id=uuid4(), **values)
 
     class FakeNotifications:
         def __init__(self) -> None:
@@ -164,9 +154,9 @@ async def test_promotion_skips_ineligible_member_and_uses_next_entry() -> None:
             return 1
 
     service = object.__new__(BookingService)
-    service.lifecycle = FakeLifecycle()
     service.classes = FakeClasses()
     service.notifications = FakeNotifications()
+    service.settings = SimpleNamespace(VNPAY_TRANSACTION_TTL_MINUTES=15)
     promoted = await service._promote(gym_class)
     assert first.status == "cancelled"
     assert second.status == "promoted"
@@ -277,7 +267,12 @@ async def test_dashboard_uses_authenticated_member_and_handles_missing_membershi
 
     class FakeBookings:
         async def list_my(self, _: object) -> MemberBookings:
-            return MemberBookings(bookings=[], waitlists=[], cancellation_window_hours=12)
+            return MemberBookings(
+                bookings=[],
+                waitlists=[],
+                cancellation_window_hours=0,
+                cancellation_terms="Cancel before the class starts.",
+            )
 
     class FakeNotifications:
         async def list_recent_unread(self, **_: object) -> tuple[list[object], int]:

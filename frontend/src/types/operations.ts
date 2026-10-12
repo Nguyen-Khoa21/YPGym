@@ -85,9 +85,22 @@ export type BillingPayment = {
   member_email: string;
   member_tier: string;
   plan_name: string;
+  product_type: "membership" | "class_booking";
+  product_name: string;
+  class_booking_id: string | null;
+  refund_status: string | null;
   amount: string;
   discount_amount: string;
   status: string;
+  provider: string;
+  transaction_reference: string;
+  provider_transaction_no: string | null;
+  bank_code: string | null;
+  card_type: string | null;
+  paid_at: string | null;
+  expires_at: string | null;
+  invoice_id: string | null;
+  email_delivery_state: string | null;
   created_at: string;
 };
 
@@ -98,6 +111,9 @@ export type BillingInvoice = {
   member_email: string;
   invoice_number: string;
   plan_name: string;
+  product_type: "membership" | "class_booking";
+  product_name: string;
+  class_booking_id: string | null;
   amount: string;
   transaction_date: string;
 };
@@ -246,6 +262,7 @@ export type GymClass = {
   start_at: string;
   end_at: string;
   capacity: number;
+  price_vnd: number | null;
   status: string;
   trainer_id: string | null;
   trainer_name: string | null;
@@ -265,6 +282,7 @@ export type MemberClass = {
   start_at: string;
   end_at: string;
   capacity: number;
+  price_vnd: number | null;
   status: string;
   location: string;
   confirmed_booking_count: number;
@@ -274,7 +292,7 @@ export type MemberClass = {
   member_booking_status: string | null;
   member_waitlist_status: string | null;
   waitlist_position: number | null;
-  member_state: "available" | "booked" | "full" | "waitlisted" | "cancelled" | "ineligible";
+  member_state: "available" | "confirmed" | "pending_payment" | "full" | "waitlisted" | "cancelled" | "ineligible";
 };
 
 export type MemberClassList = {
@@ -287,6 +305,17 @@ export type MemberClassList = {
 export type ClassBooking = {
   id: string;
   status: string;
+  price_vnd: number | null;
+  entitlement_source: "legacy" | "paid";
+  reserved_until: string | null;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
+  refund_status: "none" | "required" | "resolved";
+  payment_id: string | null;
+  payment_status: string | null;
+  invoice_id: string | null;
+  invoice_download_url: string | null;
+  attended_at: string | null;
   created_at: string;
   updated_at: string;
   cancellation_cutoff: string;
@@ -307,6 +336,15 @@ export type MemberBookings = {
   bookings: ClassBooking[];
   waitlists: ClassWaitlist[];
   cancellation_window_hours: number;
+  cancellation_terms: string;
+};
+
+export type ClassCheckoutResponse = {
+  booking_id: string;
+  transaction_id: string;
+  txn_ref: string;
+  payment_url: string;
+  expires_at: string;
 };
 
 export type MemberDashboardPayload = {

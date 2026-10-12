@@ -67,12 +67,12 @@ class EmailDeliveryRepository:
             candidate.last_attempt_at = now
         return candidate
 
-    async def get_context(self, delivery_id: UUID) -> tuple[EmailDelivery, User, UserMembership, Payment, Invoice] | None:
+    async def get_context(self, delivery_id: UUID) -> tuple[EmailDelivery, User, UserMembership | None, Payment, Invoice] | None:
         row = (
             await self.session.execute(
                 select(EmailDelivery, User, UserMembership, Payment, Invoice)
                 .join(User, User.id == EmailDelivery.user_id)
-                .join(UserMembership, UserMembership.id == EmailDelivery.membership_id)
+                .outerjoin(UserMembership, UserMembership.id == EmailDelivery.membership_id)
                 .join(Payment, Payment.id == EmailDelivery.payment_id)
                 .join(Invoice, Invoice.id == EmailDelivery.invoice_id)
                 .where(EmailDelivery.id == delivery_id),

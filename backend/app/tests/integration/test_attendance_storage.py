@@ -61,7 +61,7 @@ async def test_expired_and_malformed_qr_rejected(client, storage, eligible_membe
 
 
 @pytest.mark.parametrize("state", ["frozen", "expired", "revoked", "cancelled", "pending_verification"])
-async def test_membership_restrictions_apply_to_qr_and_booking(client, storage, eligible_members, state):
+async def test_membership_restrictions_apply_to_qr_but_not_independent_class_sales(client, storage, eligible_members, state):
     sessions, _ = storage
     users, headers = eligible_members
     async with sessions() as session:
@@ -76,8 +76,9 @@ async def test_membership_restrictions_apply_to_qr_and_booking(client, storage, 
             user.is_email_verified = False
         await session.commit()
     assert (await client.get("/api/v1/attendance/qr-token/me", headers=headers[0])).status_code == 403
-    # Eligibility is checked before class lookup, including an unknown class.
-    assert (await client.post(f"/api/v1/classes/{users[0].id}/book", headers=headers[0])).status_code == 403
+    # Class sales are independent of membership; an unknown class is therefore still a 404.
+    expected = 403 if state == "pending_verification" else 404
+    assert (await client.post(f"/api/v1/classes/{users[0].id}/book", headers=headers[0])).status_code == expected
 
 
 async def test_real_timeout_task_is_repeatable_and_rebuilds_occupancy(client, storage, eligible_members):

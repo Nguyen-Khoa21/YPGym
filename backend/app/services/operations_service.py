@@ -296,13 +296,26 @@ class BillingAdminService:
                     member_name=user.name,
                     member_email=user.email,
                     member_tier=user.tier,
-                    plan_name=plan.name,
+                    plan_name=product_name,
+                    product_type=payment.product_type,
+                    product_name=product_name,
+                    class_booking_id=payment.class_booking_id,
+                    refund_status=refund_status,
                     amount=payment.amount,
                     discount_amount=payment.discount_amount,
                     status=payment.status,
+                    provider=payment.provider,
+                    transaction_reference=payment.txn_ref or payment.mock_reference,
+                    provider_transaction_no=payment.provider_transaction_no,
+                    bank_code=payment.bank_code,
+                    card_type=payment.card_type,
+                    paid_at=payment.paid_at,
+                    expires_at=payment.expires_at,
+                    invoice_id=invoice_id,
+                    email_delivery_state=email_state,
                     created_at=payment.created_at,
                 )
-                for payment, user, plan in rows
+                for payment, user, product_name, invoice_id, email_state, refund_status in rows
             ],
             page=page_info(page=filters["page"], page_size=filters["page_size"], total=total),
             total_amount=total_amount,
@@ -319,6 +332,9 @@ class BillingAdminService:
                     member_email=user.email,
                     invoice_number=invoice.invoice_number,
                     plan_name=invoice.plan_name,
+                    product_type=invoice.product_type,
+                    product_name=invoice.product_name,
+                    class_booking_id=invoice.class_booking_id,
                     amount=invoice.amount,
                     transaction_date=invoice.transaction_date,
                 )
@@ -333,8 +349,8 @@ class BillingAdminService:
         if export_type == "payments":
             rows, _, _ = await self.billing.list_payments(**filters)
             content = write_csv(
-                ["Payment ID", "Member", "Email", "Tier", "Plan", "Amount", "Discount", "Status", "Created"],
-                [[p.id, u.name, u.email, u.tier, plan.name, p.amount, p.discount_amount, p.status, p.created_at] for p, u, plan in rows],
+                ["Payment ID", "Member", "Email", "Tier", "Plan", "Provider", "Reference", "Amount", "Discount", "Status", "Provider transaction", "Bank", "Card", "Paid", "Expires", "Invoice ID", "Email delivery", "Created"],
+                [[p.id, u.name, u.email, u.tier, product_name, p.provider, p.txn_ref or p.mock_reference, p.amount, p.discount_amount, p.status, p.provider_transaction_no, p.bank_code, p.card_type, p.paid_at, p.expires_at, invoice_id, email_state, p.created_at] for p, u, product_name, invoice_id, email_state, _ in rows],
             )
         else:
             rows, _, _ = await self.billing.list_invoices(**filters)

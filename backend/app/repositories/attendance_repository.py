@@ -141,6 +141,28 @@ class AttendanceRepository:
             ).scalars().all(),
         )
 
+    async def count_distinct_qr_visit_days(
+        self,
+        *,
+        user_id: UUID,
+        gym_timezone: str,
+        date_from: datetime,
+        date_to: datetime,
+    ) -> int:
+        local_day = cast(func.timezone(gym_timezone, AttendanceSession.checked_in_at), Date)
+        return int(
+            (
+                await self.session.execute(
+                    select(func.count(func.distinct(local_day))).where(
+                        AttendanceSession.user_id == user_id,
+                        AttendanceSession.source == "iot_scanner",
+                        AttendanceSession.checked_in_at >= date_from,
+                        AttendanceSession.checked_in_at < date_to,
+                    ),
+                )
+            ).scalar_one(),
+        )
+
     async def list_admin_sessions(
         self,
         *,

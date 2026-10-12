@@ -245,6 +245,7 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
                 plan_id=plans["1 Year"].id,
                 idempotency_key="development-seed-payment-v1",
                 amount=Decimal("5508000.00"),
+                amount_vnd=5508000,
                 discount_amount=Decimal("972000.00"),
                 status="succeeded",
                 mock_reference="MOCK-DEVELOPMENT-SEED",
@@ -276,6 +277,8 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
                     user_id=member.id,
                     payment_id=seeded_payment.id,
                     plan_name="1 Year",
+                    product_type="membership",
+                    product_name="1 Year",
                     amount=seeded_payment.amount,
                     discount_amount=seeded_payment.discount_amount,
                     transaction_date=transaction_date,
@@ -399,23 +402,25 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
         ).scalar_one_or_none()
         if not gym_class:
             start_at = now + timedelta(days=2)
-            session.add(
-                GymClass(
-                    title="Strength Foundations Demo",
-                    class_type="Strength",
-                    description="A seeded class for testing the Day 38 administration workflow.",
-                    start_at=start_at,
-                    end_at=start_at + timedelta(minutes=60),
-                    capacity=16,
-                    status="scheduled",
-                    trainer_id=trainer.id,
-                    location="Studio A",
-                ),
+            gym_class = GymClass(
+                title="Strength Foundations Demo",
+                class_type="Strength",
+                description="A seeded class for testing the Day 38 administration workflow.",
+                start_at=start_at,
+                end_at=start_at + timedelta(minutes=60),
+                capacity=16,
+                price_vnd=180_000,
+                status="scheduled",
+                trainer_id=trainer.id,
+                location="Studio A",
             )
+            session.add(gym_class)
         elif gym_class.status == "scheduled" and gym_class.start_at <= now:
             start_at = now + timedelta(days=2)
             gym_class.start_at = start_at
             gym_class.end_at = start_at + timedelta(minutes=60)
+        if gym_class.price_vnd is None:
+            gym_class.price_vnd = 180_000
 
         for name, region, description, steps, safety, primary, secondary in ILLUSTRATIVE_EXERCISES:
             exercise_id = uuid5(NAMESPACE_URL, f"ypgym:illustrative-exercise:{name}")
@@ -482,11 +487,12 @@ async def _seed_demo_scenarios(
         fixture = (await session.execute(select(GymClass).where(GymClass.title == title))).scalar_one_or_none()
         if not fixture:
             fixture = GymClass(title=title, class_type="Mobility", description="Synthetic release-demo booking scenario.",
-                               location="Studio A", trainer_id=trainer.id, capacity=capacity)
+                               location="Studio A", trainer_id=trainer.id, capacity=capacity, price_vnd=150_000)
             session.add(fixture)
         fixture.start_at = now + timedelta(days=day)
         fixture.end_at = fixture.start_at + timedelta(hours=1)
         fixture.status = "scheduled"
+        fixture.price_vnd = fixture.price_vnd or 150_000
         demo_classes[title] = fixture
     await session.flush()
     for title, slug in [("Capacity One Demo", "advance"), ("Upcoming Mobility Demo", "member")]:
@@ -494,7 +500,13 @@ async def _seed_demo_scenarios(
             ClassBooking.class_id == demo_classes[title].id, ClassBooking.user_id == members[slug].id,
         ))).scalar_one_or_none()
         if not fixture:
-            fixture = ClassBooking(class_id=demo_classes[title].id, user_id=members[slug].id)
+            fixture = ClassBooking(
+                class_id=demo_classes[title].id,
+                user_id=members[slug].id,
+                status="confirmed",
+                entitlement_source="legacy",
+                confirmed_at=now,
+            )
             session.add(fixture)
     # Re-seeding after interactive demo mutations is intentionally not a reset:
     # retain waitlist positions/decisions. Use the documented isolated-stack reset

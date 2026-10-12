@@ -25,11 +25,11 @@ async def test_popularity_counts_unique_members_once_and_capacity_without_join_m
         session.add_all([*users, *classes])
         await session.flush()
         session.add_all([
-            ClassBooking(class_id=classes[0].id, user_id=users[0].id, status="booked"),
+            ClassBooking(class_id=classes[0].id, user_id=users[0].id, status="confirmed"),
             ClassBooking(class_id=classes[0].id, user_id=users[1].id, status="cancelled"),
-            ClassBooking(class_id=classes[1].id, user_id=users[0].id, status="booked"),
-            ClassBooking(class_id=classes[1].id, user_id=users[1].id, status="booked"),
-            ClassBooking(class_id=classes[2].id, user_id=users[1].id, status="booked"),
+            ClassBooking(class_id=classes[1].id, user_id=users[0].id, status="confirmed"),
+            ClassBooking(class_id=classes[1].id, user_id=users[1].id, status="confirmed"),
+            ClassBooking(class_id=classes[2].id, user_id=users[1].id, status="confirmed"),
         ])
         await session.commit()
         rows = await AnalyticsRepository(session).class_popularity(date_from=start, date_to=start + timedelta(days=30))
@@ -47,7 +47,7 @@ async def test_membership_months_use_utc_and_revenue_excludes_failed_payments(st
         await session.flush()
         session.add(UserMembership(user_id=user.id, plan_id=plan.id, status="active", start_date=date(2026, 9, 1), expiry_date=date(2026, 10, 1), created_at=boundary))
         for index, (status, created) in enumerate([("succeeded", boundary), ("failed", boundary), ("succeeded", boundary - timedelta(seconds=1))]):
-            session.add(Payment(user_id=user.id, plan_id=plan.id, amount=Decimal("720000"), discount_amount=0, status=status, idempotency_key=f"test-{index}", mock_reference=f"test-{index}", created_at=created))
+            session.add(Payment(user_id=user.id, plan_id=plan.id, amount=Decimal("720000"), amount_vnd=720000, discount_amount=0, status=status, idempotency_key=f"test-{index}", mock_reference=f"test-{index}", created_at=created))
         await session.commit()
         await session.execute(text("SET TIME ZONE 'America/Los_Angeles'"))
         repo = AnalyticsRepository(session)

@@ -52,7 +52,7 @@ class AnalyticsRepository:
                 func.count(distinct(ClassBooking.user_id)).label("members"),
             )
             .join(included, included.c.id == ClassBooking.class_id)
-            .where(ClassBooking.status == "booked")
+            .where(ClassBooking.status == "confirmed")
             .group_by(included.c.class_type)
             .subquery()
         )
@@ -99,7 +99,7 @@ class AnalyticsRepository:
                 func.coalesce(func.sum(Payment.amount), 0),
                 func.coalesce(func.sum(Payment.discount_amount), 0),
             ).where(
-                Payment.status == "succeeded",
+                Payment.status.in_(("succeeded", "paid")),
                 Payment.created_at >= date_from,
                 Payment.created_at <= date_to,
             ),

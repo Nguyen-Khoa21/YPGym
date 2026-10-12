@@ -25,7 +25,7 @@ export default function ProfileScreen() {
     <View style={{ marginTop: 20 }}><MenuRow icon="person-outline" label="Personal Information" detail={profile.data?.email ?? ''} onPress={() => router.push('/(member)/profile-edit')} />
       <MenuRow icon="shield-checkmark-outline" label="Sign-in Methods" detail="Password, Google and Facebook" onPress={() => router.push('/(member)/security' as Href)} />
       <MenuRow icon="card-outline" label="Membership Plan" detail={dashboard.data?.membership ? `${dashboard.data.membership.plan_name} · ${dashboard.data.membership.status}` : 'Choose a plan'} onPress={() => router.push('/(member)/renew')} />
-      <MenuRow icon="receipt-outline" label="Invoices" detail="Verified mock-payment history" onPress={() => router.push('/(member)/invoices')} />
+      <MenuRow icon="receipt-outline" label="Invoices" detail="Verified payment history" onPress={() => router.push('/(member)/invoices')} />
       <MenuRow icon="notifications-outline" label="Notification Preferences" onPress={() => router.push('/(member)/preferences')} />
       <MenuRow icon="pause-circle-outline" label="Membership Requests" detail="Request a freeze or cancellation" onPress={() => router.push('/(member)/membership-requests' as Href)} />
       <MenuRow icon="calendar-outline" label="My Bookings" onPress={() => router.push('/(member)/bookings')} /></View>

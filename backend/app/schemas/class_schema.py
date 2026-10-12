@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.schemas.operations_schema import PageInfo
 
@@ -54,6 +55,7 @@ class ClassCreate(BaseModel):
     start_at: datetime
     end_at: datetime
     capacity: int = Field(ge=1, le=500)
+    price_vnd: int = Field(ge=1, le=1_000_000_000)
     trainer_id: UUID | None = None
     location: str = Field(min_length=2, max_length=160)
 
@@ -71,6 +73,7 @@ class ClassUpdate(BaseModel):
     start_at: datetime | None = None
     end_at: datetime | None = None
     capacity: int | None = Field(default=None, ge=1, le=500)
+    price_vnd: int | None = Field(default=None, ge=1, le=1_000_000_000)
     trainer_id: UUID | None = None
     location: str | None = Field(default=None, min_length=2, max_length=160)
 
@@ -87,6 +90,7 @@ class ClassItem(BaseModel):
     start_at: datetime
     end_at: datetime
     capacity: int
+    price_vnd: int | None
     status: str
     trainer_id: UUID | None
     trainer_name: str | None
@@ -111,6 +115,7 @@ class MemberClassItem(BaseModel):
     start_at: datetime
     end_at: datetime
     capacity: int
+    price_vnd: int | None
     status: str
     location: str
     confirmed_booking_count: int
@@ -133,6 +138,17 @@ class MemberClassList(BaseModel):
 class BookingItem(BaseModel):
     id: UUID
     status: str
+    price_vnd: int | None
+    entitlement_source: str
+    reserved_until: datetime | None
+    confirmed_at: datetime | None
+    cancelled_at: datetime | None
+    refund_status: str
+    payment_id: UUID | None
+    payment_status: str | None
+    invoice_id: UUID | None
+    invoice_download_url: str | None
+    attended_at: datetime | None
     created_at: datetime
     updated_at: datetime
     cancellation_cutoff: datetime
@@ -153,3 +169,29 @@ class MemberBookings(BaseModel):
     bookings: list[BookingItem]
     waitlists: list[WaitlistItem]
     cancellation_window_hours: int
+    cancellation_terms: str
+
+
+class ClassCheckoutRequest(BaseModel):
+    idempotency_key: str = Field(min_length=8, max_length=120)
+    locale: Literal["vn", "en"] = "vn"
+    bank_code: Literal["VNPAYQR", "VNBANK", "INTCARD"] | None = None
+    client_platform: Literal["web", "mobile", "mobile_web"] = "web"
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ClassCheckoutResponse(BaseModel):
+    booking_id: UUID
+    transaction_id: UUID
+    txn_ref: str
+    payment_url: str
+    expires_at: datetime
+
+
+class BookingCancel(BaseModel):
+    reason: str = Field(default="Cancelled by member", min_length=3, max_length=500)
+
+
+class BookingRefundResolution(BaseModel):
+    reason: str = Field(min_length=3, max_length=1000)

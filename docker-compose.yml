@@ -72,6 +72,17 @@ services:
       FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
       FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
       FACEBOOK_GRAPH_API_VERSION: ${FACEBOOK_GRAPH_API_VERSION:-v24.0}
+      VNPAY_ENABLED: ${VNPAY_ENABLED:-}
+      VNPAY_ENVIRONMENT: ${VNPAY_ENVIRONMENT:-sandbox}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+      VNPAY_PAYMENT_URL: ${VNPAY_PAYMENT_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY_API_URL: ${VNPAY_API_URL:-https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-}
+      VNPAY_IPN_URL: ${VNPAY_IPN_URL:-}
+      FRONTEND_PAYMENT_RESULT_URL: ${FRONTEND_PAYMENT_RESULT_URL:-http://localhost:5174/app/payments/result}
+      MOBILE_PAYMENT_RESULT_URL: ${MOBILE_PAYMENT_RESULT_URL:-ypgym://payment-result}
+      VNPAY_TRANSACTION_TTL_MINUTES: ${VNPAY_TRANSACTION_TTL_MINUTES:-15}
     ports:
       - "${BACKEND_HOST_PORT:-8001}:8000"
     volumes:

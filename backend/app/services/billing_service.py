@@ -25,12 +25,20 @@ class BillingService:
         return [
             PaymentHistoryItem(
                 id=payment.id,
-                plan_name=payment.plan.name,
+                product_type=payment.product_type,
+                product_name=payment.plan.name if payment.plan else payment.class_booking.gym_class.title,
+                class_booking_id=payment.class_booking_id,
+                plan_name=payment.plan.name if payment.plan else payment.class_booking.gym_class.title,
                 amount=payment.amount,
                 discount_amount=payment.discount_amount,
                 status=payment.status,
                 mock_reference=payment.mock_reference,
+                provider=payment.provider,
+                reference=payment.txn_ref or payment.mock_reference,
+                paid_at=payment.paid_at,
+                expires_at=payment.expires_at,
                 created_at=payment.created_at,
+                discount_details=payment.discount_details,
             )
             for payment in payments
         ]
@@ -55,21 +63,32 @@ class BillingService:
                 transaction_date=invoice.transaction_date,
                 membership_start_date=invoice.membership_start_date,
                 membership_expiry_date=invoice.membership_expiry_date,
+                product_type=invoice.product_type,
+                product_name=invoice.product_name,
+                service_start_at=invoice.service_start_at,
+                service_end_at=invoice.service_end_at,
+                discount_details=invoice.discount_details,
             ),
         )
 
-    async def list_admin_billing(self, user: User) -> list[AdminBillingItem]:
+    async def list_admin_billing(self, user: User, *, product_type: str | None = None) -> list[AdminBillingItem]:
         if user.role not in {"admin", "manager", "staff"}:
             raise PermissionDeniedError()
 
-        payments = await self.payments.list_recent()
+        payments = await self.payments.list_recent(product_type=product_type)
         return [
             AdminBillingItem(
                 payment_id=payment.id,
                 user_id=payment.user_id,
                 member_name=payment.user.name,
                 member_email=payment.user.email,
-                plan_name=payment.plan.name,
+                plan_name=payment.plan.name if payment.plan else payment.class_booking.gym_class.title,
+                product_type=payment.product_type,
+                product_name=payment.plan.name if payment.plan else payment.class_booking.gym_class.title,
+                class_booking_id=payment.class_booking_id,
+                invoice_id=payment.invoice.id if payment.invoice else None,
+                provider_reference=payment.txn_ref or payment.mock_reference,
+                refund_status=payment.class_booking.refund_status if payment.class_booking else None,
                 amount=payment.amount,
                 status=payment.status,
                 created_at=payment.created_at,
@@ -82,10 +101,16 @@ class BillingService:
             id=invoice.id,
             invoice_number=invoice.invoice_number,
             plan_name=invoice.plan_name,
+            product_type=invoice.product_type,
+            product_name=invoice.product_name,
+            class_booking_id=invoice.class_booking_id,
             amount=invoice.amount,
             discount_amount=invoice.discount_amount,
             transaction_date=invoice.transaction_date,
             membership_start_date=invoice.membership_start_date,
             membership_expiry_date=invoice.membership_expiry_date,
+            service_start_at=invoice.service_start_at,
+            service_end_at=invoice.service_end_at,
             download_url=f"/api/v1/billing/me/invoices/{invoice.id}",
+            discount_details=invoice.discount_details,
         )

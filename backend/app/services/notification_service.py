@@ -253,8 +253,11 @@ class NotificationService:
         preferences = await self.notifications.get_or_create_preferences(user.id)
         created = 0
         now = datetime.now(UTC)
-        title = f"You're booked for {class_title}"
-        message = f"A place opened and your waitlist entry was promoted. The class starts at {class_start.isoformat()}."
+        title = f"A seat is held for {class_title}"
+        message = (
+            "A place opened and your waitlist entry was promoted to a short payment hold. "
+            f"Complete checkout before the hold expires. The class starts at {class_start.isoformat()}."
+        )
         channels = []
         if preferences.in_app_enabled:
             channels.append("in_app")

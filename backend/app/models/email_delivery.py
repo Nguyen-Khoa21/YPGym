@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -12,9 +12,14 @@ class EmailDelivery(TimestampMixin, Base):
     __tablename__ = "email_deliveries"
     __table_args__ = (
         UniqueConstraint("idempotency_key", name="uq_email_deliveries_idempotency_key"),
+        CheckConstraint(
+            "num_nonnulls(membership_id, class_booking_id) = 1",
+            name="ck_email_deliveries_product_reference",
+        ),
         Index("ix_email_deliveries_due", "status", "next_attempt_at", "created_at"),
         Index("ix_email_deliveries_user_id", "user_id"),
         Index("ix_email_deliveries_invoice_id", "invoice_id"),
+        Index("ix_email_deliveries_class_booking_id", "class_booking_id"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -22,7 +27,8 @@ class EmailDelivery(TimestampMixin, Base):
     template_type: Mapped[str] = mapped_column(String(64), nullable=False)
     template_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    membership_id: Mapped[UUID] = mapped_column(ForeignKey("user_memberships.id", ondelete="CASCADE"), nullable=False)
+    membership_id: Mapped[UUID | None] = mapped_column(ForeignKey("user_memberships.id", ondelete="CASCADE"))
+    class_booking_id: Mapped[UUID | None] = mapped_column(ForeignKey("class_bookings.id", ondelete="CASCADE"))
     payment_id: Mapped[UUID] = mapped_column(ForeignKey("payments.id", ondelete="CASCADE"), nullable=False)
     invoice_id: Mapped[UUID] = mapped_column(ForeignKey("invoices.id", ondelete="CASCADE"), nullable=False)
     recipient_email: Mapped[str] = mapped_column(String(255), nullable=False)

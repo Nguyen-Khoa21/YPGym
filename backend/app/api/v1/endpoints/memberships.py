@@ -1,12 +1,15 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_roles
+from app.core.exceptions import ResourceNotFoundError
 from app.db.session import get_db_session
 from app.models.user import User
 from app.schemas.membership_schema import (
+    AttendanceBenefitQuote,
     PurchaseMembershipRequest,
     PurchaseMembershipResponse,
 )
@@ -19,6 +22,19 @@ from app.services.lifecycle_service import MembershipLifecycleService
 from app.services.membership_service import MembershipService
 
 router = APIRouter(prefix="/memberships", tags=["memberships"])
+
+
+@router.get("/attendance-benefit/me", response_model=AttendanceBenefitQuote)
+async def get_attendance_benefit(
+    plan_id: UUID,
+    current_user: Annotated[User, Depends(require_roles("member"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> AttendanceBenefitQuote:
+    service = MembershipService(session)
+    plan = await service.plans.get_by_id(plan_id)
+    if not plan or not plan.is_active:
+        raise ResourceNotFoundError("Membership plan was not found.")
+    return await service.attendance_benefit_quote(user=current_user, plan=plan)
 
 
 @router.post("/purchase", response_model=PurchaseMembershipResponse)

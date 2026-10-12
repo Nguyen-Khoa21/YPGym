@@ -12,6 +12,7 @@ from app.services.configuration_service import ConfigurationService
 from app.services.email_service import EmailDeliveryService
 from app.services.lifecycle_service import MembershipLifecycleService
 from app.services.notification_service import NotificationService
+from app.services.payment_service import VNPayPaymentService
 
 settings = get_settings()
 
@@ -48,6 +49,10 @@ celery_app.conf.beat_schedule = {
     "oauth-link-emails-minute": {
         "task": "app.workers.send_oauth_link_emails",
         "schedule": 30.0,
+    },
+    "vnpay-pending-expiry-minute": {
+        "task": "app.workers.expire_vnpay_payments",
+        "schedule": 60.0,
     },
 }
 
@@ -134,6 +139,16 @@ async def _send_oauth_link_emails() -> int:
 @celery_app.task(name="app.workers.send_oauth_link_emails")
 def send_oauth_link_emails() -> int:
     return _run_async_task(_send_oauth_link_emails)
+
+
+async def _expire_vnpay_payments() -> int:
+    async with AsyncSessionLocal() as session:
+        return await VNPayPaymentService(session).expire_pending()
+
+
+@celery_app.task(name="app.workers.expire_vnpay_payments")
+def expire_vnpay_payments() -> int:
+    return _run_async_task(_expire_vnpay_payments)
 
 
 async def _close_timed_out_attendance() -> int:

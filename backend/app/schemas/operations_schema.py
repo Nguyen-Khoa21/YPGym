@@ -191,9 +191,22 @@ class AdminBillingPaymentItem(BaseModel):
     member_email: str
     member_tier: str
     plan_name: str
+    product_type: str
+    product_name: str
+    class_booking_id: UUID | None
+    refund_status: str | None
     amount: Decimal
     discount_amount: Decimal
     status: str
+    provider: str
+    transaction_reference: str
+    provider_transaction_no: str | None
+    bank_code: str | None
+    card_type: str | None
+    paid_at: datetime | None
+    expires_at: datetime | None
+    invoice_id: UUID | None
+    email_delivery_state: str | None
     created_at: datetime
 
 
@@ -204,6 +217,9 @@ class AdminBillingInvoiceItem(BaseModel):
     member_email: str
     invoice_number: str
     plan_name: str
+    product_type: str
+    product_name: str
+    class_booking_id: UUID | None
     amount: Decimal
     transaction_date: datetime
 

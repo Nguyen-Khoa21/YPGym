@@ -31,6 +31,14 @@ services:
       IOT_DEVICE_API_KEY: isolated-test-scanner-key
       CORS_EXTRA_ORIGINS: http://localhost:8081
       INVOICE_STORAGE_DIR: /tmp/ypgym-test-invoices
+      VNPAY_ENABLED: "true"
+      VNPAY_ENVIRONMENT: sandbox
+      VNPAY_TMN_CODE: TESTVNP1
+      VNPAY_HASH_SECRET: isolated-vnpay-test-secret
+      VNPAY_RETURN_URL: https://payments.example.test/api/v1/payments/vnpay/return
+      VNPAY_IPN_URL: https://payments.example.test/api/v1/payments/vnpay/ipn
+      FRONTEND_PAYMENT_RESULT_URL: http://localhost:5174/app/payments/result
+      MOBILE_PAYMENT_RESULT_URL: ypgym://payment-result
     volumes:
       - ./backend:/app:ro
     tmpfs:

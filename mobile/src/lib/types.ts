@@ -3,8 +3,8 @@ export type User = { id: string; name: string; email: string; phone: string | nu
 export type LoginResponse = { access_token: string; expires_at: string; user: User };
 export type RegisterResponse = { message: string; user: User };
 export type VerifyEmailResponse = { message: string; user: User | null };
-export type MemberClass = { id: string; title: string; class_type: string; description: string | null; start_at: string; end_at: string; location: string; capacity: number; remaining_capacity: number; trainer: { display_name: string } | null; member_state: string; waitlist_position: number | null };
-export type Booking = { id: string; status: string; can_cancel: boolean; cancellation_cutoff: string; gym_class: MemberClass };
+export type MemberClass = { id: string; title: string; class_type: string; description: string | null; start_at: string; end_at: string; location: string; capacity: number; price_vnd: number | null; remaining_capacity: number; trainer: { display_name: string } | null; member_state: string; waitlist_position: number | null };
+export type Booking = { id: string; status: string; price_vnd: number | null; entitlement_source: 'legacy' | 'paid'; reserved_until: string | null; confirmed_at: string | null; cancelled_at: string | null; refund_status: 'none' | 'required' | 'resolved'; payment_id: string | null; payment_status: string | null; invoice_id: string | null; invoice_download_url: string | null; attended_at: string | null; can_cancel: boolean; cancellation_cutoff: string; gym_class: MemberClass };
 export type Waitlist = { id: string; status: string; position: number; gym_class: MemberClass };
 export type Dashboard = {
   member: { id: string; name: string; tier: string };
@@ -16,10 +16,14 @@ export type Dashboard = {
 };
 export type QrToken = { token: string; expires_at: string; membership_status: string };
 export type ClassList = { items: MemberClass[]; booking_eligible: boolean; eligibility_reason: string | null };
-export type Bookings = { bookings: Booking[]; waitlists: Waitlist[]; cancellation_window_hours: number };
+export type Bookings = { bookings: Booking[]; waitlists: Waitlist[]; cancellation_window_hours: number; cancellation_terms: string };
 export type Plan = { id: string; name: string; duration_months: number; duration_days: number; final_price: string; discount_percent: string; benefits: string[]; is_active: boolean; tier_availability: string | null };
+export type AttendanceBenefitQuote = { gym_timezone: string; period_start: string; period_end: string; attended_days: number; period_days: number; attendance_percentage: string; threshold_percentage: string; benefit_discount_percent: string; attendance_qualified: boolean; available: boolean; status: 'eligible' | 'not_qualified' | 'not_renewal' | 'pending' | 'consumed'; pricing: { rule: 'better_of'; consumption_rule: 'first_successful_renewal'; transaction_kind: 'purchase' | 'renewal'; base_price: string; plan_discount_percent: string; attendance_discount_percent: string; applied_discount_percent: string; attendance_benefit_selected: boolean; discount_amount: string; final_amount: string } };
 export type Purchase = { membership: { plan_name: string; expiry_date: string }; payment: { amount: string; status: string }; invoice: { id: string; invoice_number: string } };
-export type Invoice = { id: string; invoice_number: string; plan_name: string; amount: string; transaction_date: string; membership_expiry_date: string };
+export type Invoice = { id: string; invoice_number: string; plan_name: string; product_type: 'membership' | 'class_booking'; product_name: string; class_booking_id: string | null; amount: string; transaction_date: string; membership_expiry_date: string | null; service_start_at: string | null; discount_details: AttendanceBenefitQuote | null };
+export type VNPayCreateResponse = { transaction_id: string; txn_ref: string; payment_url: string; expires_at: string };
+export type ClassCheckoutResponse = VNPayCreateResponse & { booking_id: string };
+export type PaymentStatus = { id: string; product_type: 'membership' | 'class_booking'; membership_plan_id: string | null; class_booking_id: string | null; product_name: string; plan_name: string | null; provider: string; txn_ref: string; status: 'pending' | 'paid' | 'failed' | 'cancelled' | 'expired' | 'paid_review'; amount_vnd: number; currency: 'VND'; membership_status: string | null; membership_start_date: string | null; membership_expiry_date: string | null; booking_status: string | null; refund_status: string | null; class_start_at: string | null; class_end_at: string | null; invoice_id: string | null; invoice_download_url: string | null; created_at: string; paid_at: string | null; expires_at: string | null; discount_details: AttendanceBenefitQuote | null };
 export type Notification = { id: string; title: string; message: string; read_at: string | null; created_at: string; category: string; notification_type: string; action_type: string | null; action_id: string | null };
 export type NotificationPage = { items: Notification[]; unread_count: number; page: { page: number; pages: number; total: number } };
 export type Preferences = { email_enabled: boolean; in_app_enabled: boolean; expiry_reminders_enabled: boolean; class_reminders_enabled: boolean; broadcasts_enabled: boolean };

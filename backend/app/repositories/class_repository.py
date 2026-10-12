@@ -1,10 +1,11 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, selectinload
 
+from app.models.billing import Payment
 from app.models.classes import ClassBooking, ClassWaitlist, GymClass, PersonalTrainer
 from app.models.user import User
 
@@ -153,7 +154,13 @@ class ClassRepository:
         member_waitlist = aliased(ClassWaitlist)
         booking_count = (
             select(func.count(ClassBooking.id))
-            .where(ClassBooking.class_id == GymClass.id, ClassBooking.status == "booked")
+            .where(
+                ClassBooking.class_id == GymClass.id,
+                or_(
+                    ClassBooking.status == "confirmed",
+                    and_(ClassBooking.status == "pending_payment", ClassBooking.reserved_until > func.now()),
+                ),
+            )
             .correlate(GymClass)
             .scalar_subquery()
         )
@@ -195,7 +202,11 @@ class ClassRepository:
         user_id: UUID,
         for_update: bool = False,
     ) -> ClassBooking | None:
-        query = select(ClassBooking).where(ClassBooking.class_id == class_id, ClassBooking.user_id == user_id)
+        query = (
+            select(ClassBooking)
+            .options(selectinload(ClassBooking.current_payment).selectinload(Payment.invoice))
+            .where(ClassBooking.class_id == class_id, ClassBooking.user_id == user_id)
+        )
         if for_update:
             query = query.with_for_update()
         return (await self.session.execute(query)).scalar_one_or_none()
@@ -212,26 +223,89 @@ class ClassRepository:
             query = query.with_for_update()
         return (await self.session.execute(query)).scalar_one_or_none()
 
+    async def occupied_booking_count(self, class_id: UUID) -> int:
+        return int(
+            (
+                await self.session.execute(
+                    select(func.count(ClassBooking.id)).where(
+                        ClassBooking.class_id == class_id,
+                        or_(
+                            ClassBooking.status == "confirmed",
+                            and_(ClassBooking.status == "pending_payment", ClassBooking.reserved_until > func.now()),
+                        ),
+                    ),
+                )
+            ).scalar_one(),
+        )
+
     async def confirmed_booking_count(self, class_id: UUID) -> int:
         return int(
             (
                 await self.session.execute(
                     select(func.count(ClassBooking.id)).where(
                         ClassBooking.class_id == class_id,
-                        ClassBooking.status == "booked",
+                        ClassBooking.status == "confirmed",
                     ),
                 )
             ).scalar_one(),
         )
 
-    async def create_booking(self, *, class_id: UUID, user_id: UUID) -> ClassBooking:
-        item = ClassBooking(class_id=class_id, user_id=user_id, status="booked")
+    async def list_active_bookings_for_class(self, class_id: UUID) -> list[ClassBooking]:
+        return list(
+            (
+                await self.session.execute(
+                    select(ClassBooking)
+                    .options(selectinload(ClassBooking.current_payment))
+                    .where(
+                        ClassBooking.class_id == class_id,
+                        ClassBooking.status.in_(("pending_payment", "confirmed")),
+                    )
+                    .with_for_update(),
+                )
+            ).scalars().all(),
+        )
+
+    async def list_waiting_waitlists_for_class(self, class_id: UUID) -> list[ClassWaitlist]:
+        return list(
+            (
+                await self.session.execute(
+                    select(ClassWaitlist)
+                    .where(ClassWaitlist.class_id == class_id, ClassWaitlist.status == "waiting")
+                    .with_for_update(),
+                )
+            ).scalars().all(),
+        )
+
+    async def create_booking(self, *, class_id: UUID, user_id: UUID, **values) -> ClassBooking:
+        item = ClassBooking(class_id=class_id, user_id=user_id, **values)
         self.session.add(item)
         await self.session.flush()
         return item
 
+    async def expire_holds_for_class(self, class_id: UUID, now: datetime) -> list[ClassBooking]:
+        items = list(
+            (
+                await self.session.execute(
+                    select(ClassBooking)
+                    .where(
+                        ClassBooking.class_id == class_id,
+                        ClassBooking.status == "pending_payment",
+                        ClassBooking.reserved_until <= now,
+                    )
+                    .with_for_update(),
+                )
+            ).scalars().all(),
+        )
+        for item in items:
+            item.status = "expired"
+        return items
+
     async def get_booking(self, booking_id: UUID, *, for_update: bool = False) -> ClassBooking | None:
-        query = select(ClassBooking).where(ClassBooking.id == booking_id)
+        query = (
+            select(ClassBooking)
+            .options(selectinload(ClassBooking.current_payment).selectinload(Payment.invoice))
+            .where(ClassBooking.id == booking_id)
+        )
         if for_update:
             query = query.with_for_update()
         return (await self.session.execute(query)).scalar_one_or_none()
@@ -240,7 +314,9 @@ class ClassRepository:
         return list(
             (
                 await self.session.execute(
-                    select(ClassBooking)
+                    select(ClassBooking).options(
+                        selectinload(ClassBooking.current_payment).selectinload(Payment.invoice),
+                    )
                     .join(GymClass, GymClass.id == ClassBooking.class_id)
                     .where(ClassBooking.user_id == user_id)
                     .order_by(GymClass.start_at.desc(), ClassBooking.created_at.desc())

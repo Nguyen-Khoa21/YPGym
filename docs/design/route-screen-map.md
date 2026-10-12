@@ -8,7 +8,7 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 |---|---|---|---|---|
 | Home/auth/verification/reset | `/`, `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` | Public | `/auth/*` | Connected |
 | OAuth callback/account linking | `/oauth/callback`, `/auth/link-account` | Public one-time flow | provider callback/exchange and pending-link password/email confirmation | Connected first-attempt callback guard, expiry/replay/collision states, and explicit ownership proof |
-| Membership plans/policy/purchase | `/memberships`, `/policies/membership`, `/memberships/buy/:planId` | Public/member | `/membership-plans`, `/memberships/purchase` | Connected; payment is explicitly mock-only |
+| Membership plans/policy/purchase | `/memberships`, `/policies/membership`, `/memberships/buy/:planId` | Public/member | `/membership-plans`, `/memberships/attendance-benefit/me`, `/payments/vnpay/create`, `/payments/{transaction_id}` | Connected; server-calculated previous-month attendance quote, better-of renewal pricing, VNPay checkout and server-confirmed result |
 | Member dashboard | `/app/dashboard` | Member | `/dashboard/me` | Connected composite with membership/QR, crowdedness, bookings/waitlists, notifications, broadcasts, quick actions, and complete account states |
 | Profile | `/app/profile` | Authenticated | `/users/me`, notification preference link | Connected |
 | Billing history | `/app/billing` | Authenticated | `/billing/me/payments`, `/billing/me/invoices`, PDF download | Connected |
@@ -18,10 +18,10 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 | Notifications | `/app/notifications` | Member | `/notifications/me`, read-one/read-all | Connected and paginated |
 | Notification preferences | `/app/notifications/preferences` | Member | `/notifications/preferences/me` | Connected |
 | Account security | `/app/security` | Authenticated user | `/account/identities`, provider link/unlink | Connected provider status, explicit link/unlink, recent-auth and last-method states |
-| Member class booking | `/app/classes` | Member | `/classes/upcoming`, `/classes/{id}/book`, waitlist join/leave | Connected responsive class cards, PT cards, capacity, eligible/ineligible, booked/full/waitlisted/cancelled states |
-| My bookings | `/app/bookings` | Member | `/bookings/me`, booking cancel, waitlist leave | Connected confirmed/cancelled/promoted/waiting states and configured cancellation cutoff |
+| Member class booking | `/app/classes` | Member | `/classes/upcoming`, `/classes/{id}/checkout`, `/payments/{id}`, waitlist join/leave | Connected per-session VND price, capacity/holds, non-member purchase, authoritative VNPay result, and booked/full/waitlisted/cancelled states |
+| My bookings | `/app/bookings` | Member | `/bookings/me`, booking cancel, payment/invoice links, waitlist leave | Connected paid/legacy bookings, confirmation, cancellation, refund-required, promoted/waiting, and class-start cancellation cutoff |
 | YPTrain exercise guide, workout history and weekly muscle map | `/app/train`, `/app/train/:id` | Member | `/training/exercises`, `/training/workouts/today`, `/training/workouts/history`, `/training/workouts/{date}`, `/training/workouts/muscle-map` | Shared upper/lower browse, guide and attendance-gated 1–10 set logging; contribution calendar distinguishes attendance from workouts; exact day detail, descriptive prior-session comparisons, accessible front/back weighted-set-exposure map and explicitly non-AI rule-based weekly balance derive from member-owned records |
-| Mobile member shell | `mobile/src/app/` (Expo Router) | Member | Shared `/api/v1` auth, dashboard, attendance, classes, bookings, notifications, profile, billing, lifecycle requests and YPTrain | FR40/FR41 centralizes logout/reset, route-aware Back behavior, membership refresh, registration/verification and freeze/cancellation requests; FR42 adds persistent in-app class reminders that open the matching booking; YPTrain shares catalogue, attendance-linked logging, history, comparisons and muscle exposure with web; FR54/FR55 supplies the responsive white/green shell and accessible states; physical phone/iOS remain unverified |
+| Mobile member shell | `mobile/src/app/` (Expo Router) | Member | Shared `/api/v1` auth, dashboard, attendance, classes, bookings, notifications, profile, billing, lifecycle requests and YPTrain | FR40/FR41 centralizes logout/reset, route-aware Back behavior, membership refresh, registration/verification and freeze/cancellation requests; FR42 adds persistent in-app class reminders that open the matching booking; YPTrain shares catalogue, attendance-linked logging, history, comparisons and muscle exposure with web; FR56 adds the server-derived attendance renewal quote and immutable billing result; FR54/FR55 supplies the responsive white/green shell and accessible states; physical phone/iOS remain unverified |
 
 Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/*` routes.
 
@@ -33,11 +33,11 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 | Member CRM | `/admin/members` | Admin | `/admin/members`, filtered CSV | Connected search, role/tier/status/expiry filters, KPI cards, table, pagination |
 | Admin Member Details | `/admin/members/:id` | Admin | detail composite, decisions, revocation | Connected profile, membership, billing, attendance, booking summary, requests, audit, reasoned actions |
 | Membership approvals | `/admin/approvals` | Manager/admin | `/admin/membership-requests`, decision endpoints | Connected limited queue without full CRM/billing exposure |
-| Billing ledger | `/admin/billing` | Admin | `/admin/billing/payments`, `/invoices`, exact-filter CSV | Connected member/status/date/plan/tier filters |
+| Billing ledger | `/admin/billing` | Admin | `/admin/billing/payments`, `/invoices`, product filters, manual class refund resolution, exact-filter CSV | Connected membership/class revenue, unpaid holds, provider/invoice references, and refund exceptions |
 | Email delivery operations | `/admin/email-deliveries` | Manager/admin | `/admin/email-deliveries`, retry action | Connected masked recipient, invoice reference, honest delivery state, safe failure and audited retry |
 | Attendance dashboard | `/admin/attendance` | Staff/manager/admin | attendance admin list, manual close, crowdedness; analytics for manager/admin | Connected table, filters, KPI cards, manual-close dialog, accessible 7x24 heatmap |
 | Manager analytics summary | `/admin/attendance` (manager/admin panel) | Manager/admin | `/admin/analytics/summary` | Connected persisted membership trends, class popularity, attendance patterns, successful revenue, 60-second Redis freshness window; staff is denied |
-| Class schedule | `/admin/classes` | Admin | class list/trainers/create/update/cancel | Connected table, filters, side card, create/edit dialog, cancellation confirmation |
+| Class schedule | `/admin/classes` | Admin | class list/trainers/create/update/cancel | Connected session VND pricing, seat review, filters, create/edit dialog, and deterministic cancellation/refund flags |
 | Broadcasts | `/admin/broadcasts` | Manager/admin | broadcast list/create/update | Connected |
 | Audit log | `/admin/audit` | Manager/admin | `/admin/audit-logs` | Connected date/action/actor/target/entity filters and pagination |
 | Configuration | `/admin/settings` | Manager/admin | `/admin/configuration` | Connected validated editing and cache invalidation |
@@ -60,7 +60,7 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 
 BRD Figures19–24 (`docs/design/references/image19.png` through `image24.png`) map respectively to native Dashboard, Renewal Selection, Renewal Success, QR Check-in, Class Booking and Member Profile. All use the existing shared API. Actual synthetic account data, VND billing and server eligibility replace sample reference values; the four-position Dashboard/Check-in/Classes/Profile navigation is retained within the post-Day-60 white/green visual system. Native renewal is confirmed by the account-returned invoice, not a client-only success screen.
 
-The native evidence index records each implementation path, actual captures, observed/fixed clipping and badge alignment, explicit scope exceptions, and pending acceptance cases. Profile initials replace an invented avatar; personalization is deferred and live payment methods are replaced by mock-payment invoice history. This is partial visual parity with documented exceptions, not a claim of pixel identity or fulfilled deferred features.
+The native evidence index records each implementation path, actual captures, observed/fixed clipping and badge alignment, explicit scope exceptions, and pending acceptance cases. Profile initials replace an invented avatar; personalization is deferred. This is partial visual parity with documented exceptions, not a claim of pixel identity or fulfilled deferred features.
 
 ## Shared states and responsive behavior
 

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,11 +12,14 @@ from app.db.session import get_db_session
 from app.models.user import User
 from app.schemas.class_schema import (
     ClassCancel,
+    ClassCheckoutRequest,
+    ClassCheckoutResponse,
     ClassCreate,
     ClassItem,
     ClassPage,
     ClassUpdate,
     BookingItem,
+    BookingCancel,
     MemberClassItem,
     MemberClassList,
     MemberBookings,
@@ -27,6 +30,9 @@ from app.schemas.class_schema import (
     WaitlistItem,
 )
 from app.services.class_service import BookingService, ClassService, TrainerService
+from app.services.payment_service import VNPayPaymentService
+from app.core.rate_limit import rate_limits
+from app.utils.security import hash_token
 
 router = APIRouter(prefix="/admin/classes", tags=["class administration"])
 trainer_router = APIRouter(prefix="/trainers", tags=["trainers"])
@@ -64,6 +70,29 @@ async def book_class(
     return await BookingService(session, redis).book(class_id=class_id, user=current_user)
 
 
+@member_class_router.post("/{class_id}/checkout", response_model=ClassCheckoutResponse, status_code=201)
+async def checkout_class(
+    class_id: UUID,
+    payload: ClassCheckoutRequest,
+    request: Request,
+    current_user: Annotated[User, Depends(require_roles("member"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> ClassCheckoutResponse:
+    await rate_limits.enforce(
+        redis,
+        key=f"ypgym:rate:class-checkout:{hash_token(str(current_user.id))}",
+        limit=10,
+        window_seconds=60,
+    )
+    return await VNPayPaymentService(session).create_class_payment(
+        class_id=class_id,
+        user=current_user,
+        payload=payload,
+        client_ip=request.client.host if request.client else "127.0.0.1",
+    )
+
+
 @member_class_router.post("/{class_id}/waitlist", response_model=WaitlistItem)
 async def join_waitlist(
     class_id: UUID,
@@ -99,8 +128,23 @@ async def cancel_booking(
     current_user: Annotated[User, Depends(require_roles("member"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     redis: Annotated[Redis, Depends(get_redis_client)],
+    payload: BookingCancel | None = None,
 ) -> BookingItem:
-    return await BookingService(session, redis).cancel(booking_id=booking_id, user=current_user)
+    return await BookingService(session, redis).cancel(
+        booking_id=booking_id,
+        user=current_user,
+        reason=payload.reason if payload else "Cancelled by member",
+    )
+
+
+@router.post("/bookings/{booking_id}/check-in", response_model=BookingItem)
+async def check_in_class_booking(
+    booking_id: UUID,
+    current_user: Annotated[User, Depends(require_roles("staff", "manager", "admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> BookingItem:
+    return await BookingService(session, redis).check_in(booking_id=booking_id, actor=current_user)
 
 
 @trainer_router.get("", response_model=list[TrainerItem])
@@ -165,7 +209,7 @@ async def deactivate_trainer(
 
 @router.get("", response_model=ClassPage)
 async def list_classes(
-    current_user: Annotated[User, Depends(require_roles("admin"))],
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
@@ -188,7 +232,7 @@ async def list_classes(
 
 @router.get("/trainers", response_model=list[TrainerItem])
 async def list_trainers(
-    current_user: Annotated[User, Depends(require_roles("admin"))],
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> list[TrainerItem]:
     return await ClassService(session).list_trainers()
@@ -197,7 +241,7 @@ async def list_trainers(
 @router.post("", response_model=ClassItem)
 async def create_class(
     payload: ClassCreate,
-    current_user: Annotated[User, Depends(require_roles("admin"))],
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ClassItem:
     return await ClassService(session).create(actor=current_user, payload=payload)
@@ -207,7 +251,7 @@ async def create_class(
 async def update_class(
     class_id: UUID,
     payload: ClassUpdate,
-    current_user: Annotated[User, Depends(require_roles("admin"))],
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ClassItem:
     return await ClassService(session).update(class_id=class_id, actor=current_user, payload=payload)
@@ -217,7 +261,7 @@ async def update_class(
 async def cancel_class(
     class_id: UUID,
     payload: ClassCancel,
-    current_user: Annotated[User, Depends(require_roles("admin"))],
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ClassItem:
     return await ClassService(session).cancel(class_id=class_id, actor=current_user, payload=payload)

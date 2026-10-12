@@ -29,7 +29,7 @@ from app.schemas.class_schema import (
 )
 from app.schemas.operations_schema import PageInfo
 from app.services.configuration_service import ConfigurationService
-from app.services.lifecycle_service import MembershipLifecycleService
+from app.core.config import get_settings
 from app.services.notification_service import NotificationService
 
 
@@ -136,10 +136,26 @@ class ClassService:
         if item.status != "scheduled":
             raise ConflictError("Only scheduled classes can be cancelled.")
         before = self._audit_data(item)
+        now = datetime.now(UTC)
         item.status = "cancelled"
         item.cancellation_reason = payload.reason.strip()
         item.cancelled_by_id = actor.id
-        item.cancelled_at = datetime.now(UTC)
+        item.cancelled_at = now
+        bookings = await self.classes.list_active_bookings_for_class(item.id)
+        refund_count = 0
+        for booking in bookings:
+            if booking.status == "pending_payment" and booking.current_payment:
+                booking.current_payment.status = "cancelled"
+                booking.reserved_until = None
+            elif booking.status == "confirmed" and booking.entitlement_source == "paid":
+                booking.refund_status = "required"
+                refund_count += 1
+            booking.status = "cancelled"
+            booking.cancelled_at = now
+            booking.cancellation_reason = item.cancellation_reason
+        waitlists = await self.classes.list_waiting_waitlists_for_class(item.id)
+        for waitlist in waitlists:
+            waitlist.status = "cancelled"
         await self.audit.create(
             actor_user_id=actor.id,
             action="class.cancelled",
@@ -149,7 +165,12 @@ class ClassService:
             outcome="cancelled",
             summary=f"Class '{item.title}' was cancelled.",
             before_data=before,
-            after_data=self._audit_data(item),
+            after_data={
+                **self._audit_data(item),
+                "cancelled_bookings": len(bookings),
+                "cancelled_waitlists": len(waitlists),
+                "refunds_required": refund_count,
+            },
         )
         await self.session.commit()
         await self.session.refresh(item)
@@ -181,6 +202,7 @@ class ClassService:
             start_at=item.start_at,
             end_at=item.end_at,
             capacity=item.capacity,
+            price_vnd=item.price_vnd,
             status=item.status,
             trainer_id=item.trainer_id,
             trainer_name=trainer_name,
@@ -198,6 +220,7 @@ class ClassService:
             "start_at": item.start_at.isoformat(),
             "end_at": item.end_at.isoformat(),
             "capacity": item.capacity,
+            "price_vnd": item.price_vnd,
             "trainer_id": str(item.trainer_id) if item.trainer_id else None,
             "location": item.location,
             "status": item.status,
@@ -379,81 +402,57 @@ def can_cancel_class_booking(*, now: datetime, start_at: datetime, window_hours:
 
 
 class BookingService:
+    CANCELLATION_TERMS = (
+        "Cancel before the session starts. Paid cancellations require staff to resolve the VNPay refund."
+    )
+
     def __init__(self, session: AsyncSession, redis: Redis) -> None:
         self.session = session
         self.classes = ClassRepository(session)
-        self.lifecycle = MembershipLifecycleService(session)
         self.configuration = ConfigurationService(session, redis)
         self.notifications = NotificationService(session)
+        self.audit = AuditRepository(session)
+        self.settings = get_settings()
+
+    @staticmethod
+    def _require_verified(user: User) -> None:
+        if not user.is_email_verified:
+            raise AppError("EMAIL_NOT_VERIFIED", "Please verify your email before booking a class.", 403)
 
     async def list_upcoming(self, user: User) -> MemberClassList:
-        _, status, eligible, reason = await self.lifecycle.access_snapshot(user)
         rows = await self.classes.member_classes(user_id=user.id)
+        eligible = user.is_email_verified
         return MemberClassList(
             items=[self._member_class(row, eligible=eligible) for row in rows],
             booking_eligible=eligible,
-            eligibility_status=status,
-            eligibility_reason=reason,
+            eligibility_status="eligible" if eligible else "email_unverified",
+            eligibility_reason=None if eligible else "Verify your email to purchase a class.",
         )
 
     async def get_member_class(self, *, class_id: UUID, user: User) -> MemberClassItem:
-        _, _, eligible, _ = await self.lifecycle.access_snapshot(user)
         rows = await self.classes.member_classes(user_id=user.id, class_id=class_id, upcoming_only=False)
         if not rows:
             raise ResourceNotFoundError("Class was not found.")
-        return self._member_class(rows[0], eligible=eligible)
+        return self._member_class(rows[0], eligible=user.is_email_verified)
 
     async def book(self, *, class_id: UUID, user: User) -> BookingItem:
-        await self.lifecycle.require_eligible_membership(user)
-        gym_class = await self.classes.get_class(class_id, for_update=True)
-        if not gym_class:
+        self._require_verified(user)
+        if not await self.classes.get_class(class_id):
             raise ResourceNotFoundError("Class was not found.")
-        if gym_class.status != "scheduled":
-            raise AppError("CLASS_UNAVAILABLE", "Only scheduled classes can be booked.", 409)
-        if gym_class.start_at <= datetime.now(UTC):
-            raise AppError("CLASS_ALREADY_STARTED", "A class cannot be booked after it starts.", 409)
-        booking = await self.classes.get_booking_for_user(
-            class_id=class_id,
-            user_id=user.id,
-            for_update=True,
-        )
-        if booking and booking.status == "booked":
-            raise AppError("BOOKING_EXISTS", "You already booked this class.", 409)
-        waitlist = await self.classes.get_waitlist_for_user(
-            class_id=class_id,
-            user_id=user.id,
-            for_update=True,
-        )
-        if waitlist and waitlist.status == "waiting":
-            raise AppError("WAITLIST_EXISTS", "Leave the waitlist before booking this class.", 409)
-        if await self.classes.confirmed_booking_count(class_id) >= gym_class.capacity:
-            raise AppError("CLASS_FULL", "This class is full. Join the waitlist instead.", 409)
-        if booking:
-            booking.status = "booked"
-            await self.session.flush()
-        else:
-            booking = await self.classes.create_booking(class_id=class_id, user_id=user.id)
-        await self.session.commit()
-        await self.session.refresh(booking)
-        return await self._booking_item(
-            booking=booking,
-            gym_class=await self.get_member_class(class_id=class_id, user=user),
+        raise AppError(
+            "CLASS_PAYMENT_REQUIRED",
+            "This class requires individual payment. Start class checkout to reserve a seat.",
+            409,
         )
 
     async def list_my(self, user: User) -> MemberBookings:
         bookings = await self.classes.list_bookings_for_user(user.id)
         waitlists = await self.classes.list_waitlists_for_user(user.id)
         class_ids = list({item.class_id for item in [*bookings, *waitlists]})
-        _, _, eligible, _ = await self.lifecycle.access_snapshot(user)
-        rows = await self.classes.member_classes(
-            user_id=user.id,
-            class_ids=class_ids,
-            upcoming_only=False,
-        )
-        classes = {row[0].id: self._member_class(row, eligible=eligible) for row in rows}
-        window = await self.configuration.get_int("class_cancellation_window_hours")
+        rows = await self.classes.member_classes(user_id=user.id, class_ids=class_ids, upcoming_only=False)
+        classes = {row[0].id: self._member_class(row, eligible=user.is_email_verified) for row in rows}
         return MemberBookings(
-            bookings=[self._booking_item_with_window(item, classes[item.class_id], window) for item in bookings],
+            bookings=[self._booking_item_with_window(item, classes[item.class_id], 0) for item in bookings],
             waitlists=[
                 WaitlistItem(
                     id=item.id,
@@ -465,23 +464,25 @@ class BookingService:
                 )
                 for item in waitlists
             ],
-            cancellation_window_hours=window,
+            cancellation_window_hours=0,
+            cancellation_terms=self.CANCELLATION_TERMS,
         )
 
     async def join_waitlist(self, *, class_id: UUID, user: User) -> WaitlistItem:
-        await self.lifecycle.require_eligible_membership(user)
+        self._require_verified(user)
         gym_class = await self.classes.get_class(class_id, for_update=True)
         if not gym_class:
             raise ResourceNotFoundError("Class was not found.")
         if gym_class.status != "scheduled" or gym_class.start_at <= datetime.now(UTC):
             raise AppError("CLASS_UNAVAILABLE", "Only future scheduled classes accept a waitlist.", 409)
         booking = await self.classes.get_booking_for_user(class_id=class_id, user_id=user.id, for_update=True)
-        if booking and booking.status == "booked":
-            raise AppError("BOOKING_EXISTS", "You already booked this class.", 409)
+        if booking and booking.status in {"confirmed", "pending_payment"}:
+            raise AppError("BOOKING_EXISTS", "You already have an active reservation for this class.", 409)
         waitlist = await self.classes.get_waitlist_for_user(class_id=class_id, user_id=user.id, for_update=True)
         if waitlist and waitlist.status == "waiting":
             raise AppError("WAITLIST_EXISTS", "You are already on this waitlist.", 409)
-        if await self.classes.confirmed_booking_count(class_id) < gym_class.capacity:
+        await self.classes.expire_holds_for_class(class_id, datetime.now(UTC))
+        if await self.classes.occupied_booking_count(class_id) < gym_class.capacity:
             raise AppError("WAITLIST_NOT_REQUIRED", "This class still has an available place.", 409)
         limit = await self.configuration.get_int("waitlist_size")
         if limit == 0 or await self.classes.active_waitlist_count(class_id) >= limit:
@@ -490,7 +491,6 @@ class BookingService:
         if waitlist:
             waitlist.status = "waiting"
             waitlist.position = position
-            await self.session.flush()
         else:
             waitlist = await self.classes.create_waitlist(class_id=class_id, user_id=user.id, position=position)
         await self.session.commit()
@@ -512,7 +512,7 @@ class BookingService:
         if not waitlist:
             raise ResourceNotFoundError("Waitlist entry was not found.")
         if waitlist.status == "promoted":
-            raise AppError("WAITLIST_PROMOTED", "This waitlist entry has already been promoted to a booking.", 409)
+            raise AppError("WAITLIST_PROMOTED", "This waitlist entry already has a payment hold.", 409)
         if waitlist.status == "waiting":
             waitlist.status = "cancelled"
             await self.session.commit()
@@ -526,7 +526,7 @@ class BookingService:
             gym_class=await self.get_member_class(class_id=class_id, user=user),
         )
 
-    async def cancel(self, *, booking_id: UUID, user: User) -> BookingItem:
+    async def cancel(self, *, booking_id: UUID, user: User, reason: str = "Cancelled by member") -> BookingItem:
         current = await self.classes.get_booking(booking_id)
         if not current or current.user_id != user.id:
             raise ResourceNotFoundError("Booking was not found.")
@@ -536,59 +536,102 @@ class BookingService:
         booking = await self.classes.get_booking(booking_id, for_update=True)
         if not booking or booking.user_id != user.id:
             raise ResourceNotFoundError("Booking was not found.")
-        if booking.status == "cancelled":
-            return await self._booking_item(
-                booking=booking,
-                gym_class=await self.get_member_class(class_id=gym_class.id, user=user),
+        if booking.status in {"cancelled", "refunded"}:
+            return self._booking_item_with_window(
+                booking, await self.get_member_class(class_id=gym_class.id, user=user), 0
             )
-        if gym_class.status != "scheduled":
-            raise AppError("CLASS_UNAVAILABLE", "Bookings for this class cannot be cancelled.", 409)
         now = datetime.now(UTC)
         if gym_class.start_at <= now:
             raise AppError("CLASS_ALREADY_STARTED", "A booking cannot be cancelled after class starts.", 409)
-        window = await self.configuration.get_int("class_cancellation_window_hours")
-        if not can_cancel_class_booking(now=now, start_at=gym_class.start_at, window_hours=window):
-            raise AppError(
-                "LATE_CANCELLATION",
-                f"Cancellation closes {window} hours before class starts.",
-                409,
-                {"cancellation_cutoff": class_cancellation_cutoff(gym_class.start_at, window).isoformat()},
-            )
+        if booking.status not in {"pending_payment", "confirmed", "payment_failed", "expired"}:
+            raise AppError("BOOKING_NOT_CANCELLABLE", "This booking cannot be cancelled.", 409)
+        if booking.status == "pending_payment" and booking.current_payment:
+            booking.current_payment.status = "cancelled"
+        if booking.status == "confirmed" and booking.entitlement_source == "paid":
+            booking.refund_status = "required"
         booking.status = "cancelled"
-        await self.session.flush()
+        booking.cancelled_at = now
+        booking.cancellation_reason = reason.strip()
+        await self.audit.create(
+            actor_user_id=user.id,
+            target_user_id=user.id,
+            action="class_booking.cancelled",
+            entity_type="class_booking",
+            entity_id=str(booking.id),
+            reason=booking.cancellation_reason,
+            outcome="refund_required" if booking.refund_status == "required" else "cancelled",
+            summary="A class booking was cancelled before the session started.",
+        )
         await self._promote(gym_class)
         await self.session.commit()
-        await self.session.refresh(booking)
-        return await self._booking_item(
-            booking=booking,
-            gym_class=await self.get_member_class(class_id=gym_class.id, user=user),
-            window=window,
+        booking = await self.classes.get_booking(booking.id)
+        return self._booking_item_with_window(
+            booking, await self.get_member_class(class_id=gym_class.id, user=user), 0
+        )
+
+    async def check_in(self, *, booking_id: UUID, actor: User) -> BookingItem:
+        booking = await self.classes.get_booking(booking_id, for_update=True)
+        if not booking:
+            raise ResourceNotFoundError("Booking was not found.")
+        gym_class = await self.classes.get_class(booking.class_id, for_update=True)
+        if not gym_class:
+            raise ResourceNotFoundError("Class was not found.")
+        if booking.status != "confirmed":
+            raise AppError("BOOKING_NOT_CONFIRMED", "Only a confirmed class booking can be checked in.", 409)
+        if gym_class.status != "scheduled":
+            raise AppError("CLASS_UNAVAILABLE", "This class is not available for check-in.", 409)
+        if not booking.attended_at:
+            booking.attended_at = datetime.now(UTC)
+            booking.checked_in_by_id = actor.id
+            await self.audit.create(
+                actor_user_id=actor.id,
+                target_user_id=booking.user_id,
+                action="class_booking.checked_in",
+                entity_type="class_booking",
+                entity_id=str(booking.id),
+                outcome="attended",
+                summary="Staff checked a user into a separately purchased class.",
+            )
+            await self.session.commit()
+            booking = await self.classes.get_booking(booking.id)
+        member = await self.session.get(User, booking.user_id)
+        return self._booking_item_with_window(
+            booking, await self.get_member_class(class_id=gym_class.id, user=member), 0
         )
 
     async def _promote(self, gym_class: GymClass) -> ClassBooking | None:
-        if await self.classes.confirmed_booking_count(gym_class.id) >= gym_class.capacity:
+        if await self.classes.occupied_booking_count(gym_class.id) >= gym_class.capacity:
             return None
         for waitlist, user in await self.classes.waiting_entries_for_update(gym_class.id):
-            try:
-                await self.lifecycle.require_eligible_membership(user)
-            except AppError as exc:
-                if exc.code not in {"MEMBERSHIP_REQUIRED", "MEMBERSHIP_INELIGIBLE"}:
-                    raise
+            if not user.is_email_verified:
                 waitlist.status = "cancelled"
                 continue
             booking = await self.classes.get_booking_for_user(
-                class_id=gym_class.id,
-                user_id=user.id,
-                for_update=True,
+                class_id=gym_class.id, user_id=user.id, for_update=True
             )
-            if booking and booking.status == "booked":
+            if booking and booking.status in {"confirmed", "pending_payment"}:
                 waitlist.status = "cancelled"
                 continue
+            reserved_until = min(
+                datetime.now(UTC) + timedelta(minutes=self.settings.VNPAY_TRANSACTION_TTL_MINUTES),
+                gym_class.start_at,
+            )
             if booking:
-                booking.status = "booked"
-                await self.session.flush()
+                booking.status = "pending_payment"
+                booking.price_vnd = gym_class.price_vnd
+                booking.entitlement_source = "paid"
+                booking.current_payment_id = None
+                booking.reserved_until = reserved_until
+                booking.refund_status = "none"
             else:
-                booking = await self.classes.create_booking(class_id=gym_class.id, user_id=user.id)
+                booking = await self.classes.create_booking(
+                    class_id=gym_class.id,
+                    user_id=user.id,
+                    status="pending_payment",
+                    price_vnd=gym_class.price_vnd,
+                    entitlement_source="paid",
+                    reserved_until=reserved_until,
+                )
             waitlist.status = "promoted"
             await self.notifications.queue_class_promotion(
                 user=user,
@@ -601,37 +644,32 @@ class BookingService:
             return booking
         return None
 
-    async def _booking_item(
-        self,
-        *,
-        booking: ClassBooking,
-        gym_class: MemberClassItem,
-        window: int | None = None,
-    ) -> BookingItem:
-        return self._booking_item_with_window(
-            booking,
-            gym_class,
-            window if window is not None else await self.configuration.get_int("class_cancellation_window_hours"),
-        )
-
     @staticmethod
-    def _booking_item_with_window(
-        booking: ClassBooking,
-        gym_class: MemberClassItem,
-        window: int,
-    ) -> BookingItem:
+    def _booking_item_with_window(booking: ClassBooking, gym_class: MemberClassItem, window: int) -> BookingItem:
         cutoff = class_cancellation_cutoff(gym_class.start_at, window)
+        payment = booking.current_payment
+        invoice = payment.invoice if payment else None
         return BookingItem(
             id=booking.id,
             status=booking.status,
+            price_vnd=booking.price_vnd,
+            entitlement_source=booking.entitlement_source,
+            reserved_until=booking.reserved_until,
+            confirmed_at=booking.confirmed_at,
+            cancelled_at=booking.cancelled_at,
+            refund_status=booking.refund_status,
+            payment_id=payment.id if payment else None,
+            payment_status=payment.status if payment else None,
+            invoice_id=invoice.id if invoice else None,
+            invoice_download_url=f"/api/v1/billing/me/invoices/{invoice.id}" if invoice else None,
+            attended_at=booking.attended_at,
             created_at=booking.created_at,
             updated_at=booking.updated_at,
             cancellation_cutoff=cutoff,
             can_cancel=(
-                booking.status == "booked"
+                booking.status in {"pending_payment", "confirmed"}
                 and gym_class.status == "scheduled"
                 and gym_class.start_at > datetime.now(UTC)
-                and datetime.now(UTC) <= cutoff
             ),
             gym_class=gym_class,
         )
@@ -642,12 +680,14 @@ class BookingService:
         *,
         eligible: bool,
     ) -> MemberClassItem:
-        gym_class, trainer, confirmed, booking_id, booking_status, waitlist_status, waitlist_position = row
-        remaining = max(gym_class.capacity - confirmed, 0)
+        gym_class, trainer, occupied, booking_id, booking_status, waitlist_status, waitlist_position = row
+        remaining = max(gym_class.capacity - occupied, 0)
         if gym_class.status != "scheduled":
             state = "cancelled"
-        elif booking_status == "booked":
-            state = "booked"
+        elif booking_status == "confirmed":
+            state = "confirmed"
+        elif booking_status == "pending_payment":
+            state = "pending_payment"
         elif waitlist_status == "waiting":
             state = "waitlisted"
         elif not eligible:
@@ -664,9 +704,10 @@ class BookingService:
             start_at=gym_class.start_at,
             end_at=gym_class.end_at,
             capacity=gym_class.capacity,
+            price_vnd=gym_class.price_vnd,
             status=gym_class.status,
             location=gym_class.location,
-            confirmed_booking_count=confirmed,
+            confirmed_booking_count=occupied,
             remaining_capacity=remaining,
             trainer=TrainerService.public_item(trainer, []) if trainer else None,
             member_booking_id=booking_id,

@@ -185,7 +185,11 @@ class EmailDeliveryService:
                 continue
             delivery, user, membership, payment, invoice = context
             try:
-                message = self._membership_message(delivery, user, membership, payment, invoice)
+                message = (
+                    self._class_booking_message(delivery, user, payment, invoice)
+                    if delivery.template_type.startswith("class_booking_")
+                    else self._membership_message(delivery, user, membership, payment, invoice)
+                )
                 provider_reference = await asyncio.to_thread(self.transport.send, message)
             except Exception as exc:  # Never persist provider text, recipient, or credentials.
                 locked = await self.deliveries.get_for_update(delivery_id)
@@ -275,6 +279,47 @@ class EmailDeliveryService:
             f"<li>Transaction: {safe['transaction']}</li></ul><p><a href=\"{safe['url']}\">View invoice and membership</a></p>"
             "<p>Contact the gym team if any detail is incorrect. This mailbox may not be monitored.</p><p>YPGym Team</p>"
             "</body></html>",
+            subtype="html",
+        )
+        if is_invoice:
+            pdf_path = Path(invoice.pdf_path)
+            with pdf_path.open("rb") as attachment:
+                message.add_attachment(
+                    attachment.read(),
+                    maintype="application",
+                    subtype="pdf",
+                    filename=f"{invoice.invoice_number}.pdf",
+                )
+        return message
+
+    def _class_booking_message(self, delivery, user, payment, invoice) -> EmailMessage:
+        is_invoice = delivery.template_type == "class_booking_invoice"
+        invoice_url = f"{self.settings.FRONTEND_URL.rstrip('/')}/app/billing"
+        title = f"YPGym invoice {invoice.invoice_number}" if is_invoice else "Class booking confirmed"
+        message = self._base_message(delivery.recipient_email, title, delivery.idempotency_key.replace(":", "."))
+        session_time = invoice.service_start_at.strftime("%d %b %Y, %H:%M")
+        plain = (
+            f"Hi {user.name},\n\nYour booking for {invoice.product_name} is confirmed.\n"
+            f"Session: {session_time}\nInvoice: {invoice.invoice_number}\n"
+            f"Total paid: {format_vnd(invoice.amount)}\nPayment reference: {payment.mock_reference}\n"
+            f"View your booking and invoice: {invoice_url}\n\nYPGym Team\n"
+        )
+        message.set_content(plain)
+        safe = {key: html.escape(str(value), quote=True) for key, value in {
+            "name": user.name,
+            "class": invoice.product_name,
+            "time": session_time,
+            "invoice": invoice.invoice_number,
+            "total": format_vnd(invoice.amount),
+            "reference": payment.mock_reference,
+            "url": invoice_url,
+        }.items()}
+        message.add_alternative(
+            "<!doctype html><html><body>"
+            f"<p>Hi {safe['name']},</p><p>Your booking for <strong>{safe['class']}</strong> is confirmed.</p>"
+            f"<ul><li>Session: {safe['time']}</li><li>Invoice: {safe['invoice']}</li>"
+            f"<li>Total paid: {safe['total']}</li><li>Payment reference: {safe['reference']}</li></ul>"
+            f"<p><a href=\"{safe['url']}\">View booking and invoice</a></p><p>YPGym Team</p></body></html>",
             subtype="html",
         )
         if is_invoice:

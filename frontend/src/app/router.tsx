@@ -25,6 +25,7 @@ import { RegisterPage } from "@/features/auth/pages/RegisterPage";
 import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
 import { VerifyEmailPage } from "@/features/auth/pages/VerifyEmailPage";
 import { PaymentHistoryPage } from "@/features/billing/pages/PaymentHistoryPage";
+import { PaymentResultPage } from "@/features/billing/pages/PaymentResultPage";
 import { AdminClassesPage } from "@/features/classes/pages/AdminClassesPage";
 import { AdminTrainersPage } from "@/features/classes/pages/AdminTrainersPage";
 import { MemberClassesPage } from "@/features/classes/pages/MemberClassesPage";
@@ -76,6 +77,10 @@ export const router = createBrowserRouter([
   {
     path: "/app/billing",
     element: <ProtectedRoute><PaymentHistoryPage /></ProtectedRoute>,
+  },
+  {
+    path: "/app/payments/result",
+    element: <ProtectedRoute roles={["member"]}><PaymentResultPage /></ProtectedRoute>,
   },
   {
     path: "/app/qr",

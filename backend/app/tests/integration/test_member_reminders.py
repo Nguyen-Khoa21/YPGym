@@ -26,7 +26,7 @@ async def test_class_reminders_are_preference_aware_actionable_and_deduplicated(
         )
         session.add(gym_class)
         await session.flush()
-        bookings = [ClassBooking(class_id=gym_class.id, user_id=user.id, status="booked") for user in users]
+        bookings = [ClassBooking(class_id=gym_class.id, user_id=user.id, status="confirmed") for user in users]
         session.add_all([
             *bookings,
             NotificationPreference(user_id=users[1].id, class_reminders_enabled=False),

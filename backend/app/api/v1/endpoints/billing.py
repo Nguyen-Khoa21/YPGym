@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
@@ -53,7 +53,8 @@ async def download_my_invoice(
 
 @router.get("/admin/payments", response_model=list[AdminBillingItem])
 async def list_admin_payments(
-    current_user: Annotated[User, Depends(require_roles("admin"))],
+    current_user: Annotated[User, Depends(require_roles("staff", "manager", "admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
+    product_type: Literal["membership", "class_booking"] | None = None,
 ) -> list[AdminBillingItem]:
-    return await BillingService(session).list_admin_billing(current_user)
+    return await BillingService(session).list_admin_billing(current_user, product_type=product_type)

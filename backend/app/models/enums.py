@@ -26,8 +26,13 @@ class MembershipStatus(StrEnum):
 
 
 class PaymentStatus(StrEnum):
+    PENDING = "pending"
+    PAID = "paid"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+    PAID_REVIEW = "paid_review"
 
 
 class SystemConfigurationValueType(StrEnum):

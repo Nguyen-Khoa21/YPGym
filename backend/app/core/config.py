@@ -53,6 +53,22 @@ class Settings(BaseSettings):
     FACEBOOK_APP_ID: str = ""
     FACEBOOK_APP_SECRET: SecretStr = SecretStr("")
     FACEBOOK_GRAPH_API_VERSION: str = "v24.0"
+    VNPAY_ENABLED: bool | None = None
+    VNPAY_ENVIRONMENT: Literal["sandbox", "production"] = "sandbox"
+    VNPAY_TMN_CODE: str = ""
+    VNPAY_HASH_SECRET: SecretStr = SecretStr("")
+    VNPAY_PAYMENT_URL: str = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+    VNPAY_API_URL: str = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction"
+    VNPAY_RETURN_URL: str = ""
+    VNPAY_IPN_URL: str = ""
+    FRONTEND_PAYMENT_RESULT_URL: str = "http://localhost:5174/app/payments/result"
+    MOBILE_PAYMENT_RESULT_URL: str = "ypgym://payment-result"
+    VNPAY_TRANSACTION_TTL_MINUTES: int = Field(default=15, ge=5, le=60)
+
+    @field_validator("VNPAY_ENABLED", mode="before")
+    @classmethod
+    def empty_vnpay_enabled_is_auto(cls, value):
+        return None if value == "" else value
 
     @field_validator("GYM_TIMEZONE")
     @classmethod
@@ -113,6 +129,35 @@ class Settings(BaseSettings):
             if not self.FRONTEND_URL.startswith("https://") or not self.MOBILE_WEB_URL.startswith("https://") or not self.OAUTH_CALLBACK_BASE_URL.startswith("https://"):
                 raise ValueError("Production OAuth frontend, mobile web and callback URLs must use HTTPS.")
         return self
+
+    @model_validator(mode="after")
+    def validate_vnpay_configuration(self) -> "Settings":
+        secret = self.VNPAY_HASH_SECRET.get_secret_value()
+        configured = bool(self.VNPAY_TMN_CODE or secret or self.VNPAY_RETURN_URL or self.VNPAY_IPN_URL)
+        enabled = self.VNPAY_ENABLED if self.VNPAY_ENABLED is not None else configured
+        if not enabled:
+            return self
+        if not all((self.VNPAY_TMN_CODE, secret, self.VNPAY_PAYMENT_URL, self.VNPAY_API_URL, self.VNPAY_RETURN_URL, self.VNPAY_IPN_URL)):
+            raise ValueError("VNPay configuration is incomplete while VNPay is enabled.")
+        if len(self.VNPAY_TMN_CODE) != 8 or not self.VNPAY_TMN_CODE.isalnum():
+            raise ValueError("VNPAY_TMN_CODE must contain exactly 8 alphanumeric characters.")
+        for name, value in (
+            ("VNPAY_PAYMENT_URL", self.VNPAY_PAYMENT_URL),
+            ("VNPAY_API_URL", self.VNPAY_API_URL),
+            ("VNPAY_RETURN_URL", self.VNPAY_RETURN_URL),
+            ("VNPAY_IPN_URL", self.VNPAY_IPN_URL),
+        ):
+            if not value.startswith("https://"):
+                raise ValueError(f"{name} must use HTTPS.")
+        if self.VNPAY_ENVIRONMENT == "production" and "sandbox.vnpayment.vn" in self.VNPAY_PAYMENT_URL:
+            raise ValueError("Production VNPay cannot use the sandbox payment URL.")
+        return self
+
+    @property
+    def vnpay_enabled(self) -> bool:
+        if self.VNPAY_ENABLED is not None:
+            return self.VNPAY_ENABLED
+        return bool(self.VNPAY_TMN_CODE and self.VNPAY_HASH_SECRET.get_secret_value())
 
     model_config = SettingsConfigDict(
         env_file=".env",
