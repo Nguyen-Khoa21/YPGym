@@ -13,6 +13,12 @@ class UserRepository:
     async def get_by_id(self, user_id: UUID) -> User | None:
         return await self.session.get(User, user_id)
 
+    async def get_by_id_for_update(self, user_id: UUID) -> User | None:
+        result = await self.session.execute(
+            select(User).where(User.id == user_id).with_for_update(),
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_email(self, email: str) -> User | None:
         result = await self.session.execute(
             select(User).where(func.lower(User.email) == email.lower()),
@@ -33,6 +39,7 @@ class UserRepository:
         role: str,
         tier: str,
         is_email_verified: bool = False,
+        must_change_password: bool = False,
     ) -> User:
         user = User(
             name=name,
@@ -42,6 +49,7 @@ class UserRepository:
             role=role,
             tier=tier,
             is_email_verified=is_email_verified,
+            must_change_password=must_change_password,
         )
         self.session.add(user)
         await self.session.flush()

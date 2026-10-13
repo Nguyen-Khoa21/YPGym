@@ -54,6 +54,7 @@ class UserService:
                     400,
                 )
             current_user.password_hash = hash_password(payload.new_password)
+            current_user.must_change_password = False
 
         after = {"name": current_user.name, "phone": current_user.phone}
         if before != after or payload.new_password:

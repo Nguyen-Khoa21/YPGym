@@ -1,3 +1,4 @@
+import re
 from functools import lru_cache
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -64,6 +65,7 @@ class Settings(BaseSettings):
     FRONTEND_PAYMENT_RESULT_URL: str = "http://localhost:5174/app/payments/result"
     MOBILE_PAYMENT_RESULT_URL: str = "ypgym://payment-result"
     VNPAY_TRANSACTION_TTL_MINUTES: int = Field(default=15, ge=5, le=60)
+    STAFF_ACCOUNT_EMAIL_DOMAIN: str = "ypgym.dev"
 
     @field_validator("VNPAY_ENABLED", mode="before")
     @classmethod
@@ -77,6 +79,14 @@ class Settings(BaseSettings):
             ZoneInfo(value)
         except ZoneInfoNotFoundError as exc:
             raise ValueError("GYM_TIMEZONE must be a valid IANA timezone.") from exc
+        return value
+
+    @field_validator("STAFF_ACCOUNT_EMAIL_DOMAIN")
+    @classmethod
+    def validate_staff_account_email_domain(cls, value: str) -> str:
+        value = value.strip().lower().removeprefix("@")
+        if not re.fullmatch(r"[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?", value) or "." not in value:
+            raise ValueError("STAFF_ACCOUNT_EMAIL_DOMAIN must be a valid domain without @.")
         return value
 
     @field_validator(

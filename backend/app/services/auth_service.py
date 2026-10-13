@@ -215,6 +215,7 @@ class AuthService:
             raise AppError("INVALID_RESET_TOKEN", "The password reset link is invalid.", 400)
 
         user.password_hash = hash_password(new_password)
+        user.must_change_password = False
         record.used_at = now
         await self.session.commit()
 

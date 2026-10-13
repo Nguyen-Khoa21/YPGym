@@ -8,6 +8,7 @@ export type User = {
   role: UserRole;
   tier: "normal" | "advance" | "vip";
   is_email_verified: boolean;
+  must_change_password: boolean;
 };
 
 export type LoginResponse = {

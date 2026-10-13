@@ -37,7 +37,7 @@ export function LoginPage() {
       const user = await login(values.email, values.password);
       const fallback = workspacePathForRole(user.role);
       const from = (location.state as { from?: string } | null)?.from;
-      navigate(user.role === "member" && from ? from : fallback, { replace: true });
+      navigate(user.must_change_password ? "/change-password" : user.role === "member" && from ? from : fallback, { replace: true });
     } catch (caught) {
       setError(toUiError(caught));
     }

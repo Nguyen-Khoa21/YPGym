@@ -32,7 +32,9 @@ async def test_registration_verification_login_and_one_time_reset(client, storag
     payload = {"name": "Test member", "email": "journey@example.com", "phone": "123456789", "password": "Test-password-123"}
     registered = await client.post("/api/v1/auth/register", json=payload)
     assert registered.status_code == 201
-    assert "password" not in registered.text and verification not in registered.text
+    assert payload["password"] not in registered.text
+    assert "password_hash" not in registered.text
+    assert verification not in registered.text
     assert (await client.post("/api/v1/auth/register", json=payload)).status_code == 409
     assert (await client.post("/api/v1/auth/register", json={**payload, "email": "second@example.com"})).status_code == 409
     credentials = {"email": payload["email"], "password": payload["password"]}

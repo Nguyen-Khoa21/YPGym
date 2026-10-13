@@ -1,6 +1,6 @@
 # Post-Day-60 mobile and YPTrain tracker
 
-Updated October 8, 2026. This tracker covers the owner-approved post-Day-60 YPTrain roadmap. The completed Day 42–60 release remains recorded separately in `day-43-60-tracker.md`.
+Updated October 13, 2026. This tracker covers the owner-approved post-Day-60 YPTrain roadmap. The completed Day 42–60 release remains recorded separately in `day-43-60-tracker.md`.
 
 ## Discovery baseline
 
@@ -22,6 +22,7 @@ Updated October 8, 2026. This tracker covers the owner-approved post-Day-60 YPTr
 - Feature 7 verification: the isolated PostgreSQL/Redis suite **119 passed with seven existing Starlette deprecation warnings in 61.62 seconds**. Web lint/build, mobile typecheck/lint/nine Node tests/Android export, normal health and Alembic current/check pass. Responsive authenticated web and Expo-web QA covered empty calendar/week, map/list, metric disclosure and exercise-history empty state. Physical Android/iOS/phone rendering and populated-history client QA remain unverified.
 - Feature 8 data-only preparation adds a backend-derived deterministic weekly balance to the existing authenticated muscle-map response. Web and Expo label it **Rule-based summary · not AI**, list highest/lower weighted-set-exposure groups and repeat the no-prescription disclosure. The isolated suite passes **142 tests with 10 existing Starlette deprecation warnings**; web lint/build, mobile typecheck/lint and all **10 mobile tests** pass. No provider call, dependency, key, model or migration was added. Live guarded AI remains decision gated.
 - Feature 9 implements the approved better-of/first-successful-renewal policy. The backend calculates previous-complete-month QR attendance, reserves/consumes the benefit atomically, and snapshots the audit line on payments/invoices. Web and Expo display the same quote and billing result. Migration 0017, 147 backend tests, client checks and Android export pass; `docs/api/attendance-renewal-benefit.md` is the contract.
+- Feature 9 and its VNPay/paid-class prerequisites were pushed in combined billing commit `2431fd0`. Feature 10 adds manager-created individual staff/PT accounts, one-time temporary credentials, a first-login password gate, automatic PT-profile linkage, and audited UTC shift clocking/reporting. Migration 0018 and the full isolated suite pass **149 tests with 11 existing Starlette deprecation warnings**; web lint/build and authenticated manager browser review pass. Physical-device testing does not apply to this web-only slice.
 
 ## Existing dependency map
 
@@ -37,6 +38,7 @@ Updated October 8, 2026. This tracker covers the owner-approved post-Day-60 YPTr
 | YPTrain catalogue | Member web `/app/train`; Expo YPTrain tab/detail; manager web `/admin/exercises` | Shared `/training/exercises` and `/admin/training/exercises`; service/repository and controlled PostgreSQL exercise/muscle/image records; no member CRUD |
 | YPTrain daily workout | Same web/Expo exercise detail and YPTrain summary | Shared `/training/workouts/today`; PostgreSQL workout session/exercise/set rows linked to scanner attendance with server-side member/date/eligibility guards |
 | YPTrain history and muscle exposure | Web `/app/train` and exercise detail; Expo YPTrain tab/detail | Member-only history/day/exercise-history/muscle-map APIs derive activity, comparisons and weighted set exposure from attendance plus snapshotted workout sets |
+| Workforce accounts and shifts | Web `/admin/staff`, `/staff/time-clock`, and first-login `/change-password` | Manager/admin account provisioning and paginated reports; staff/PT own clock routes; PostgreSQL user locking, partial unique open-shift index, PT linkage and transactional audit |
 
 ## Feature slices
 
@@ -50,8 +52,8 @@ Updated October 8, 2026. This tracker covers the owner-approved post-Day-60 YPTr
 | 6. Attendance-linked workout logging | FR47–FR48 | Development verified; physical/native-device verification pending | Same-day scanner and membership gate, ownership, daily uniqueness, snapshots, idempotency/concurrency and normalized sets; isolated suite plus web/Expo parity and builds pass |
 | 7. History, comparisons and muscle map | FR49–FR50 | Development verified; physical/native-device verification pending | Shared weighted-set-exposure metric, paginated calendar/day detail, descriptive comparisons and accessible Monday–Sunday map pass isolated storage, client build/export and responsive web/Expo-web checks |
 | 8. Guarded weekly training review | FR51 | Partial; live AI decision gated | Shared deterministic data-only balance is implemented and explicitly labelled not AI; no approved provider or existing guarded FR39 pipeline has been verified |
-| 9. Attendance renewal discount | FR56 | Development verified; local commit blocked by overlapping prerequisite work | Better-of plan/10% rule, first-successful-renewal consumption, previous-month QR attendance, invoice snapshots and web/Expo parity pass isolated verification |
-| 10. Staff accounts and time clock | FR43, FR44 | Not started | Requires migration, RBAC, audit and first-login policy |
+| 9. Attendance renewal discount | FR56 | Pushed in combined billing commit `2431fd0` | Better-of plan/10% rule, first-successful-renewal consumption, previous-month QR attendance, invoice snapshots and web/Expo parity pass isolated verification |
+| 10. Staff accounts and time clock | FR43, FR44 | Development verified; included in the current Feature 10 checkpoint | Individual staff/PT provisioning, one-time credentials, first-login password replacement, PT linkage, one-open-shift enforcement, own history, manager filters/pagination/timezone rendering and audit pass the full isolated suite and web checks |
 | 11. Management UX corrections | FR43, FR54–FR55 | Not started | Reuses the current Sonner/query patterns and Feature 10 accounts |
 | 12. Integrated regression and release checkpoint | FR40–FR56 | Not started | Begins only after all functional slices and push gates |
 

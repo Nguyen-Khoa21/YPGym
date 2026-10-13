@@ -14,12 +14,13 @@ export function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-export function formatDateTime(value: string) {
+export function formatDateTime(value: string, timeZone?: string) {
   return new Intl.DateTimeFormat("en-MY", {
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone,
   }).format(new Date(value));
 }

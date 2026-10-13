@@ -12,6 +12,7 @@ class UserPublic(BaseModel):
     role: str
     tier: str
     is_email_verified: bool
+    must_change_password: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

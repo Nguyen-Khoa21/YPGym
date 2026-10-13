@@ -1,6 +1,6 @@
 # YPGym
 
-YPGym is a PostgreSQL/FastAPI/React gym-operations application. The connected web scope covers authentication and billing, membership lifecycle decisions, CRM, notifications, audited exports, system configuration, rotating QR attendance, occupancy and manager analytics, trainer profiles, transaction-safe class booking/waitlists, and an integrated member dashboard. The Day 43–47 Expo member app uses the same backend contracts; its documented Android emulator rehearsal covers the member journeys and session/error states listed in `docs/design/evidence/day-47-mobile/README.md`.
+YPGym is a PostgreSQL/FastAPI/React gym-operations application. The connected web scope covers authentication and billing, membership lifecycle decisions, CRM, notifications, audited exports, system configuration, rotating QR attendance, occupancy and manager analytics, individual workforce accounts and shifts, trainer profiles, transaction-safe class booking/waitlists, and an integrated member dashboard. The Day 43–47 Expo member app uses the same backend contracts; its documented Android emulator rehearsal covers the member journeys and session/error states listed in `docs/design/evidence/day-47-mobile/README.md`.
 
 The implementation follows `YPGym_60_Day_Development_Plan_Revised_PostgreSQL (1).md`. Detailed recovery evidence is in `docs/recovery/day-22-38-recovery-audit.md`; the current continuation contract is in `docs/HANDOFF.md`.
 
@@ -37,6 +37,8 @@ Operations routes:
 - `/admin/approvals`, `/admin/broadcasts`, `/admin/audit`, `/admin/settings` for manager/admin
 - `/admin/members`, `/admin/members/:id`, `/admin/billing`, `/admin/classes` for admin
 - `/admin/pt-assignments` for manager/admin trainer profile maintenance.
+- `/admin/staff` for manager/admin workforce account provisioning and shift reporting.
+- `/staff/time-clock` for staff/PT self-service clock-in, clock-out and recent shifts.
 
 The current feature set also includes the native member dashboard, rotating QR recovery, classes and booking/waitlist flows, renewal and invoice history, SecureStore session recovery, and a connected personal-trainer workspace. Release hardening covers isolated demo data, audited exports, bounded query review, role/ownership tests, and privacy-safe session/error handling.
 

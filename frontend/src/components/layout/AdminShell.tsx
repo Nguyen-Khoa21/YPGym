@@ -12,6 +12,7 @@ import {
   Settings2,
   ShieldCheck,
   UsersRound,
+  UserRoundCog,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -31,6 +32,8 @@ const adminNav = [
   { to: "/admin/settings", label: "Settings", icon: Settings2, roles: ["manager", "admin"] },
   { to: "/admin/pt-assignments", label: "PT profiles", icon: Dumbbell, roles: ["manager", "admin"] },
   { to: "/admin/exercises", label: "Exercises", icon: Dumbbell, roles: ["manager", "admin"] },
+  { to: "/admin/staff", label: "Staff & shifts", icon: UserRoundCog, roles: ["manager", "admin"] },
+  { to: "/staff/time-clock", label: "My time clock", icon: UserRoundCog, roles: ["staff"] },
 ];
 
 export function AdminShell({ children }: PropsWithChildren) {

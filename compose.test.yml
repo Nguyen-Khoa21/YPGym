@@ -39,6 +39,7 @@ services:
       VNPAY_IPN_URL: https://payments.example.test/api/v1/payments/vnpay/ipn
       FRONTEND_PAYMENT_RESULT_URL: http://localhost:5174/app/payments/result
       MOBILE_PAYMENT_RESULT_URL: ypgym://payment-result
+      STAFF_ACCOUNT_EMAIL_DOMAIN: ypgym.dev
     volumes:
       - ./backend:/app:ro
     tmpfs:

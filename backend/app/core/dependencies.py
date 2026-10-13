@@ -2,11 +2,11 @@ from collections.abc import Callable
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import AuthenticationError, PermissionDeniedError
+from app.core.exceptions import AppError, AuthenticationError, PermissionDeniedError
 from app.db.session import get_db_session
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
@@ -16,6 +16,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 async def get_current_user(
+    request: Request,
     token: Annotated[str, Depends(oauth2_scheme)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> User:
@@ -32,6 +33,13 @@ async def get_current_user(
     user = await UserRepository(session).get_by_id(parsed_user_id)
     if not user:
         raise AuthenticationError("The authenticated user could not be found.")
+
+    if user.must_change_password and not request.url.path.endswith(("/auth/me", "/users/me")):
+        raise AppError(
+            "PASSWORD_CHANGE_REQUIRED",
+            "Change your temporary password before continuing.",
+            403,
+        )
 
     return user
 

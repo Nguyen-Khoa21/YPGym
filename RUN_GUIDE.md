@@ -78,8 +78,8 @@ These are the public **local development seed accounts**, not production credent
 | Member | `member@ypgym.dev` | `YPGymDemo123!` | `/app/dashboard`: QR, classes, bookings, profile, billing, notifications |
 | Admin | `admin@ypgym.dev` | `YPGymDemo123!` | `/admin`: CRM, billing/exports, classes, approvals, trainers, analytics, audit, settings |
 | Manager | `manager@ypgym.dev` | `YPGymDemo123!` | `/admin`: attendance/analytics, approvals, trainers, broadcasts, audit, settings |
-| Staff | `staff@ypgym.dev` | `YPGymDemo123!` | `/admin`: attendance desk/history and manual closure |
-| Personal trainer | `pt@ypgym.dev` | `YPGymDemo123!` | `/pt/dashboard`: own linked profile and next-three assigned classes |
+| Staff | `staff@ypgym.dev` | `YPGymDemo123!` | `/staff/time-clock`: shift clock; `/admin/attendance`: attendance desk/history and manual closure |
+| Personal trainer | `pt@ypgym.dev` | `YPGymDemo123!` | `/pt/dashboard`: own linked profile/classes and link to `/staff/time-clock` |
 
 Open the login URL, enter one account, and sign out before testing another role. A manager cannot use admin-only CRM/billing/class scheduling, and staff cannot use manager analytics. PT access is a lightweight read-only workspace.
 
@@ -106,6 +106,17 @@ For a real sandbox callback, keep the Cloudflare tunnel running and update both 
 5. Complete VNPay sandbox checkout. A failed/cancelled/expired payment releases the benefit; the first successful renewal consumes it. Verify the stored breakdown on the payment result and `/app/billing` or the Expo invoices screen.
 
 Only `iot-simulator` QR check-ins count. Staff/manual attendance entries and repeated scans on the same local date do not increase the numerator. See `docs/api/attendance-renewal-benefit.md` for the exact contract and automated boundary/concurrency coverage.
+
+### Test individual staff/PT accounts and the time clock
+
+1. Sign in as `manager@ypgym.dev` or `admin@ypgym.dev` and open `http://localhost:5174/admin/staff`.
+2. Select **Create account**, choose Staff or Personal trainer, and enter a unique login name. YPGym generates the full internal login using `STAFF_ACCOUNT_EMAIL_DOMAIN`.
+3. Copy the temporary login and password from the one-time dialog. Close the dialog only after recording them in a private channel; the password cannot be retrieved later.
+4. Sign out and sign in with the new account. YPGym redirects to `/change-password` and blocks other protected operations until the temporary password is replaced.
+5. Open `/staff/time-clock`, clock in once, and confirm a second clock-in is rejected. Clock out and confirm the recent shift shows both timestamps and duration in `GYM_TIMEZONE`.
+6. Sign back in as manager/admin and open `/admin/staff`. Filter the shift report by name, role, status and date. Open `/admin/audit` to review account creation and clock events.
+
+PT provisioning also creates the linked trainer profile. Complete member-facing biography/specialty details under `/admin/pt-assignments`. The default `ypgym.dev` namespace is for local sign-in demonstrations and is not a claimed email mailbox domain; set an owned domain before implementing workforce email delivery. See `docs/api/staff-operations.md` for the exact security and concurrency contract.
 
 ## 4. Web development and production build on the host
 
@@ -395,9 +406,9 @@ For ordinary emulator networking return to section5B's `10.0.2.2` API URL. Adjus
 
 - **Member/web:** dashboard, valid QR countdown, independently paid class checkout/My Bookings, membership purchase, notifications, profile and invoice download. VNPay completion is confirmed by server IPN.
 - **Admin:** member CRM, product-filtered billing/CSV, class pricing, refund-resolution records, trainer assignments and audited actions.
-- **Manager:** attendance analytics, approvals, trainers, broadcast, audit and settings.
-- **Staff:** attendance history/manual closure; manager/admin actions should be denied.
-- **PT:** own profile and upcoming assigned classes.
+- **Manager:** staff account/shift reporting, attendance analytics, approvals, trainers, broadcast, audit and settings.
+- **Staff:** personal time clock plus attendance history/manual closure; manager/admin actions should be denied.
+- **PT:** own profile, upcoming assigned classes and personal time clock.
 - **Mobile/member:** Dashboard, QR, Classes, bookings, renewal/success/invoices and Profile; sign out and confirm session cleanup.
 
 An ineligible membership should not show a usable gym QR, but a verified account may still buy a separately priced class. Expired membership renewal follows backend policy. Profile email replacement remains unavailable; name/phone/password actions are supported. Native account-recovery and membership freeze/cancellation requests still use the web portal.

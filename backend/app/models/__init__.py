@@ -28,6 +28,7 @@ from app.models.operations import (
     NotificationPreference,
 )
 from app.models.system_configuration import SystemConfiguration
+from app.models.staff import StaffShift
 from app.models.training import TrainingExercise, TrainingExerciseImage, TrainingExerciseMuscle, WorkoutExercise, WorkoutSession, WorkoutSet
 from app.models.user import User
 
@@ -63,6 +64,7 @@ __all__ = [
     "RequestStatus",
     "SystemConfiguration",
     "SystemConfigurationValueType",
+    "StaffShift",
     "TrainingExercise",
     "TrainingExerciseImage",
     "TrainingExerciseMuscle",

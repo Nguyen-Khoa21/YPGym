@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, ClipboardCheck, ClipboardList, CreditCard, Dumbbell, Megaphone, Settings2, ShieldCheck, UsersRound } from "lucide-react";
+import { ArrowRight, CalendarDays, ClipboardCheck, ClipboardList, CreditCard, Dumbbell, Megaphone, Settings2, ShieldCheck, UserRoundCog, UsersRound } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { AdminShell } from "@/components/layout/AdminShell";
@@ -11,6 +11,8 @@ const areas = [
   { title: "Class schedule", detail: "Create, edit, filter, and cancel trainer-linked classes.", to: "/admin/classes", icon: CalendarDays, roles: ["admin"] },
   { title: "PT profiles", detail: "Maintain member-facing coach profiles and future class assignments.", to: "/admin/pt-assignments", icon: Dumbbell, roles: ["manager", "admin"] },
   { title: "YPTrain exercises", detail: "Maintain the shared member exercise guide, muscle tags and images.", to: "/admin/exercises", icon: Dumbbell, roles: ["manager", "admin"] },
+  { title: "Staff & shifts", detail: "Provision individual staff/PT sign-ins and review auditable shift records.", to: "/admin/staff", icon: UserRoundCog, roles: ["manager", "admin"] },
+  { title: "My time clock", detail: "Clock in or out and review your own recent shifts.", to: "/staff/time-clock", icon: UserRoundCog, roles: ["staff"] },
   { title: "Membership approvals", detail: "Review freeze and cancellation requests with required reasons and outcomes.", to: "/admin/approvals", icon: ClipboardCheck, roles: ["manager", "admin"] },
   { title: "Broadcasts", detail: "Publish preference-aware announcements with active periods.", to: "/admin/broadcasts", icon: Megaphone, roles: ["manager", "admin"] },
   { title: "Audit log", detail: "Review sensitive actions, actors, targets, reasons, and outcomes.", to: "/admin/audit", icon: ShieldCheck, roles: ["manager", "admin"] },

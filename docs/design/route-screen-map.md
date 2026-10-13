@@ -7,6 +7,7 @@ Primary UI references are the BRD Design Architecture document and its embedded 
 | Screen | Route | Role | API dependencies | Status through Day 42 |
 |---|---|---|---|---|
 | Home/auth/verification/reset | `/`, `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` | Public | `/auth/*` | Connected |
+| Required temporary-password replacement | `/change-password` | Authenticated workforce user | `/users/me` | Connected first-login gate; all other protected APIs remain blocked until replacement succeeds |
 | OAuth callback/account linking | `/oauth/callback`, `/auth/link-account` | Public one-time flow | provider callback/exchange and pending-link password/email confirmation | Connected first-attempt callback guard, expiry/replay/collision states, and explicit ownership proof |
 | Membership plans/policy/purchase | `/memberships`, `/policies/membership`, `/memberships/buy/:planId` | Public/member | `/membership-plans`, `/memberships/attendance-benefit/me`, `/payments/vnpay/create`, `/payments/{transaction_id}` | Connected; server-calculated previous-month attendance quote, better-of renewal pricing, VNPay checkout and server-confirmed result |
 | Member dashboard | `/app/dashboard` | Member | `/dashboard/me` | Connected composite with membership/QR, crowdedness, bookings/waitlists, notifications, broadcasts, quick actions, and complete account states |
@@ -43,6 +44,8 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 | Configuration | `/admin/settings` | Manager/admin | `/admin/configuration` | Connected validated editing and cache invalidation |
 | PT profiles | `/admin/pt-assignments` | Manager/admin | `/admin/trainers`, `/admin/classes/trainers` | Connected create/edit/deactivate, active/inactive filters, assigned-class deactivation guard, confirmation, and audit |
 | YPTrain catalogue | `/admin/exercises` | Manager/admin | `/admin/training/exercises`, image upload | Shared record create/edit/archive/restore, search/filter, validated image replacement and audit |
+| Workforce accounts and shift report | `/admin/staff` | Manager/admin | `/admin/staff-accounts`, `/admin/staff-shifts` | Connected one-time credential provisioning, PT linkage, search/role/status/local-date filters and pagination |
+| Staff time clock | `/staff/time-clock` | Staff/PT | `/staff/shifts/me`, clock-in/out | Connected server UTC timestamps, one-open-shift constraint, audit and gym-timezone presentation |
 | PT dashboard | `/pt/dashboard` | PT | Auth role | Intentionally lightweight protected landing page; payroll/client-programming scope is not fabricated |
 
 ## Attendance field mapping

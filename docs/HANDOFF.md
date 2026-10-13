@@ -1,6 +1,16 @@
 # YPGym Handoff
 
-Last updated: 2026-10-13, combined billing work prepared for a local commit after full verification.
+Last updated: 2026-10-13, Feature 10 staff accounts and time clock verified for the current checkpoint.
+
+## October 13 continuation — Feature 10 staff accounts and time clock
+
+- Managers and administrators can create distinct staff or personal-trainer sign-ins at `/admin/staff`. The service reuses the canonical user/password/role system, generates a strong temporary password with Python `secrets`, stores only its hash, reveals it once to the creating manager, rejects admin/manager role escalation, and writes the account audit record in the same transaction. New PT accounts receive an active linked trainer profile.
+- Workforce users must replace the temporary password at `/change-password` before other protected APIs or screens become available. The established authenticated password-change path clears this gate. Shared seeded staff/PT credentials remain development demonstrations only.
+- Staff and PT users can clock in/out at `/staff/time-clock` using server UTC timestamps and can view their current/recent shifts. User-row locking plus a PostgreSQL partial unique index enforce one open shift per user under concurrent requests. Managers can filter and paginate reports by name/login, role, shift state, and gym-local date; clients render returned UTC timestamps in `GYM_TIMEZONE`.
+- Migration `20261013_0018_staff_accounts_shifts.py` is reversible and metadata-clean. The normal database is at `20261013_0018 (head)`. The isolated upgrade/downgrade/upgrade check passed, and the full isolated PostgreSQL/Redis suite passed **149 tests with 11 existing Starlette deprecation warnings**. Focused workforce/account coverage passed together with the account journey tests.
+- Web lint and production build pass with the existing TanStack Compiler and large-chunk warnings. Authenticated browser review rendered account controls, seeded workforce rows, filters, timezone disclosure, and the empty shift-report state at `/admin/staff`. The local Vite client still reports the pre-existing HMR WebSocket warning while the HTTP-rendered page and API remain functional.
+- Contract and manual procedure: `docs/api/staff-operations.md` and `RUN_GUIDE.md`. `STAFF_ACCOUNT_EMAIL_DOMAIN` controls the internal sign-in namespace; it does not claim mailbox delivery. Public shift correction is deliberately omitted so timestamps cannot be changed through an unaudited path. No dependency was added.
+- Feature 9 and its billing prerequisites are already pushed as `2431fd0`. Feature 10 is the only current checkpoint scope; unrelated local Compose, documentation, training-card and Vite edits remain outside it. Feature 11 remains the next slice and was not started here.
 
 ## October 12 continuation — Feature 9 attendance renewal benefit
 

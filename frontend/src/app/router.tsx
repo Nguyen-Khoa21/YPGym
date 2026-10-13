@@ -18,6 +18,7 @@ import { AdminMembersPage } from "@/features/admin/pages/AdminMembersPage";
 import { AdminSettingsPage } from "@/features/admin/pages/AdminSettingsPage";
 import { ForgotPasswordPage } from "@/features/auth/pages/ForgotPasswordPage";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
+import { ChangePasswordPage } from "@/features/auth/pages/ChangePasswordPage";
 import { OAuthCallbackPage } from "@/features/auth/pages/OAuthCallbackPage";
 import { OAuthLinkAccountPage } from "@/features/auth/pages/OAuthLinkAccountPage";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
@@ -42,6 +43,8 @@ import { BuyMembershipPage } from "@/features/memberships/pages/BuyMembershipPag
 import { MembershipPlansPage } from "@/features/memberships/pages/MembershipPlansPage";
 import { AdminTrainingPage } from "@/features/training/pages/AdminTrainingPage";
 import { MemberTrainingPage } from "@/features/training/pages/MemberTrainingPage";
+import { AdminStaffPage } from "@/features/admin/pages/AdminStaffPage";
+import { StaffTimeClockPage } from "@/features/staff/pages/StaffTimeClockPage";
 
 const operationsRoles = ["admin", "manager", "staff"] as const;
 const managerRoles = ["admin", "manager"] as const;
@@ -50,6 +53,7 @@ export const router = createBrowserRouter([
   { path: "/", element: <HomePage /> },
   { path: "/register", element: <RegisterPage /> },
   { path: "/login", element: <LoginPage /> },
+  { path: "/change-password", element: <ProtectedRoute><ChangePasswordPage /></ProtectedRoute> },
   { path: "/oauth/callback", element: <OAuthCallbackPage /> },
   { path: "/auth/link-account", element: <OAuthLinkAccountPage /> },
   { path: "/forgot-password", element: <ForgotPasswordPage /> },
@@ -169,6 +173,14 @@ export const router = createBrowserRouter([
   {
     path: "/admin/exercises",
     element: <ProtectedRoute roles={[...managerRoles]}><AdminTrainingPage /></ProtectedRoute>,
+  },
+  {
+    path: "/admin/staff",
+    element: <ProtectedRoute roles={[...managerRoles]}><AdminStaffPage /></ProtectedRoute>,
+  },
+  {
+    path: "/staff/time-clock",
+    element: <ProtectedRoute roles={["staff", "pt"]}><StaffTimeClockPage /></ProtectedRoute>,
   },
   {
     path: "/pt/dashboard",

@@ -7,8 +7,8 @@ Created September 20, 2026 and revised September 21, 2026 for the owner-approved
 | FR40 | Reliable mobile back navigation, session restoration and logout | Verified in Feature 1 on an Android emulator; physical-device and iOS verification remain pending | Feature 1 |
 | FR41 | Mobile membership purchase/renewal/cancellation state consistency | Verified across Features 1 and 3, including registration/verification, plans, server-backed membership registration/renewal, invoices, lifecycle requests, live membership/QR/attendance/crowdedness and class booking/waitlists; external card settlement remains unconfigured | Features 1, 3 and current YPTrain operations update |
 | FR42 | Upcoming booked-class reminders and notification navigation | Verified for preference-aware deduplicated in-app reminders and booking navigation; device push remains credential/environment gated | Feature 3 |
-| FR43 | Individual manager-created staff and trainer accounts | Planned | Feature 10 |
-| FR44 | Staff clock-in/clock-out records and manager reporting | Planned | Feature 10 |
+| FR43 | Individual manager-created staff and trainer accounts | Implemented with manager/admin-only provisioning, one-time strong temporary credentials, required first-login replacement, automatic PT profile linkage and transactional audit | Feature 10 |
+| FR44 | Staff clock-in/clock-out records and manager reporting | Implemented with server UTC timestamps, database-enforced one-open-shift rule, own history, manager filters/pagination, gym-timezone rendering and transactional audit | Feature 10 |
 | FR45 | Admin machine/exercise catalogue management | Implemented in Feature 5; isolated and client verification recorded in the tracker | Feature 5 |
 | FR46 | Upper/lower exercise browse and search | Implemented against one member API on web and Expo | Feature 5 |
 | FR47 | Guided exercise logging with 1–10 sets, reps and weight | Implemented on web and Expo against one member API; physical/native-device verification remains pending | Feature 6 |
@@ -54,6 +54,15 @@ The default gym timezone is `Asia/Ho_Chi_Minh`, validated as an IANA timezone. A
 | FR53 | Registration transaction creates one deduplicated PostgreSQL welcome-email intent; Celery sends via development Maildir or configurable SMTP, with bounded retries and private failure logs. Verification/reset messages use the configured transport without changing token hashing or one-time use. | `test_account_journey.py` registration, duplicate, escaped HTML, link/token and retry cases; `test_email_delivery.py` SMTP/auth/configuration checks; full isolated backend suite and normal-stack migration/worker check. External SMTP delivery is not claimed. |
 
 The YPTrain Features 5–9 replace all previously proposed food catalogue, cart, checkout, stock, delivery, review and payment work. No YPFood schema, API or client implementation exists or is planned.
+
+## Feature 10 traceability
+
+| Requirement | Implementation | Verification |
+|---|---|---|
+| FR43 | Existing `users` authentication with generated internal login, immediately hashed temporary password, `must_change_password` gate and automatic `personal_trainers` link for PT; manager/admin web workflow at `/admin/staff` | `test_staff_operations.py` covers RBAC, escalation rejection, uniqueness, password secrecy/replacement, PT linkage and audit; web lint/build |
+| FR44 | `staff_shifts` with server UTC timestamps, time-order check, partial unique open-shift index, locked clock mutations, self-service `/staff/time-clock` and filtered manager report | Real PostgreSQL concurrent clock-in, own-data/RBAC, clock-out, audit and gym-local date tests; Alembic and web checks |
+
+`STAFF_ACCOUNT_EMAIL_DOMAIN` defaults to the existing local `ypgym.dev` demonstration namespace. It is a login identifier, not a claim that staff mailboxes exist. Shift corrections are not exposed; adding them later requires reasoned before/after audit data.
 
 ## Feature 5 traceability
 

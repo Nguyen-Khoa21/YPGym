@@ -367,3 +367,50 @@ export type MemberDashboardPayload = {
   active_broadcasts: Broadcast[];
   quick_actions: { key: string; label: string; target: string; enabled: boolean; reason: string | null }[];
 };
+
+export type StaffAccount = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: "staff" | "pt";
+  must_change_password: boolean;
+  trainer_profile_id: string | null;
+  created_at: string;
+};
+
+export type StaffAccountPage = {
+  items: StaffAccount[];
+  page: PageInfo;
+  internal_email_domain: string;
+};
+
+export type StaffAccountCreated = {
+  account: StaffAccount;
+  temporary_password: string;
+  message: string;
+};
+
+export type StaffShift = {
+  id: string;
+  user_id: string;
+  staff_name: string;
+  staff_email: string;
+  role: "staff" | "pt";
+  clocked_in_at: string;
+  clocked_out_at: string | null;
+  duration_minutes: number;
+  status: "open" | "closed";
+};
+
+export type MyStaffShifts = {
+  open_shift: StaffShift | null;
+  recent_shifts: StaffShift[];
+  gym_timezone: string;
+};
+
+export type StaffShiftPage = {
+  items: StaffShift[];
+  page: PageInfo;
+  gym_timezone: string;
+};

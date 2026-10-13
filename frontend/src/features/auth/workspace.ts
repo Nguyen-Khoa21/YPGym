@@ -3,7 +3,7 @@ import type { UserRole } from "@/types/api";
 const workspacePaths: Record<UserRole, string> = {
   admin: "/admin",
   manager: "/admin",
-  staff: "/admin",
+  staff: "/staff/time-clock",
   pt: "/pt/dashboard",
   member: "/app/dashboard",
 };

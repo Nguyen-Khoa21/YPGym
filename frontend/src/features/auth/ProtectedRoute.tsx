@@ -28,6 +28,10 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
     return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
   }
 
+  if (user.must_change_password && location.pathname !== "/change-password") {
+    return <Navigate to="/change-password" replace />;
+  }
+
   if (roles?.length && !roles.includes(user.role)) {
     return <Navigate to="/permission-denied" replace state={{ from: location.pathname }} />;
   }
