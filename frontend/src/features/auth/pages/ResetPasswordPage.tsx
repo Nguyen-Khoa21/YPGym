@@ -10,7 +10,7 @@ import { AuthShell } from "@/components/layout/AuthShell";
 import { Button } from "@/components/ui/Button";
 import { Field, FieldError, Input, Label } from "@/components/ui/Form";
 import { apiRequest } from "@/lib/apiClient";
-import { toUiError, type UiError } from "@/lib/apiErrors";
+import { applyApiFieldErrors, toUiError, type UiError } from "@/lib/apiErrors";
 
 const schema = z.object({ new_password: z.string().min(8, "Password must be at least 8 characters."), confirm_password: z.string().min(8, "Confirm your password.") }).refine((values) => values.new_password === values.confirm_password, { message: "Passwords do not match.", path: ["confirm_password"] });
 type ResetPasswordForm = z.infer<typeof schema>;
@@ -34,7 +34,9 @@ export function ResetPasswordPage() {
       setSuccess(response.message);
       form.reset();
     } catch (caught) {
-      setError(toUiError(caught));
+      if (!applyApiFieldErrors(caught, form.setError, ["new_password"])) {
+        setError(toUiError(caught));
+      }
     }
   }
 

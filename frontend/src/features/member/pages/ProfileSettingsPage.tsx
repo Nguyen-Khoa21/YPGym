@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Field, FieldError, Input, Label } from "@/components/ui/Form";
 import { useAuth } from "@/features/auth/AuthContext";
 import { apiRequest } from "@/lib/apiClient";
-import { toUiError, type UiError } from "@/lib/apiErrors";
+import { applyApiFieldErrors, toUiError, type UiError } from "@/lib/apiErrors";
 import { queryClient } from "@/lib/queryClient";
 import type { User } from "@/types/api";
 
@@ -51,7 +51,11 @@ export function ProfileSettingsPage() {
       form.reset({ name: values.name, phone: values.phone, current_password: "", new_password: "" });
       toast.success("Profile updated");
     },
-    onError: (caught) => setError(toUiError(caught)),
+    onError: (caught) => {
+      if (!applyApiFieldErrors(caught, form.setError, ["name", "phone", "current_password", "new_password"])) {
+        setError(toUiError(caught));
+      }
+    },
   });
 
   function onSubmit(values: ProfileForm) { setError(null); updateProfile.mutate(values); }

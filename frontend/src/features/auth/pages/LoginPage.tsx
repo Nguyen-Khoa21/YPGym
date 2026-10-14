@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Field, FieldError, Input, Label } from "@/components/ui/Form";
 import { useAuth } from "@/features/auth/AuthContext";
 import { workspacePathForRole } from "@/features/auth/workspace";
-import { toUiError, type UiError } from "@/lib/apiErrors";
+import { applyApiFieldErrors, toUiError, type UiError } from "@/lib/apiErrors";
 import { SocialLoginButtons } from "@/features/auth/SocialLoginButtons";
 
 const schema = z.object({
@@ -39,7 +39,9 @@ export function LoginPage() {
       const from = (location.state as { from?: string } | null)?.from;
       navigate(user.must_change_password ? "/change-password" : user.role === "member" && from ? from : fallback, { replace: true });
     } catch (caught) {
-      setError(toUiError(caught));
+      if (!applyApiFieldErrors(caught, form.setError, ["email", "password"])) {
+        setError(toUiError(caught));
+      }
     }
   }
 

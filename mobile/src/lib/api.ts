@@ -1,5 +1,23 @@
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number, readonly code: string) { super(message); }
+  readonly status: number;
+  readonly code: string;
+  readonly details: unknown;
+  readonly requestId?: string;
+
+  constructor(
+    message: string,
+    status: number,
+    code: string,
+    details: unknown = null,
+    requestId?: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.details = details;
+    this.requestId = requestId;
+  }
 }
 
 const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '');
@@ -21,13 +39,19 @@ export async function apiRequest<T>(path: string, token?: string | null, options
   }
   const data: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    const payload = data as { error?: { code?: string; message?: string } } | null;
-    throw new ApiError(payload?.error?.message ?? `Request failed (${response.status}).`, response.status, payload?.error?.code ?? 'HTTP_ERROR');
+    const payload = data as { error?: { code?: string; message?: string; details?: unknown } } | null;
+    throw new ApiError(
+      payload?.error?.message ?? 'The request could not be completed.',
+      response.status,
+      payload?.error?.code ?? 'HTTP_ERROR',
+      payload?.error?.details ?? null,
+      response.headers.get('x-request-id') || undefined,
+    );
   }
   return data as T;
 }
 
-export function errorMessage(error: unknown) { return error instanceof Error ? error.message : 'Something went wrong. Please try again.'; }
+export function errorMessage(error: unknown) { return error instanceof ApiError ? error.message : 'Something went wrong. Please try again.'; }
 export const formatMoney = (amount: string | number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(Number(amount));
 export const GYM_TIMEZONE = process.env.EXPO_PUBLIC_GYM_TIMEZONE || 'Asia/Ho_Chi_Minh';
 export const formatDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)

@@ -13,7 +13,7 @@ import { Field, FieldError, Input, Label } from "@/components/ui/Form";
 import { useAuth } from "@/features/auth/AuthContext";
 import { workspacePathForRole } from "@/features/auth/workspace";
 import { apiRequest } from "@/lib/apiClient";
-import { toUiError, type UiError } from "@/lib/apiErrors";
+import { applyApiFieldErrors, toUiError, type UiError } from "@/lib/apiErrors";
 import type { User } from "@/types/api";
 
 const schema = z.object({
@@ -48,7 +48,9 @@ export function ChangePasswordPage() {
       toast.success("Password changed");
       navigate(workspacePathForRole(user!.role), { replace: true });
     } catch (caught) {
-      setError(toUiError(caught));
+      if (!applyApiFieldErrors(caught, form.setError, ["current_password", "new_password"])) {
+        setError(toUiError(caught));
+      }
     }
   }
 

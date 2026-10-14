@@ -10,7 +10,7 @@ import { AuthShell } from "@/components/layout/AuthShell";
 import { Button } from "@/components/ui/Button";
 import { Field, FieldError, Input, Label } from "@/components/ui/Form";
 import { apiRequest } from "@/lib/apiClient";
-import { toUiError, type UiError } from "@/lib/apiErrors";
+import { applyApiFieldErrors, toUiError, type UiError } from "@/lib/apiErrors";
 
 const schema = z.object({ email: z.string().email("Enter a valid email address.") });
 type ForgotPasswordForm = z.infer<typeof schema>;
@@ -28,7 +28,9 @@ export function ForgotPasswordPage() {
       setSuccess(response.message);
       form.reset();
     } catch (caught) {
-      setError(toUiError(caught));
+      if (!applyApiFieldErrors(caught, form.setError, ["email"])) {
+        setError(toUiError(caught));
+      }
     }
   }
 

@@ -10,7 +10,7 @@ import { AuthShell } from "@/components/layout/AuthShell";
 import { Button } from "@/components/ui/Button";
 import { Field, FieldError, Input, Label } from "@/components/ui/Form";
 import { apiRequest } from "@/lib/apiClient";
-import { toUiError, type UiError } from "@/lib/apiErrors";
+import { applyApiFieldErrors, toUiError, type UiError } from "@/lib/apiErrors";
 import type { User } from "@/types/api";
 import { SocialLoginButtons } from "@/features/auth/SocialLoginButtons";
 
@@ -40,7 +40,9 @@ export function RegisterPage() {
       setRegistered(response);
       form.reset();
     } catch (caught) {
-      setError(toUiError(caught));
+      if (!applyApiFieldErrors(caught, form.setError, ["name", "email", "phone", "password"])) {
+        setError(toUiError(caught));
+      }
     }
   }
 

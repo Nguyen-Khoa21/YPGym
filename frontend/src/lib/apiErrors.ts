@@ -1,3 +1,5 @@
+import type { FieldValues, Path, UseFormSetError } from "react-hook-form";
+
 export type ApiErrorCode =
   | "VALIDATION_ERROR"
   | "AUTHENTICATION_REQUIRED"
@@ -17,11 +19,35 @@ export type ApiErrorPayload = {
   };
 };
 
+export class ApiError extends Error {
+  readonly code: ApiErrorCode | string;
+  readonly status: number;
+  readonly details: unknown;
+  readonly requestId?: string;
+
+  constructor(
+    code: ApiErrorCode | string,
+    message: string,
+    status: number,
+    details: unknown = null,
+    requestId?: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.status = status;
+    this.details = details;
+    this.requestId = requestId;
+  }
+}
+
 export type UiError = {
   code: ApiErrorCode | string;
   title: string;
   message: string;
   details?: unknown;
+  status?: number;
+  requestId?: string;
 };
 
 const fallbackMessages: Record<ApiErrorCode, string> = {
@@ -37,6 +63,20 @@ const fallbackMessages: Record<ApiErrorCode, string> = {
 };
 
 export function toUiError(error: unknown): UiError {
+  if (error instanceof ApiError) {
+    return {
+      code: error.code,
+      title: codeToTitle(error.code),
+      message:
+        error.message ||
+        fallbackMessages[error.code as ApiErrorCode] ||
+        fallbackMessages.UNKNOWN_ERROR,
+      details: error.details,
+      status: error.status,
+      requestId: error.requestId,
+    };
+  }
+
   if (isApiErrorPayload(error)) {
     const code = error.error.code;
     return {
@@ -52,9 +92,9 @@ export function toUiError(error: unknown): UiError {
 
   if (error instanceof Error) {
     return {
-      code: "NETWORK_ERROR",
-      title: "Request failed",
-      message: error.message || fallbackMessages.NETWORK_ERROR,
+      code: "UNKNOWN_ERROR",
+      title: "Unexpected error",
+      message: fallbackMessages.UNKNOWN_ERROR,
     };
   }
 
@@ -63,6 +103,36 @@ export function toUiError(error: unknown): UiError {
     title: "Unexpected error",
     message: fallbackMessages.UNKNOWN_ERROR,
   };
+}
+
+type ValidationIssue = {
+  loc?: unknown;
+  msg?: unknown;
+};
+
+export function applyApiFieldErrors<T extends FieldValues>(
+  error: unknown,
+  setError: UseFormSetError<T>,
+  allowedFields: readonly Path<T>[],
+): boolean {
+  const uiError = toUiError(error);
+  if (uiError.code !== "VALIDATION_ERROR" || !Array.isArray(uiError.details)) {
+    return false;
+  }
+
+  const allowed = new Set<string>(allowedFields);
+  let mapped = false;
+  for (const issue of uiError.details as ValidationIssue[]) {
+    if (!Array.isArray(issue.loc) || typeof issue.msg !== "string") continue;
+    const path = issue.loc
+      .filter((part) => part !== "body")
+      .map(String)
+      .join(".");
+    if (!allowed.has(path)) continue;
+    setError(path as Path<T>, { type: "server", message: issue.msg });
+    mapped = true;
+  }
+  return mapped;
 }
 
 function isApiErrorPayload(value: unknown): value is ApiErrorPayload {

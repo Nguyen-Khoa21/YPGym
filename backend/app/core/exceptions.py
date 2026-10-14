@@ -18,6 +18,7 @@ class AppError(Exception):
         status_code: int = status.HTTP_400_BAD_REQUEST,
         details: Any = None,
     ) -> None:
+        super().__init__(message)
         self.code = code
         self.message = message
         self.status_code = status_code
