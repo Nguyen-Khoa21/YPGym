@@ -6,11 +6,14 @@ PostgreSQL remains authoritative for users, roles and durable transactions; Redi
 
 | Family | Scope | Limit / window |
 |---|---|---|
+| Registration | Hashed client IP; also hashed IP + normalized email | 10/hour per IP; 3/hour per pair |
+| Email verification | Hashed client IP; also hashed one-time token | 60/15 minutes per IP; 10/15 minutes per token |
 | Login | Hashed client IP; also hashed IP + normalized email | 60/minute per IP; 10/minute per pair |
 | Forgot password | Hashed client IP; also hashed IP + normalized email | 20/15 minutes per IP; 5/15 minutes per pair |
+| Password reset confirmation | Hashed client IP; also hashed one-time token | 20/15 minutes per IP; 5/15 minutes per token |
 | Scanner check-in/out combined | Hashed IP before authentication; hashed device ID after valid active-device credentials | 120/minute per IP; 60/minute per authenticated device |
 
-Redis Lua combines the bounded counter and expiry atomically and repairs keys missing expiry. Denials do not extend windows. Over-limit responses are 429 with Retry-After and matching error details; Redis failures return 503 before sensitive work. Invalid credentials cannot consume a device's authenticated budget. Varying email cannot bypass the IP guard. Counters contain no raw passwords, addresses, tokens or QR material.
+Redis Lua combines the bounded counter and expiry atomically and repairs keys missing expiry. Denials do not extend windows. Over-limit responses are 429 with Retry-After and matching error details; Redis failures return 503 before sensitive work. Invalid credentials cannot consume a device's authenticated budget. Varying email cannot bypass the IP guard. Registration, verification and reset counters are enforced before account or token work. Counters contain no raw passwords, addresses, tokens or QR material.
 
 Limits use the client address provided by ASGI. Any deployment behind a proxy must explicitly configure trusted proxies and verify address attribution. Shared NATs share a budget. The local benchmark retains these controls.
 

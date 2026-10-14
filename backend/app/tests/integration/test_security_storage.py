@@ -54,6 +54,34 @@ async def test_forgot_password_limit_and_neutral_response(client):
     assert (await client.post("/api/v1/auth/forgot-password", json={"email": "absent@example.com"})).status_code == 429
 
 
+async def test_registration_verification_and_reset_limits_use_hashed_keys(client, storage):
+    _, redis = storage
+    registration = {
+        "name": "Rate limited member",
+        "email": "rate-limited@example.com",
+        "phone": "1234567890",
+        "password": "StrongPassword123!",
+    }
+    assert (await client.post("/api/v1/auth/register", json=registration)).status_code == 201
+    for _ in range(2):
+        assert (await client.post("/api/v1/auth/register", json=registration)).status_code == 409
+    assert (await client.post("/api/v1/auth/register", json=registration)).status_code == 429
+
+    verification_token = "invalid-verification-token"
+    for _ in range(10):
+        assert (await client.get("/api/v1/auth/verify-email", params={"token": verification_token})).status_code == 400
+    assert (await client.get("/api/v1/auth/verify-email", params={"token": verification_token})).status_code == 429
+
+    reset_payload = {"token": "invalid-password-reset-token", "new_password": "ReplacementPassword123!"}
+    for _ in range(5):
+        assert (await client.post("/api/v1/auth/reset-password", json=reset_payload)).status_code == 400
+    assert (await client.post("/api/v1/auth/reset-password", json=reset_payload)).status_code == 429
+
+    keys = [key async for key in redis.scan_iter(match="ypgym:rate:*")]
+    assert keys
+    assert all(registration["email"] not in key and verification_token not in key and reset_payload["token"] not in key for key in keys)
+
+
 async def test_invalid_scanner_key_cannot_exhaust_authenticated_device_budget(client, storage):
     sessions, redis = storage
     async with sessions() as session:

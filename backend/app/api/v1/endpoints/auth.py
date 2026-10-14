@@ -30,16 +30,27 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/register", response_model=RegisterResponse, status_code=201)
 async def register(
     payload: RegisterRequest,
+    request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
 ) -> RegisterResponse:
+    client = request.client.host if request.client else "unknown"
+    await rate_limits.enforce(redis, key=f"ypgym:rate:register:ip:{hash_token(client)}", limit=10, window_seconds=3600)
+    rate_key = hash_token(f"{client}:{payload.email.lower()}")
+    await rate_limits.enforce(redis, key=f"ypgym:rate:register:{rate_key}", limit=3, window_seconds=3600)
     return await AuthService(session).register(payload)
 
 
 @router.get("/verify-email", response_model=VerifyEmailResponse)
 async def verify_email(
     token: Annotated[str, Query(min_length=16)],
+    request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
 ) -> VerifyEmailResponse:
+    client = request.client.host if request.client else "unknown"
+    await rate_limits.enforce(redis, key=f"ypgym:rate:verify:ip:{hash_token(client)}", limit=60, window_seconds=900)
+    await rate_limits.enforce(redis, key=f"ypgym:rate:verify:token:{hash_token(token)}", limit=10, window_seconds=900)
     return await AuthService(session).verify_email(token)
 
 
@@ -92,8 +103,13 @@ async def forgot_password(
 @router.post("/reset-password", response_model=ResetPasswordResponse)
 async def reset_password(
     payload: ResetPasswordRequest,
+    request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
 ) -> ResetPasswordResponse:
+    client = request.client.host if request.client else "unknown"
+    await rate_limits.enforce(redis, key=f"ypgym:rate:reset:ip:{hash_token(client)}", limit=20, window_seconds=900)
+    await rate_limits.enforce(redis, key=f"ypgym:rate:reset:token:{hash_token(payload.token)}", limit=5, window_seconds=900)
     return await AuthService(session).reset_password(
         token=payload.token,
         new_password=payload.new_password,
