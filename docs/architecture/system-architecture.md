@@ -2,6 +2,7 @@
 
 The architecture's object-oriented principles and named implementation patterns are documented in
 [`oop-and-design-patterns.md`](oop-and-design-patterns.md).
+Critical lifecycle rules are documented in [`state-transitions.md`](state-transitions.md).
 
 ## Release runtime topology (web and native member clients)
 

@@ -29,6 +29,7 @@ from app.schemas.membership_schema import (
     PurchaseMembershipResponse,
 )
 from app.services.invoice_service import InvoicePdfService
+from app.services.state_transitions import transition_membership
 
 
 class MembershipService:
@@ -209,7 +210,7 @@ class MembershipService:
             current_membership.expiry_date = current_membership.expiry_date + timedelta(
                 days=plan.duration_days,
             )
-            current_membership.status = MembershipStatus.ACTIVE.value
+            transition_membership(current_membership, MembershipStatus.ACTIVE, idempotent=True)
             membership = current_membership
         else:
             membership = await self.memberships.create(
@@ -357,7 +358,7 @@ class MembershipService:
             coverage_start_date = current_membership.expiry_date + timedelta(days=1)
             current_membership.plan_id = plan.id
             current_membership.expiry_date += timedelta(days=plan.duration_days)
-            current_membership.status = MembershipStatus.ACTIVE.value
+            transition_membership(current_membership, MembershipStatus.ACTIVE, idempotent=True)
             membership = current_membership
         else:
             membership = await self.memberships.create(

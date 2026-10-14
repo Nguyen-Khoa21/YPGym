@@ -7,6 +7,7 @@ from redis.asyncio import Redis
 
 from app.core.exceptions import AppError, ConflictError, ResourceNotFoundError
 from app.models.classes import ClassBooking, ClassWaitlist, GymClass, PersonalTrainer
+from app.models.enums import ClassBookingStatus, ClassStatus, PaymentStatus, RefundStatus, WaitlistStatus
 from app.models.user import User
 from app.repositories.class_repository import ClassRepository
 from app.repositories.operations_repository import AuditRepository
@@ -31,6 +32,13 @@ from app.schemas.operations_schema import PageInfo
 from app.services.configuration_service import ConfigurationService
 from app.core.config import get_settings
 from app.services.notification_service import NotificationService
+from app.services.state_transitions import (
+    transition_booking,
+    transition_class,
+    transition_payment,
+    transition_refund,
+    transition_waitlist,
+)
 
 
 def validate_class_times(start_at: datetime, end_at: datetime, *, allow_past: bool = False) -> None:
@@ -137,7 +145,7 @@ class ClassService:
             raise ConflictError("Only scheduled classes can be cancelled.")
         before = self._audit_data(item)
         now = datetime.now(UTC)
-        item.status = "cancelled"
+        transition_class(item, ClassStatus.CANCELLED)
         item.cancellation_reason = payload.reason.strip()
         item.cancelled_by_id = actor.id
         item.cancelled_at = now
@@ -145,17 +153,17 @@ class ClassService:
         refund_count = 0
         for booking in bookings:
             if booking.status == "pending_payment" and booking.current_payment:
-                booking.current_payment.status = "cancelled"
+                transition_payment(booking.current_payment, PaymentStatus.CANCELLED)
                 booking.reserved_until = None
             elif booking.status == "confirmed" and booking.entitlement_source == "paid":
-                booking.refund_status = "required"
+                transition_refund(booking, RefundStatus.REQUIRED)
                 refund_count += 1
-            booking.status = "cancelled"
+            transition_booking(booking, ClassBookingStatus.CANCELLED)
             booking.cancelled_at = now
             booking.cancellation_reason = item.cancellation_reason
         waitlists = await self.classes.list_waiting_waitlists_for_class(item.id)
         for waitlist in waitlists:
-            waitlist.status = "cancelled"
+            transition_waitlist(waitlist, WaitlistStatus.CANCELLED)
         await self.audit.create(
             actor_user_id=actor.id,
             action="class.cancelled",
@@ -481,7 +489,8 @@ class BookingService:
         waitlist = await self.classes.get_waitlist_for_user(class_id=class_id, user_id=user.id, for_update=True)
         if waitlist and waitlist.status == "waiting":
             raise AppError("WAITLIST_EXISTS", "You are already on this waitlist.", 409)
-        await self.classes.expire_holds_for_class(class_id, datetime.now(UTC))
+        for expired in await self.classes.expired_holds_for_class(class_id, datetime.now(UTC)):
+            transition_booking(expired, ClassBookingStatus.EXPIRED)
         if await self.classes.occupied_booking_count(class_id) < gym_class.capacity:
             raise AppError("WAITLIST_NOT_REQUIRED", "This class still has an available place.", 409)
         limit = await self.configuration.get_int("waitlist_size")
@@ -489,7 +498,7 @@ class BookingService:
             raise AppError("WAITLIST_FULL", "The waitlist is full.", 409)
         position = await self.classes.next_waitlist_position(class_id)
         if waitlist:
-            waitlist.status = "waiting"
+            transition_waitlist(waitlist, WaitlistStatus.WAITING)
             waitlist.position = position
         else:
             waitlist = await self.classes.create_waitlist(class_id=class_id, user_id=user.id, position=position)
@@ -514,7 +523,7 @@ class BookingService:
         if waitlist.status == "promoted":
             raise AppError("WAITLIST_PROMOTED", "This waitlist entry already has a payment hold.", 409)
         if waitlist.status == "waiting":
-            waitlist.status = "cancelled"
+            transition_waitlist(waitlist, WaitlistStatus.CANCELLED)
             await self.session.commit()
             await self.session.refresh(waitlist)
         return WaitlistItem(
@@ -546,10 +555,10 @@ class BookingService:
         if booking.status not in {"pending_payment", "confirmed", "payment_failed", "expired"}:
             raise AppError("BOOKING_NOT_CANCELLABLE", "This booking cannot be cancelled.", 409)
         if booking.status == "pending_payment" and booking.current_payment:
-            booking.current_payment.status = "cancelled"
+            transition_payment(booking.current_payment, PaymentStatus.CANCELLED)
         if booking.status == "confirmed" and booking.entitlement_source == "paid":
-            booking.refund_status = "required"
-        booking.status = "cancelled"
+            transition_refund(booking, RefundStatus.REQUIRED)
+        transition_booking(booking, ClassBookingStatus.CANCELLED)
         booking.cancelled_at = now
         booking.cancellation_reason = reason.strip()
         await self.audit.create(
@@ -604,25 +613,28 @@ class BookingService:
             return None
         for waitlist, user in await self.classes.waiting_entries_for_update(gym_class.id):
             if not user.is_email_verified:
-                waitlist.status = "cancelled"
+                transition_waitlist(waitlist, WaitlistStatus.CANCELLED)
                 continue
             booking = await self.classes.get_booking_for_user(
                 class_id=gym_class.id, user_id=user.id, for_update=True
             )
             if booking and booking.status in {"confirmed", "pending_payment"}:
-                waitlist.status = "cancelled"
+                transition_waitlist(waitlist, WaitlistStatus.CANCELLED)
+                continue
+            if booking and booking.refund_status == RefundStatus.REQUIRED.value:
+                transition_waitlist(waitlist, WaitlistStatus.CANCELLED)
                 continue
             reserved_until = min(
                 datetime.now(UTC) + timedelta(minutes=self.settings.VNPAY_TRANSACTION_TTL_MINUTES),
                 gym_class.start_at,
             )
             if booking:
-                booking.status = "pending_payment"
+                transition_booking(booking, ClassBookingStatus.PENDING_PAYMENT)
                 booking.price_vnd = gym_class.price_vnd
                 booking.entitlement_source = "paid"
                 booking.current_payment_id = None
                 booking.reserved_until = reserved_until
-                booking.refund_status = "none"
+                transition_refund(booking, RefundStatus.NONE, idempotent=True)
             else:
                 booking = await self.classes.create_booking(
                     class_id=gym_class.id,
@@ -632,7 +644,7 @@ class BookingService:
                     entitlement_source="paid",
                     reserved_until=reserved_until,
                 )
-            waitlist.status = "promoted"
+            transition_waitlist(waitlist, WaitlistStatus.PROMOTED)
             await self.notifications.queue_class_promotion(
                 user=user,
                 class_id=gym_class.id,

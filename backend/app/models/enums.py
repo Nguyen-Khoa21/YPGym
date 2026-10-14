@@ -83,3 +83,24 @@ class ClassStatus(StrEnum):
     SCHEDULED = "scheduled"
     CANCELLED = "cancelled"
     COMPLETED = "completed"
+
+
+class ClassBookingStatus(StrEnum):
+    PENDING_PAYMENT = "pending_payment"
+    CONFIRMED = "confirmed"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+    PAYMENT_FAILED = "payment_failed"
+    REFUNDED = "refunded"
+
+
+class WaitlistStatus(StrEnum):
+    WAITING = "waiting"
+    PROMOTED = "promoted"
+    CANCELLED = "cancelled"
+
+
+class RefundStatus(StrEnum):
+    NONE = "none"
+    REQUIRED = "required"
+    RESOLVED = "resolved"

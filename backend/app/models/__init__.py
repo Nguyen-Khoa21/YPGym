@@ -8,15 +8,18 @@ from app.models.enums import (
     AttendanceEventType,
     AttendanceSessionStatus,
     CancellationOutcome,
+    ClassBookingStatus,
     ClassStatus,
     MemberTier,
     MembershipStatus,
     NotificationChannel,
     NotificationDeliveryState,
     PaymentStatus,
+    RefundStatus,
     RequestStatus,
     SystemConfigurationValueType,
     UserRole,
+    WaitlistStatus,
 )
 from app.models.membership import MembershipPlan, UserMembership
 from app.models.operations import (
@@ -40,6 +43,7 @@ __all__ = [
     "AuditLog",
     "BroadcastAnnouncement",
     "CancellationOutcome",
+    "ClassBookingStatus",
     "ClassStatus",
     "ClassBooking",
     "ClassWaitlist",
@@ -61,6 +65,7 @@ __all__ = [
     "Payment",
     "PaymentStatus",
     "PersonalTrainer",
+    "RefundStatus",
     "RequestStatus",
     "SystemConfiguration",
     "SystemConfigurationValueType",
@@ -74,4 +79,5 @@ __all__ = [
     "User",
     "UserMembership",
     "UserRole",
+    "WaitlistStatus",
 ]

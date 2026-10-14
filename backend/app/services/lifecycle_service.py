@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError, ConflictError, ResourceNotFoundError
-from app.models.enums import MembershipStatus
+from app.models.enums import MembershipStatus, RequestStatus
 from app.models.membership import UserMembership
 from app.models.operations import MembershipCancellationRequest, MembershipFreezeRequest
 from app.models.user import User
@@ -23,6 +23,7 @@ from app.schemas.operations_schema import (
     PageInfo,
     RequestDecision,
 )
+from app.services.state_transitions import transition_membership, transition_request
 
 
 TERMINAL_MEMBERSHIP_STATUSES = {
@@ -87,7 +88,7 @@ class MembershipLifecycleService:
             frozen_until=membership.frozen_until,
         )
         if membership.status != status:
-            membership.status = status
+            transition_membership(membership, status)
             await self.session.flush()
         if status not in ELIGIBLE_MEMBERSHIP_STATUSES:
             raise AppError("MEMBERSHIP_INELIGIBLE", membership_access_message(status), 403, {"status": status})
@@ -161,24 +162,26 @@ class MembershipLifecycleService:
         request = await self.operations.get_freeze_request_for_update(request_id)
         if not request:
             raise ResourceNotFoundError("Freeze request was not found.")
-        if request.status != "pending":
-            raise ConflictError("This freeze request has already been decided.")
+        transition_request(request, RequestStatus.APPROVED if payload.approve else RequestStatus.REJECTED)
         membership = await self._membership_for_update(request.membership_id)
         now = datetime.now(UTC)
-        request.status = "approved" if payload.approve else "rejected"
         request.reviewer_id = reviewer.id
         request.decision_reason = payload.decision_reason.strip()
         request.reviewed_at = now
         if payload.approve:
             membership.frozen_from = request.requested_start_date
             membership.frozen_until = request.requested_end_date
-            membership.status = derive_membership_status(
-                stored_status=membership.status,
-                is_email_verified=True,
-                expiry_date=membership.expiry_date,
-                today=date.today(),
-                frozen_from=membership.frozen_from,
-                frozen_until=membership.frozen_until,
+            transition_membership(
+                membership,
+                derive_membership_status(
+                    stored_status=membership.status,
+                    is_email_verified=True,
+                    expiry_date=membership.expiry_date,
+                    today=date.today(),
+                    frozen_from=membership.frozen_from,
+                    frozen_until=membership.frozen_until,
+                ),
+                idempotent=True,
             )
         await self.audit.create(
             actor_user_id=reviewer.id,
@@ -245,17 +248,15 @@ class MembershipLifecycleService:
         request = await self.operations.get_cancellation_request_for_update(request_id)
         if not request:
             raise ResourceNotFoundError("Cancellation request was not found.")
-        if request.status != "pending":
-            raise ConflictError("This cancellation request has already been decided.")
+        transition_request(request, RequestStatus.APPROVED if payload.approve else RequestStatus.REJECTED)
         membership = await self._membership_for_update(request.membership_id)
         now = datetime.now(UTC)
-        request.status = "approved" if payload.approve else "rejected"
         request.outcome = payload.outcome
         request.reviewer_id = reviewer.id
         request.decision_reason = payload.decision_reason.strip()
         request.reviewed_at = now
         if payload.approve:
-            membership.status = MembershipStatus.CANCELLED.value
+            transition_membership(membership, MembershipStatus.CANCELLED)
             membership.cancelled_at = now
         await self.audit.create(
             actor_user_id=reviewer.id,
@@ -275,10 +276,8 @@ class MembershipLifecycleService:
         membership = await self.operations.get_current_for_update(user_id)
         if not membership:
             raise ResourceNotFoundError("Membership was not found.")
-        if membership.status == MembershipStatus.REVOKED.value:
-            raise ConflictError("This membership is already revoked.")
         before = membership.status
-        membership.status = MembershipStatus.REVOKED.value
+        transition_membership(membership, MembershipStatus.REVOKED)
         membership.revoked_at = datetime.now(UTC)
         membership.revoked_by_id = reviewer.id
         membership.revoked_reason = reason.strip()
@@ -354,7 +353,7 @@ class MembershipLifecycleService:
                 frozen_until=membership.frozen_until,
             )
             if membership.status != next_status:
-                membership.status = next_status
+                transition_membership(membership, next_status)
                 changed += 1
         await self.session.commit()
         return changed

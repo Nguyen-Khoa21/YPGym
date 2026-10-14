@@ -282,8 +282,8 @@ class ClassRepository:
         await self.session.flush()
         return item
 
-    async def expire_holds_for_class(self, class_id: UUID, now: datetime) -> list[ClassBooking]:
-        items = list(
+    async def expired_holds_for_class(self, class_id: UUID, now: datetime) -> list[ClassBooking]:
+        return list(
             (
                 await self.session.execute(
                     select(ClassBooking)
@@ -296,9 +296,6 @@ class ClassRepository:
                 )
             ).scalars().all(),
         )
-        for item in items:
-            item.status = "expired"
-        return items
 
     async def get_booking(self, booking_id: UUID, *, for_update: bool = False) -> ClassBooking | None:
         query = (

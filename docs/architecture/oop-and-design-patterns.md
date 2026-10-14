@@ -134,6 +134,8 @@ This improves testability and permits provider or presentation changes without r
 
 YPGym generally composes endpoints, services, repositories, transports, and utilities instead of building deep inheritance trees. Inheritance remains limited to framework contracts and closely related error types. This keeps the implementation easier to trace and allows each boundary to be tested independently.
 
-## Next approved pattern candidate
+## Finite State Machine / State Transition Table pattern
 
-A finite state machine is the next useful pattern for lifecycle-heavy behavior such as membership, attendance, payment, booking, and shift transitions. It should be introduced in a later, separately approved slice only after documenting the allowed current states, events, guards, side effects, and audit behavior. This document does not claim that those lifecycles have already been migrated to an FSM.
+YPGym centralizes permitted membership, payment, class, booking, waitlist, attendance, approval, and refund changes in `backend/app/services/state_transitions.py`. Small domain functions validate each mutation before services apply their existing transactional side effects. The complete inventory and legacy-payment compatibility decision are documented in [`state-transitions.md`](state-transitions.md).
+
+The implementation deliberately avoids a class-per-state hierarchy. State behavior remains small enough for explicit tables, while the established services continue to own row locks, audits, notifications, capacity changes, invoices, and outbox work.

@@ -81,6 +81,16 @@ class ConflictError(AppError):
         )
 
 
+class InvalidStateTransitionError(AppError):
+    def __init__(self, resource: str, current: str, target: str) -> None:
+        super().__init__(
+            code="INVALID_STATE_TRANSITION",
+            message=f"The {resource} cannot move from {current} to {target}.",
+            status_code=status.HTTP_409_CONFLICT,
+            details={"resource": resource, "current": current, "target": target},
+        )
+
+
 class DependencyUnavailableError(AppError):
     def __init__(
         self,

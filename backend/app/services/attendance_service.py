@@ -14,6 +14,7 @@ from app.core.config import get_settings
 from app.core.exceptions import AppError, DependencyUnavailableError, ResourceNotFoundError
 from app.core.rate_limit import rate_limits
 from app.models.attendance import AttendanceEvent, AttendanceSession, IoTDevice
+from app.models.enums import AttendanceSessionStatus
 from app.models.user import User
 from app.repositories.attendance_repository import AttendanceRepository
 from app.repositories.operations_repository import AuditRepository
@@ -30,6 +31,7 @@ from app.schemas.attendance_schema import (
 from app.schemas.operations_schema import PageInfo
 from app.services.configuration_service import ConfigurationService
 from app.services.lifecycle_service import MembershipLifecycleService
+from app.services.state_transitions import transition_attendance
 from app.utils.security import hash_token
 
 
@@ -244,7 +246,7 @@ class AttendanceService:
         if not attendance_session:
             raise AppError("NO_ACTIVE_SESSION", "This member has no active attendance session.", 409)
         now = datetime.now(UTC)
-        attendance_session.status = "checked_out"
+        transition_attendance(attendance_session, AttendanceSessionStatus.CHECKED_OUT)
         attendance_session.closed_at = now
         await self.attendance.create_event(
             attendance_session=attendance_session,
@@ -270,10 +272,10 @@ class AttendanceService:
         if not attendance_session:
             raise ResourceNotFoundError("Attendance session was not found.")
         events = await self.attendance.events_for_sessions([attendance_session.id])
-        if attendance_session.status != "active":
+        if attendance_session.status != AttendanceSessionStatus.ACTIVE.value:
             return self._session_item(attendance_session, events.get(attendance_session.id, []))
         now = datetime.now(UTC)
-        attendance_session.status = "manual_closed"
+        transition_attendance(attendance_session, AttendanceSessionStatus.MANUAL_CLOSED)
         attendance_session.closed_at = now
         attendance_session.closed_by_id = actor.id
         attendance_session.manual_close_reason = reason.strip()
@@ -304,9 +306,9 @@ class AttendanceService:
         now = datetime.now(UTC)
         candidates = await self.attendance.timeout_candidates(now - timedelta(minutes=timeout_minutes))
         for attendance_session in candidates:
-            if attendance_session.status != "active":
+            if attendance_session.status != AttendanceSessionStatus.ACTIVE.value:
                 continue
-            attendance_session.status = "timed_out"
+            transition_attendance(attendance_session, AttendanceSessionStatus.TIMED_OUT)
             attendance_session.closed_at = now
             await self.attendance.create_event(
                 attendance_session=attendance_session,

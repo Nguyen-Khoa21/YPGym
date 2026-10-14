@@ -30,7 +30,9 @@ async def test_freeze_cancellation_decisions_and_audit_are_persisted(client, sto
     decision = {"approve": True, "decision_reason": "Travel request is approved"}
     assert (await client.post(path, headers=headers[0], json=decision)).status_code == 403
     assert (await client.post(path, headers=manager, json=decision)).status_code == 200
-    assert (await client.post(path, headers=manager, json=decision)).status_code == 409
+    repeated_freeze = await client.post(path, headers=manager, json=decision)
+    assert repeated_freeze.status_code == 409
+    assert repeated_freeze.json()["error"]["code"] == "INVALID_STATE_TRANSITION"
     assert (await client.get("/api/v1/attendance/qr-token/me", headers=headers[0])).status_code == 403
     cancellation = await client.post("/api/v1/memberships/cancellation-requests", headers=headers[0], json={"reason": "Member requests cancellation"})
     assert cancellation.status_code == 200
@@ -38,7 +40,9 @@ async def test_freeze_cancellation_decisions_and_audit_are_persisted(client, sto
     assert (await client.post(path, headers=manager, json=decision)).status_code == 422
     decision["outcome"] = "forfeit"
     assert (await client.post(path, headers=manager, json=decision)).status_code == 200
-    assert (await client.post(path, headers=manager, json=decision)).status_code == 409
+    repeated_cancellation = await client.post(path, headers=manager, json=decision)
+    assert repeated_cancellation.status_code == 409
+    assert repeated_cancellation.json()["error"]["code"] == "INVALID_STATE_TRANSITION"
     async with sessions() as session:
         membership = (await session.execute(select(UserMembership).where(UserMembership.user_id == users[0].id))).scalar_one()
         assert membership.status == "cancelled" and membership.cancelled_at is not None
@@ -63,7 +67,9 @@ async def test_only_admin_can_revoke_and_revocation_blocks_renewal(client, stora
     body = {"reason": "Documented membership policy breach"}
     assert (await client.post(path, headers=headers[0], json=body)).status_code == 403
     assert (await client.post(path, headers=admin_headers, json=body)).status_code == 200
-    assert (await client.post(path, headers=admin_headers, json=body)).status_code == 409
+    repeated_revoke = await client.post(path, headers=admin_headers, json=body)
+    assert repeated_revoke.status_code == 409
+    assert repeated_revoke.json()["error"]["code"] == "INVALID_STATE_TRANSITION"
     denied = await client.post("/api/v1/memberships/purchase", headers=headers[0], json={"plan_id": str(plan_id), "idempotency_key": "revoked-purchase", "mock_payment_confirmed": True})
     assert denied.status_code == 403
     async with sessions() as session:
