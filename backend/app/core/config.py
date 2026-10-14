@@ -141,6 +141,23 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def validate_production_secrets(self) -> "Settings":
+        if self.ENVIRONMENT.lower() in {"development", "test"}:
+            return self
+        if len(self.JWT_SECRET_KEY) < 32 or self.JWT_SECRET_KEY in {
+            "change-this-secret-in-production",
+            "change-this-local-secret",
+            "local-demo-signing-key-never-use-in-production",
+        }:
+            raise ValueError("JWT_SECRET_KEY must be a unique production secret of at least 32 characters.")
+        if len(self.IOT_DEVICE_API_KEY) < 24 or self.IOT_DEVICE_API_KEY in {
+            "local-iot-key",
+            "local-demo-scanner-key",
+        }:
+            raise ValueError("IOT_DEVICE_API_KEY must be a unique production secret of at least 24 characters.")
+        return self
+
+    @model_validator(mode="after")
     def validate_vnpay_configuration(self) -> "Settings":
         secret = self.VNPAY_HASH_SECRET.get_secret_value()
         configured = bool(self.VNPAY_TMN_CODE or secret or self.VNPAY_RETURN_URL or self.VNPAY_IPN_URL)
@@ -173,6 +190,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        hide_input_in_errors=True,
     )
 
 

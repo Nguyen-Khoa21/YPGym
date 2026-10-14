@@ -96,6 +96,8 @@ def test_oauth_configuration_requires_pairs_https_and_exact_callback():
     settings = Settings(
         _env_file=None,
         ENVIRONMENT="production",
+        JWT_SECRET_KEY="production-jwt-secret-with-at-least-32-characters",
+        IOT_DEVICE_API_KEY="production-iot-device-key-32-characters",
         FRONTEND_URL="https://app.example.com",
         MOBILE_WEB_URL="https://mobile.example.com",
         OAUTH_CALLBACK_BASE_URL="https://api.example.com/api/v1/",

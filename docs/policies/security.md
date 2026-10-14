@@ -17,6 +17,14 @@ Redis Lua combines the bounded counter and expiry atomically and repairs keys mi
 
 Limits use the client address provided by ASGI. Any deployment behind a proxy must explicitly configure trusted proxies and verify address attribution. Shared NATs share a budget. The local benchmark retains these controls.
 
+## HTTP response and production-startup safeguards
+
+The FastAPI boundary adds a restrictive CSP compatible with the built-in OpenAPI UI, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, frame denial and a restrictive browser permissions policy. HSTS is added only for HTTPS requests outside development and test environments, so local HTTP is not pinned accidentally. The deployment proxy must supply trustworthy HTTPS scheme information for this condition to work correctly.
+
+Production-like environments refuse startup when the JWT signing secret or IoT device API key uses a documented local/demo default or is below the required minimum length. Pydantic input values are hidden from validation errors so a configuration failure does not echo supplied secrets. These checks validate minimum operational safety, not entropy or secret-manager provenance.
+
+The current frontend container still runs Vite's development server. Backend headers do not protect pages served by that separate process. A production static-serving container with its own response headers and HTTPS termination remains required before deployment.
+
 ## Credentials, tokens and errors
 
 - New JWTs have type=access. Signed legacy tokens with subject, role, tier and expiry remain valid until existing expiry. Other token purposes, including actual attendance QR tokens, cannot authorize account access. Backend roles come from PostgreSQL, not the signed role claim.
