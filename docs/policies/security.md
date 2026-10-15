@@ -23,7 +23,7 @@ The FastAPI boundary adds a restrictive CSP compatible with the built-in OpenAPI
 
 Production-like environments refuse startup when the JWT signing secret or IoT device API key uses a documented local/demo default or is below the required minimum length. Pydantic input values are hidden from validation errors so a configuration failure does not echo supplied secrets. These checks validate minimum operational safety, not entropy or secret-manager provenance.
 
-The current frontend container still runs Vite's development server. Backend headers do not protect pages served by that separate process. A production static-serving container with its own response headers and HTTPS termination remains required before deployment.
+The normal Compose frontend remains Vite's development server. Production deployments use `frontend/Dockerfile.production`, which builds the bundle once and serves it through Nginx with its own CSP, frame denial, MIME-sniffing protection, referrer policy and permissions policy. The container permits explicit local HTTP API origins for smoke testing and otherwise restricts browser connections to HTTPS. TLS termination must redirect HTTP and add HSTS because the static container cannot safely infer the original scheme behind every proxy. See `docs/runbooks/frontend-production.md`.
 
 ## Credentials, tokens and errors
 

@@ -6,6 +6,8 @@ The implementation follows `YPGym_60_Day_Development_Plan_Revised_PostgreSQL (1)
 
 For Windows startup/build commands, all local demo logins, and phone/emulator/Expo web setup, see [RUN_GUIDE.md](RUN_GUIDE.md).
 
+For a deployment image that builds the React bundle once and serves it with Nginx, see the [production frontend runbook](docs/runbooks/frontend-production.md). The existing Compose frontend remains the local Vite development server.
+
 Google/Facebook publication remains an owner-managed deployment gate. See the [OAuth production checklist](docs/oauth-production-checklist.md) for development and production callbacks, dashboard steps, and acceptance cases.
 
 VNPay sandbox membership checkout is documented in the [payment architecture](docs/api/vnpay-payments.md) and [Cloudflare Quick Tunnel runbook](docs/runbooks/vnpay-sandbox.md).
@@ -122,6 +124,7 @@ The scanner contract and simulator scenarios are documented in `docs/api/iot-sca
 - Backend layering is API -> service -> repository -> SQLAlchemy model -> PostgreSQL.
 - PostgreSQL is the attendance source of truth; Redis state is short-lived or reconcilable.
 - Protected UI routes mirror backend role checks, and sensitive mutations/exports create audit records.
+- Production web deployments use the separate static Nginx image and place TLS termination in front of it; see `docs/runbooks/frontend-production.md`.
 - Login, reset-request, and scanner mutations use Redis-backed fixed-window limits; see `docs/policies/security.md`.
 - The BRD Design Architecture, `docs/design/route-screen-map.md`, and the shared local design system are the UI authority used for this recovery.
 - Days 39-42 preserve the same layering and serialize every class-capacity change on the PostgreSQL class row.
