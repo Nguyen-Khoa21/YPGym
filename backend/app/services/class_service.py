@@ -489,8 +489,6 @@ class BookingService:
         waitlist = await self.classes.get_waitlist_for_user(class_id=class_id, user_id=user.id, for_update=True)
         if waitlist and waitlist.status == "waiting":
             raise AppError("WAITLIST_EXISTS", "You are already on this waitlist.", 409)
-        for expired in await self.classes.expired_holds_for_class(class_id, datetime.now(UTC)):
-            transition_booking(expired, ClassBookingStatus.EXPIRED)
         if await self.classes.occupied_booking_count(class_id) < gym_class.capacity:
             raise AppError("WAITLIST_NOT_REQUIRED", "This class still has an available place.", 409)
         limit = await self.configuration.get_int("waitlist_size")

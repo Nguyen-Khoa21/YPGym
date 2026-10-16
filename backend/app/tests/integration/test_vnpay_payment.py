@@ -329,6 +329,22 @@ async def test_non_member_class_purchase_is_independent_atomic_and_attendable(cl
     assert cancelled.json()["refund_status"] == "required"
 
 
+async def test_promoted_waitlist_member_can_start_checkout(client, storage):
+    gym_class, _, headers, _ = await create_paid_class_fixture(storage, capacity=1)
+    checkout = (await start_class_payment(client, gym_class, headers[0], "waitlist-seat-owner")).json()
+    callback = signed_ipn(txn_ref=checkout["txn_ref"], amount=15_000_000)
+    assert (await client.get("/api/v1/payments/vnpay/ipn", params=callback)).json()["RspCode"] == "00"
+
+    joined = await client.post(f"/api/v1/classes/{gym_class.id}/waitlist", headers=headers[1])
+    assert joined.status_code == 200, joined.text
+    cancelled = await client.post(f"/api/v1/bookings/{checkout['booking_id']}/cancel", headers=headers[0])
+    assert cancelled.status_code == 200, cancelled.text
+
+    promoted_checkout = await start_class_payment(client, gym_class, headers[1], "promoted-member-checkout")
+    assert promoted_checkout.status_code == 201, promoted_checkout.text
+    assert promoted_checkout.json()["booking_id"]
+
+
 async def test_last_seat_race_and_late_paid_hold_require_resolution(client, storage):
     gym_class, _, headers, _ = await create_paid_class_fixture(storage, capacity=1)
     attempts = await asyncio.gather(
@@ -340,6 +356,15 @@ async def test_last_seat_race_and_late_paid_hold_require_resolution(client, stor
 
     sessions, _ = storage
     async with sessions() as session:
+        admin = User(
+            name="Late Payment Admin",
+            email=f"late-payment-admin-{uuid4().hex[:6]}@example.com",
+            phone=f"03{uuid4().int % 100000000:08d}",
+            password_hash="unused",
+            role="admin",
+            is_email_verified=True,
+        )
+        session.add(admin)
         payment = await session.get(Payment, winner["transaction_id"])
         booking = await session.get(ClassBooking, winner["booking_id"])
         payment.expires_at = datetime.now(UTC) - timedelta(seconds=1)
@@ -357,6 +382,18 @@ async def test_last_seat_race_and_late_paid_hold_require_resolution(client, stor
     assert status["booking_status"] == "expired"
     assert status["refund_status"] == "required"
     assert status["invoice_id"] is None
+
+    admin_header = {
+        "Authorization": f"Bearer {create_access_token(user_id=admin.id, role='admin', tier='normal')[0]}"
+    }
+    resolved = await client.post(
+        f"/api/v1/payments/{winner['transaction_id']}/resolve-class-refund",
+        headers=admin_header,
+        json={"reason": "Late payment refunded in the VNPay merchant portal"},
+    )
+    assert resolved.status_code == 200, resolved.text
+    assert resolved.json()["booking_status"] == "refunded"
+    assert resolved.json()["refund_status"] == "resolved"
 
 
 async def test_staff_class_cancellation_flags_paid_booking_for_admin_resolution(client, storage):

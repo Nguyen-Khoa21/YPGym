@@ -98,10 +98,12 @@ BOOKING_TRANSITIONS: TransitionTable = {
     ClassBookingStatus.EXPIRED: {
         ClassBookingStatus.PENDING_PAYMENT,
         ClassBookingStatus.CANCELLED,
+        ClassBookingStatus.REFUNDED,
     },
     ClassBookingStatus.PAYMENT_FAILED: {
         ClassBookingStatus.PENDING_PAYMENT,
         ClassBookingStatus.CANCELLED,
+        ClassBookingStatus.REFUNDED,
     },
     ClassBookingStatus.REFUNDED: {ClassBookingStatus.PENDING_PAYMENT},
 }

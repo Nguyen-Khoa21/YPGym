@@ -192,7 +192,7 @@ class VNPayPaymentService:
             gym_class.start_at,
         )
         if booking:
-            transition_booking(booking, ClassBookingStatus.PENDING_PAYMENT)
+            transition_booking(booking, ClassBookingStatus.PENDING_PAYMENT, idempotent=True)
             booking.price_vnd = gym_class.price_vnd
             booking.entitlement_source = "paid"
             booking.reserved_until = reserved_until
