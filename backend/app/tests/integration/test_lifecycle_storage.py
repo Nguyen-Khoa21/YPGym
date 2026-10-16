@@ -6,9 +6,25 @@ from sqlalchemy import select
 from app.models.membership import UserMembership
 from app.models.operations import AuditLog
 from app.models.user import User
+from app.services.lifecycle_service import MembershipLifecycleService
 from app.utils.security import create_access_token
 
 pytestmark = pytest.mark.asyncio
+
+
+async def test_unverified_membership_is_reconciled_to_pending_verification(storage, eligible_members):
+    sessions, _ = storage
+    users, _ = eligible_members
+    async with sessions() as session:
+        user = await session.get(User, users[0].id)
+        user.is_email_verified = False
+        await session.commit()
+
+        assert await MembershipLifecycleService(session).synchronize_membership_statuses() == 1
+        membership = (
+            await session.execute(select(UserMembership).where(UserMembership.user_id == user.id))
+        ).scalar_one()
+        assert membership.status == "pending_verification"
 
 
 async def test_freeze_cancellation_decisions_and_audit_are_persisted(client, storage, eligible_members):

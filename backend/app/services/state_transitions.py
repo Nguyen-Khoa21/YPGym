@@ -36,6 +36,7 @@ MEMBERSHIP_TRANSITIONS: TransitionTable = {
         MembershipStatus.REVOKED,
     },
     MembershipStatus.ACTIVE: {
+        MembershipStatus.PENDING_VERIFICATION,
         MembershipStatus.EXPIRING_SOON,
         MembershipStatus.EXPIRED,
         MembershipStatus.FROZEN,
@@ -43,14 +44,20 @@ MEMBERSHIP_TRANSITIONS: TransitionTable = {
         MembershipStatus.REVOKED,
     },
     MembershipStatus.EXPIRING_SOON: {
+        MembershipStatus.PENDING_VERIFICATION,
         MembershipStatus.ACTIVE,
         MembershipStatus.EXPIRED,
         MembershipStatus.FROZEN,
         MembershipStatus.CANCELLED,
         MembershipStatus.REVOKED,
     },
-    MembershipStatus.EXPIRED: {MembershipStatus.ACTIVE, MembershipStatus.REVOKED},
+    MembershipStatus.EXPIRED: {
+        MembershipStatus.PENDING_VERIFICATION,
+        MembershipStatus.ACTIVE,
+        MembershipStatus.REVOKED,
+    },
     MembershipStatus.FROZEN: {
+        MembershipStatus.PENDING_VERIFICATION,
         MembershipStatus.ACTIVE,
         MembershipStatus.EXPIRING_SOON,
         MembershipStatus.EXPIRED,
