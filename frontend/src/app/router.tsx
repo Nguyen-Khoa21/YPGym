@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import { HomePage } from "@/app/pages/HomePage";
@@ -5,11 +6,8 @@ import { MembershipPoliciesPage } from "@/app/pages/MembershipPoliciesPage";
 import { NotFoundPage } from "@/app/pages/NotFoundPage";
 import { PermissionDeniedPage } from "@/app/pages/PermissionDeniedPage";
 import { VerificationSuccessPage } from "@/app/pages/VerificationSuccessPage";
-import { AdminAttendancePage } from "@/features/attendance/pages/AdminAttendancePage";
 import { MemberAttendancePage } from "@/features/attendance/pages/MemberAttendancePage";
 import { MemberQrPage } from "@/features/attendance/pages/MemberQrPage";
-import { AdminAuditPage } from "@/features/admin/pages/AdminAuditPage";
-import { AdminBillingPage } from "@/features/admin/pages/AdminBillingPage";
 import { AdminBroadcastsPage } from "@/features/admin/pages/AdminBroadcastsPage";
 import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage";
 import { AdminMemberDetailPage } from "@/features/admin/pages/AdminMemberDetailPage";
@@ -41,10 +39,34 @@ import { AdminEmailDeliveriesPage } from "@/features/admin/pages/AdminEmailDeliv
 import { PtDashboardPage } from "@/features/member/pages/PtDashboardPage";
 import { BuyMembershipPage } from "@/features/memberships/pages/BuyMembershipPage";
 import { MembershipPlansPage } from "@/features/memberships/pages/MembershipPlansPage";
-import { AdminTrainingPage } from "@/features/training/pages/AdminTrainingPage";
-import { MemberTrainingPage } from "@/features/training/pages/MemberTrainingPage";
 import { AdminStaffPage } from "@/features/admin/pages/AdminStaffPage";
 import { StaffTimeClockPage } from "@/features/staff/pages/StaffTimeClockPage";
+
+const AdminAttendancePage = lazy(() =>
+  import("@/features/attendance/pages/AdminAttendancePage").then((module) => ({
+    default: module.AdminAttendancePage,
+  })),
+);
+const AdminAuditPage = lazy(() =>
+  import("@/features/admin/pages/AdminAuditPage").then((module) => ({
+    default: module.AdminAuditPage,
+  })),
+);
+const AdminBillingPage = lazy(() =>
+  import("@/features/admin/pages/AdminBillingPage").then((module) => ({
+    default: module.AdminBillingPage,
+  })),
+);
+const AdminTrainingPage = lazy(() =>
+  import("@/features/training/pages/AdminTrainingPage").then((module) => ({
+    default: module.AdminTrainingPage,
+  })),
+);
+const MemberTrainingPage = lazy(() =>
+  import("@/features/training/pages/MemberTrainingPage").then((module) => ({
+    default: module.MemberTrainingPage,
+  })),
+);
 
 const operationsRoles = ["admin", "manager", "staff"] as const;
 const managerRoles = ["admin", "manager"] as const;
