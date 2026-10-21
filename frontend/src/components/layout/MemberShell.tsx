@@ -1,42 +1,16 @@
 import type { PropsWithChildren } from "react";
-import {
-  Bell,
-  CalendarDays,
-  ChevronRight,
-  CircleUserRound,
-  ClipboardList,
-  Dumbbell,
-  LayoutDashboard,
-  PauseCircle,
-  QrCode,
-  ReceiptText,
-} from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
+import { memberMobileNavigation, memberNavigation } from "@/app/navigation";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { useAuth } from "@/features/auth/AuthContext";
-
-const memberNav = [
-  { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/memberships", label: "Membership", icon: ReceiptText },
-  { to: "/app/billing", label: "Billing", icon: ReceiptText },
-  { to: "/app/qr", label: "My QR code", icon: QrCode },
-  { to: "/app/attendance", label: "Attendance", icon: ClipboardList },
-  { to: "/app/membership-requests", label: "Freeze / cancel", icon: PauseCircle },
-  { to: "/app/notifications", label: "Notifications", icon: Bell },
-  { to: "/app/classes", label: "Classes", icon: CalendarDays },
-  { to: "/app/train", label: "YPTrain", icon: Dumbbell },
-  { to: "/app/bookings", label: "My bookings", icon: CalendarDays },
-  { to: "/app/profile", label: "Profile", icon: CircleUserRound },
-];
-
-const mobileNav = memberNav.filter((item) => ["/app/dashboard", "/app/qr", "/app/classes", "/app/train", "/app/profile"].includes(item.to));
 
 export function MemberShell({ children }: PropsWithChildren) {
   const { user } = useAuth();
 
   return (
-    <AppFrame navigation={memberNav}>
+    <AppFrame navigation={memberNavigation}>
       <div className="workspace-shell">
         <aside className="workspace-sidebar" aria-label="Member navigation">
           <div className="workspace-profile">
@@ -49,7 +23,7 @@ export function MemberShell({ children }: PropsWithChildren) {
             </div>
           </div>
           <nav className="workspace-nav">
-            {memberNav.map((item) => (
+            {memberNavigation.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -73,7 +47,7 @@ export function MemberShell({ children }: PropsWithChildren) {
         </main>
       </div>
       <nav className="member-bottom-nav" aria-label="Member mobile navigation">
-        {mobileNav.map((item) => (
+        {memberMobileNavigation.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -82,7 +56,7 @@ export function MemberShell({ children }: PropsWithChildren) {
             }
           >
             <item.icon className="size-5" aria-hidden />
-            <span>{item.label === "My QR code" ? "QR" : item.label}</span>
+            <span>{item.mobileLabel}</span>
           </NavLink>
         ))}
       </nav>

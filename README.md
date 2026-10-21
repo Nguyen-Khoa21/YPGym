@@ -39,7 +39,8 @@ Operations routes:
 - `/admin/attendance` for staff, manager, and admin
 - Manager/admin attendance view includes peak-hours heatmap and persisted membership/class/attendance/revenue summary analytics.
 - `/admin/approvals`, `/admin/broadcasts`, `/admin/audit`, `/admin/settings` for manager/admin
-- `/admin/members`, `/admin/members/:id`, `/admin/billing`, `/admin/classes` for admin
+- `/admin/members` and `/admin/members/:id` for manager/admin member review and manual enrollment; CSV export and revocation remain admin-only
+- `/admin/billing` and `/admin/classes` for admin
 - `/admin/pt-assignments` for manager/admin trainer profile maintenance.
 - `/admin/staff` for manager/admin workforce account provisioning and shift reporting.
 - `/staff/time-clock` for staff/PT self-service clock-in, clock-out and recent shifts.

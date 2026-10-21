@@ -4,6 +4,7 @@ import { ArrowLeft, Ban, CalendarClock, CreditCard, ShieldAlert } from "lucide-r
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { routePaths } from "@/app/routes";
 import { ErrorState, LoadingState } from "@/components/common/FeedbackState";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { MetricCard, Modal, OperationsHeader, Panel, StatusBadge } from "@/components/operations/OperationsUi";
@@ -45,7 +46,7 @@ export function AdminMemberDetailPage() {
   const data = detail.data;
   const current = data.memberships[0];
   return <AdminShell><div className="mx-auto max-w-7xl">
-    <Link className="mb-5 inline-flex items-center gap-2 text-xs font-extrabold text-muted-foreground hover:text-foreground" to="/admin/members"><ArrowLeft className="size-4" /> Back to CRM</Link>
+    <Link className="mb-5 inline-flex items-center gap-2 text-xs font-extrabold text-muted-foreground hover:text-foreground" to={routePaths.adminMembers}><ArrowLeft className="size-4" /> Back to CRM</Link>
     <OperationsHeader kicker="Member details" title={data.profile.name} description={`${data.profile.email} · ${data.profile.phone}`} actions={<><Button variant="secondary" onClick={() => setEnrollOpen(true)}>Enroll membership</Button>{user?.role === "admin" ? <Button variant="danger" disabled={!current || current.status === "revoked"} onClick={() => setRevokeOpen(true)}><Ban className="size-4" /> Revoke access</Button> : null}</>} />
     <div className="ops-metrics"><MetricCard label="Membership" value={current?.status ?? "None"} tone="forest" detail={current?.plan_name} /><MetricCard label="Total visits" value={data.attendance_summary.total_visits} tone="lime" /><MetricCard label="Payments" value={data.payments.length} detail={data.payments[0] ? formatMoney(data.payments[0].amount) + " latest" : "No payments"} /><MetricCard label="Bookings" value={data.booking_summary.total} tone="coral" detail={`${data.booking_summary.waitlisted} waitlisted`} /></div>
     <div className="mt-5 grid gap-5 xl:grid-cols-[0.72fr_1.28fr]">

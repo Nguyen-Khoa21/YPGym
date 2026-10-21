@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Check, CreditCard, ShieldAlert, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { routeFor } from "@/app/routes";
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/FeedbackState";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -63,5 +64,5 @@ function PlanCard({ plan, index, user }: { plan: MembershipPlan; index: number; 
 function PlanAction({ plan, user, featured }: { plan: MembershipPlan; user: ReturnType<typeof useAuth>["user"]; featured: boolean }) {
   if (!user) return <div className="mt-6 grid grid-cols-2 gap-2"><Link className={`inline-flex items-center justify-center rounded-full px-3 py-2.5 text-xs font-extrabold ${featured ? "bg-secondary text-foreground" : "bg-primary text-primary-foreground"}`} to="/login">Log in</Link><Link className={`inline-flex items-center justify-center rounded-full border px-3 py-2.5 text-xs font-extrabold ${featured ? "border-primary-foreground/30 text-primary-foreground" : "border-border"}`} to="/register">Register</Link></div>;
   if (!user.is_email_verified) return <p className={`mt-6 flex gap-2 rounded-xl border p-3 text-xs leading-5 ${featured ? "border-secondary/30 bg-secondary/10 text-primary-foreground" : "border-accent/30 bg-accent/10 text-foreground"}`}><ShieldAlert className="size-4 shrink-0" aria-hidden />Verify your email before purchasing a membership.</p>;
-  return <Link className={`mt-6 inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-extrabold ${featured ? "bg-secondary text-foreground" : "bg-primary text-primary-foreground"}`} to={`/memberships/buy/${plan.id}`}><CreditCard className="size-4" aria-hidden /> Buy or renew <ArrowRight className="size-4" aria-hidden /></Link>;
+  return <Link className={`mt-6 inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-extrabold ${featured ? "bg-secondary text-foreground" : "bg-primary text-primary-foreground"}`} to={routeFor.membershipPurchase(plan.id)}><CreditCard className="size-4" aria-hidden /> Buy or renew <ArrowRight className="size-4" aria-hidden /></Link>;
 }

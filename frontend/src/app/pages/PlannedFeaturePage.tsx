@@ -1,6 +1,7 @@
 import { CalendarClock, Construction, QrCode, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { routePaths } from "@/app/routes";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { MemberShell } from "@/components/layout/MemberShell";
@@ -39,7 +40,7 @@ export function PlannedFeaturePage({
             <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-muted-foreground">Scheduled development</p>
             <p className="mt-1 text-lg font-bold">{plannedDay}</p>
           </div>
-          <Link className="inline-flex items-center justify-center rounded-full border border-border px-4 py-2.5 text-sm font-extrabold transition hover:bg-muted" to={scope === "admin" ? "/admin" : scope === "pt" ? "/pt/dashboard" : "/app/dashboard"}>Return to connected workspace</Link>
+          <Link className="inline-flex items-center justify-center rounded-full border border-border px-4 py-2.5 text-sm font-extrabold transition hover:bg-muted" to={scope === "admin" ? routePaths.operationsHome : scope === "pt" ? routePaths.ptDashboard : routePaths.memberDashboard}>Return to connected workspace</Link>
         </div>
       </article>
     </section>

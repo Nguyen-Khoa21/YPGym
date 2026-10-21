@@ -6,18 +6,18 @@ const routerSource = readFileSync(new URL('../src/app/router.tsx', import.meta.u
 const appSource = readFileSync(new URL('../src/app/App.tsx', import.meta.url), 'utf8');
 
 const lazyRoutes = [
-  ['AdminAttendancePage', '/admin/attendance', '[...operationsRoles]'],
-  ['AdminTrainingPage', '/admin/exercises', '[...managerRoles]'],
-  ['AdminBillingPage', '/admin/billing', '["admin"]'],
-  ['AdminAuditPage', '/admin/audit', '[...managerRoles]'],
-  ['MemberTrainingPage', '/app/train', '["member"]'],
+  ['AdminAttendancePage', 'adminAttendance', '[...clientRoleGroups.operations]'],
+  ['AdminTrainingPage', 'adminExercises', '[...clientRoleGroups.management]'],
+  ['AdminBillingPage', 'adminBilling', '[...clientRoleGroups.admin]'],
+  ['AdminAuditPage', 'adminAudit', '[...clientRoleGroups.management]'],
+  ['MemberTrainingPage', 'memberTraining', '[...clientRoleGroups.member]'],
 ];
 
 test('measured heavy routes are lazy while their authorization wrappers remain intact', () => {
-  for (const [component, path, roles] of lazyRoutes) {
+  for (const [component, routeName, roles] of lazyRoutes) {
     assert.match(routerSource, new RegExp(`const ${component} = lazy\\(`));
     assert.doesNotMatch(routerSource, new RegExp(`import \\{ ${component} \\} from`));
-    assert.ok(routerSource.includes(`path: "${path}"`));
+    assert.ok(routerSource.includes(`path: routePaths.${routeName}`));
     assert.ok(routerSource.includes(`<ProtectedRoute roles={${roles}}><${component} /></ProtectedRoute>`));
   }
 });

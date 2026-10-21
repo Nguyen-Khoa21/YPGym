@@ -1,44 +1,17 @@
 import type { PropsWithChildren } from "react";
 import {
   BarChart3,
-  CalendarDays,
-  ClipboardCheck,
-  ClipboardList,
-  CreditCard,
-  MailCheck,
-  Dumbbell,
-  LayoutDashboard,
-  Megaphone,
-  Settings2,
-  ShieldCheck,
-  UsersRound,
-  UserRoundCog,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
+import { navigationForRole, operationsNavigation } from "@/app/navigation";
+import { routePaths } from "@/app/routes";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { useAuth } from "@/features/auth/AuthContext";
 
-const adminNav = [
-  { to: "/admin", label: "Overview", icon: LayoutDashboard, roles: ["staff", "manager", "admin"] },
-  { to: "/admin/members", label: "Members", icon: UsersRound, roles: ["manager", "admin"] },
-  { to: "/admin/billing", label: "Billing", icon: CreditCard, roles: ["admin"] },
-  { to: "/admin/email-deliveries", label: "Email delivery", icon: MailCheck, roles: ["manager", "admin"] },
-  { to: "/admin/attendance", label: "Attendance", icon: ClipboardList, roles: ["staff", "manager", "admin"] },
-  { to: "/admin/classes", label: "Classes", icon: CalendarDays, roles: ["admin"] },
-  { to: "/admin/approvals", label: "Approvals", icon: ClipboardCheck, roles: ["manager", "admin"] },
-  { to: "/admin/broadcasts", label: "Broadcasts", icon: Megaphone, roles: ["manager", "admin"] },
-  { to: "/admin/audit", label: "Audit log", icon: ShieldCheck, roles: ["manager", "admin"] },
-  { to: "/admin/settings", label: "Settings", icon: Settings2, roles: ["manager", "admin"] },
-  { to: "/admin/pt-assignments", label: "PT profiles", icon: Dumbbell, roles: ["manager", "admin"] },
-  { to: "/admin/exercises", label: "Exercises", icon: Dumbbell, roles: ["manager", "admin"] },
-  { to: "/admin/staff", label: "Staff & shifts", icon: UserRoundCog, roles: ["manager", "admin"] },
-  { to: "/staff/time-clock", label: "My time clock", icon: UserRoundCog, roles: ["staff"] },
-];
-
 export function AdminShell({ children }: PropsWithChildren) {
   const { user } = useAuth();
-  const visibleNav = adminNav.filter((item) => user && item.roles.includes(user.role));
+  const visibleNav = navigationForRole(operationsNavigation, user?.role);
   return (
     <AppFrame navigation={visibleNav}>
       <div className="admin-shell">
@@ -51,7 +24,7 @@ export function AdminShell({ children }: PropsWithChildren) {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === "/admin"}
+                end={item.to === routePaths.operationsHome}
                 className={({ isActive }) =>
                   `admin-nav__link ${isActive ? "admin-nav__link--active" : ""}`
                 }

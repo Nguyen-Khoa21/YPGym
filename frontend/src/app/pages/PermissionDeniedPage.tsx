@@ -1,6 +1,7 @@
 import { ArrowLeft, LockKeyhole } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
+import { routePaths } from "@/app/routes";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { useAuth } from "@/features/auth/AuthContext";
 import { workspacePathForRole } from "@/features/auth/workspace";
@@ -8,7 +9,7 @@ import { workspacePathForRole } from "@/features/auth/workspace";
 export function PermissionDeniedPage() {
   const { user } = useAuth();
   const location = useLocation();
-  const home = user ? workspacePathForRole(user.role) : "/app/dashboard";
+  const home = user ? workspacePathForRole(user.role) : routePaths.memberDashboard;
   const from = (location.state as { from?: string } | null)?.from;
 
   return (

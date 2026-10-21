@@ -31,8 +31,8 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 | Screen | Route | Role | API dependencies | Status through Day 42 |
 |---|---|---|---|---|
 | Role-specific operations home | `/admin` | Staff/manager/admin | Auth role | Connected navigation only to permitted areas |
-| Member CRM | `/admin/members` | Admin | `/admin/members`, filtered CSV | Connected search, role/tier/status/expiry filters, KPI cards, table, pagination |
-| Admin Member Details | `/admin/members/:id` | Admin | detail composite, decisions, revocation | Connected profile, membership, billing, attendance, booking summary, requests, audit, reasoned actions |
+| Member CRM | `/admin/members` | Manager/admin | `/admin/members`; admin-only filtered CSV | Connected search, role/tier/status/expiry filters, KPI cards, table, pagination |
+| Admin Member Details | `/admin/members/:id` | Manager/admin | detail composite and manual enrollment; admin-only revocation | Connected profile, membership, billing, attendance, booking summary, requests, audit, reasoned actions |
 | Membership approvals | `/admin/approvals` | Manager/admin | `/admin/membership-requests`, decision endpoints | Connected limited queue without full CRM/billing exposure |
 | Billing ledger | `/admin/billing` | Admin | `/admin/billing/payments`, `/invoices`, product filters, manual class refund resolution, exact-filter CSV | Connected membership/class revenue, unpaid holds, provider/invoice references, and refund exceptions |
 | Email delivery operations | `/admin/email-deliveries` | Manager/admin | `/admin/email-deliveries`, retry action | Connected masked recipient, invoice reference, honest delivery state, safe failure and audited retry |
@@ -68,6 +68,8 @@ The native evidence index records each implementation path, actual captures, obs
 ## Shared states and responsive behavior
 
 - `AppFrame`, `MemberShell`, and role-filtered `AdminShell` provide skip links, identity/logout, a role-aware Workspace shortcut, desktop navigation, and member mobile bottom navigation.
+- Canonical web paths live in `frontend/src/app/routes.ts`; typed public/member/operations navigation and client-side role visibility live in `frontend/src/app/navigation.ts`. These values drive links and frontend guards only. FastAPI remains the authorization authority.
+- Web visual tokens remain in `frontend/src/index.css` and `frontend/tailwind.config.ts`; Expo tokens remain independently defined in `mobile/src/lib/theme.ts` because the platforms use different rendering and styling systems.
 - Operations pages share header, metrics, panels, status badges, pagination, dialogs, loading, empty, error, validation, and confirmation patterns.
 - Protected routes wait for authentication resolution and redirect denied roles to `/permission-denied` without rendering protected data.
 - Tables remain horizontally scrollable on narrow viewports; core member actions are reachable from mobile navigation.

@@ -6,6 +6,7 @@ import { MembershipPoliciesPage } from "@/app/pages/MembershipPoliciesPage";
 import { NotFoundPage } from "@/app/pages/NotFoundPage";
 import { PermissionDeniedPage } from "@/app/pages/PermissionDeniedPage";
 import { VerificationSuccessPage } from "@/app/pages/VerificationSuccessPage";
+import { routePaths } from "@/app/routes";
 import { MemberAttendancePage } from "@/features/attendance/pages/MemberAttendancePage";
 import { MemberQrPage } from "@/features/attendance/pages/MemberQrPage";
 import { AdminBroadcastsPage } from "@/features/admin/pages/AdminBroadcastsPage";
@@ -23,6 +24,7 @@ import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
 import { RegisterPage } from "@/features/auth/pages/RegisterPage";
 import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
 import { VerifyEmailPage } from "@/features/auth/pages/VerifyEmailPage";
+import { clientRoleGroups } from "@/features/auth/workspace";
 import { PaymentHistoryPage } from "@/features/billing/pages/PaymentHistoryPage";
 import { PaymentResultPage } from "@/features/billing/pages/PaymentResultPage";
 import { AdminClassesPage } from "@/features/classes/pages/AdminClassesPage";
@@ -68,152 +70,149 @@ const MemberTrainingPage = lazy(() =>
   })),
 );
 
-const operationsRoles = ["admin", "manager", "staff"] as const;
-const managerRoles = ["admin", "manager"] as const;
-
 export const router = createBrowserRouter([
-  { path: "/", element: <HomePage /> },
-  { path: "/register", element: <RegisterPage /> },
-  { path: "/login", element: <LoginPage /> },
-  { path: "/change-password", element: <ProtectedRoute><ChangePasswordPage /></ProtectedRoute> },
-  { path: "/oauth/callback", element: <OAuthCallbackPage /> },
-  { path: "/auth/link-account", element: <OAuthLinkAccountPage /> },
-  { path: "/forgot-password", element: <ForgotPasswordPage /> },
-  { path: "/reset-password", element: <ResetPasswordPage /> },
-  { path: "/verify-email", element: <VerifyEmailPage /> },
-  { path: "/verify-email/success", element: <VerificationSuccessPage /> },
-  { path: "/policies/membership", element: <MembershipPoliciesPage /> },
-  { path: "/memberships", element: <MembershipPlansPage /> },
+  { path: routePaths.home, element: <HomePage /> },
+  { path: routePaths.register, element: <RegisterPage /> },
+  { path: routePaths.login, element: <LoginPage /> },
+  { path: routePaths.changePassword, element: <ProtectedRoute><ChangePasswordPage /></ProtectedRoute> },
+  { path: routePaths.oauthCallback, element: <OAuthCallbackPage /> },
+  { path: routePaths.oauthLinkAccount, element: <OAuthLinkAccountPage /> },
+  { path: routePaths.forgotPassword, element: <ForgotPasswordPage /> },
+  { path: routePaths.resetPassword, element: <ResetPasswordPage /> },
+  { path: routePaths.verifyEmail, element: <VerifyEmailPage /> },
+  { path: routePaths.verificationSuccess, element: <VerificationSuccessPage /> },
+  { path: routePaths.membershipPolicies, element: <MembershipPoliciesPage /> },
+  { path: routePaths.membershipPlans, element: <MembershipPlansPage /> },
   {
-    path: "/memberships/buy/:planId",
-    element: <ProtectedRoute roles={["member"]}><BuyMembershipPage /></ProtectedRoute>,
+    path: routePaths.membershipPurchase,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><BuyMembershipPage /></ProtectedRoute>,
   },
   {
-    path: "/app/dashboard",
-    element: <ProtectedRoute roles={["member"]}><MemberDashboardPage /></ProtectedRoute>,
+    path: routePaths.memberDashboard,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><MemberDashboardPage /></ProtectedRoute>,
   },
   {
-    path: "/app/profile",
+    path: routePaths.memberProfile,
     element: <ProtectedRoute><ProfileSettingsPage /></ProtectedRoute>,
   },
   {
-    path: "/app/security",
+    path: routePaths.memberSecurity,
     element: <ProtectedRoute><AccountSecurityPage /></ProtectedRoute>,
   },
   {
-    path: "/app/billing",
+    path: routePaths.memberBilling,
     element: <ProtectedRoute><PaymentHistoryPage /></ProtectedRoute>,
   },
   {
-    path: "/app/payments/result",
-    element: <ProtectedRoute roles={["member"]}><PaymentResultPage /></ProtectedRoute>,
+    path: routePaths.paymentResult,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><PaymentResultPage /></ProtectedRoute>,
   },
   {
-    path: "/app/qr",
-    element: <ProtectedRoute roles={["member"]}><MemberQrPage /></ProtectedRoute>,
+    path: routePaths.memberQr,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><MemberQrPage /></ProtectedRoute>,
   },
   {
-    path: "/app/attendance",
-    element: <ProtectedRoute roles={["member"]}><MemberAttendancePage /></ProtectedRoute>,
+    path: routePaths.memberAttendance,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><MemberAttendancePage /></ProtectedRoute>,
   },
   {
-    path: "/app/membership-requests",
-    element: <ProtectedRoute roles={["member"]}><MembershipRequestsPage /></ProtectedRoute>,
+    path: routePaths.membershipRequests,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><MembershipRequestsPage /></ProtectedRoute>,
   },
   {
-    path: "/app/notifications",
-    element: <ProtectedRoute roles={["member"]}><NotificationsPage /></ProtectedRoute>,
+    path: routePaths.memberNotifications,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><NotificationsPage /></ProtectedRoute>,
   },
   {
-    path: "/app/notifications/preferences",
-    element: <ProtectedRoute roles={["member"]}><NotificationPreferencesPage /></ProtectedRoute>,
+    path: routePaths.notificationPreferences,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><NotificationPreferencesPage /></ProtectedRoute>,
   },
   {
-    path: "/app/classes",
-    element: <ProtectedRoute roles={["member"]}><MemberClassesPage /></ProtectedRoute>,
+    path: routePaths.memberClasses,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><MemberClassesPage /></ProtectedRoute>,
   },
   {
-    path: "/app/bookings",
-    element: <ProtectedRoute roles={["member"]}><MyBookingsPage /></ProtectedRoute>,
+    path: routePaths.memberBookings,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><MyBookingsPage /></ProtectedRoute>,
   },
   {
-    path: "/app/train",
-    element: <ProtectedRoute roles={["member"]}><MemberTrainingPage /></ProtectedRoute>,
+    path: routePaths.memberTraining,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><MemberTrainingPage /></ProtectedRoute>,
   },
   {
-    path: "/app/train/:id",
-    element: <ProtectedRoute roles={["member"]}><MemberTrainingPage /></ProtectedRoute>,
+    path: routePaths.memberTrainingDetail,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><MemberTrainingPage /></ProtectedRoute>,
   },
   {
-    path: "/admin",
-    element: <ProtectedRoute roles={[...operationsRoles]}><AdminDashboardPage /></ProtectedRoute>,
+    path: routePaths.operationsHome,
+    element: <ProtectedRoute roles={[...clientRoleGroups.operations]}><AdminDashboardPage /></ProtectedRoute>,
   },
   {
-    path: "/admin/billing",
-    element: <ProtectedRoute roles={["admin"]}><AdminBillingPage /></ProtectedRoute>,
+    path: routePaths.adminBilling,
+    element: <ProtectedRoute roles={[...clientRoleGroups.admin]}><AdminBillingPage /></ProtectedRoute>,
   },
   {
-    path: "/admin/email-deliveries",
-    element: <ProtectedRoute roles={[...managerRoles]}><AdminEmailDeliveriesPage /></ProtectedRoute>,
+    path: routePaths.adminEmailDeliveries,
+    element: <ProtectedRoute roles={[...clientRoleGroups.management]}><AdminEmailDeliveriesPage /></ProtectedRoute>,
   },
   {
-    path: "/admin/members",
-    element: <ProtectedRoute roles={["manager", "admin"]}><AdminMembersPage /></ProtectedRoute>,
+    path: routePaths.adminMembers,
+    element: <ProtectedRoute roles={[...clientRoleGroups.management]}><AdminMembersPage /></ProtectedRoute>,
   },
   {
-    path: "/admin/members/:id",
-    element: <ProtectedRoute roles={["manager", "admin"]}><AdminMemberDetailPage /></ProtectedRoute>,
+    path: routePaths.adminMemberDetail,
+    element: <ProtectedRoute roles={[...clientRoleGroups.management]}><AdminMemberDetailPage /></ProtectedRoute>,
   },
   {
-    path: "/admin/attendance",
-    element: <ProtectedRoute roles={[...operationsRoles]}><AdminAttendancePage /></ProtectedRoute>,
+    path: routePaths.adminAttendance,
+    element: <ProtectedRoute roles={[...clientRoleGroups.operations]}><AdminAttendancePage /></ProtectedRoute>,
   },
   {
-    path: "/admin/classes",
-    element: <ProtectedRoute roles={["admin"]}><AdminClassesPage /></ProtectedRoute>,
+    path: routePaths.adminClasses,
+    element: <ProtectedRoute roles={[...clientRoleGroups.admin]}><AdminClassesPage /></ProtectedRoute>,
   },
   {
-    path: "/admin/audit",
-    element: <ProtectedRoute roles={[...managerRoles]}><AdminAuditPage /></ProtectedRoute>,
+    path: routePaths.adminAudit,
+    element: <ProtectedRoute roles={[...clientRoleGroups.management]}><AdminAuditPage /></ProtectedRoute>,
   },
   {
-    path: "/admin/approvals",
-    element: <ProtectedRoute roles={[...managerRoles]}><AdminMembershipApprovalsPage /></ProtectedRoute>,
+    path: routePaths.adminApprovals,
+    element: <ProtectedRoute roles={[...clientRoleGroups.management]}><AdminMembershipApprovalsPage /></ProtectedRoute>,
   },
   {
-    path: "/admin/settings",
-    element: <ProtectedRoute roles={[...managerRoles]}><AdminSettingsPage /></ProtectedRoute>,
+    path: routePaths.adminSettings,
+    element: <ProtectedRoute roles={[...clientRoleGroups.management]}><AdminSettingsPage /></ProtectedRoute>,
   },
   {
-    path: "/admin/broadcasts",
-    element: <ProtectedRoute roles={[...managerRoles]}><AdminBroadcastsPage /></ProtectedRoute>,
+    path: routePaths.adminBroadcasts,
+    element: <ProtectedRoute roles={[...clientRoleGroups.management]}><AdminBroadcastsPage /></ProtectedRoute>,
   },
   {
-    path: "/admin/pt-assignments",
-    element: <ProtectedRoute roles={[...managerRoles]}><AdminTrainersPage /></ProtectedRoute>,
+    path: routePaths.adminPtAssignments,
+    element: <ProtectedRoute roles={[...clientRoleGroups.management]}><AdminTrainersPage /></ProtectedRoute>,
   },
   {
-    path: "/admin/exercises",
-    element: <ProtectedRoute roles={[...managerRoles]}><AdminTrainingPage /></ProtectedRoute>,
+    path: routePaths.adminExercises,
+    element: <ProtectedRoute roles={[...clientRoleGroups.management]}><AdminTrainingPage /></ProtectedRoute>,
   },
   {
-    path: "/admin/staff",
-    element: <ProtectedRoute roles={[...managerRoles]}><AdminStaffPage /></ProtectedRoute>,
+    path: routePaths.adminStaff,
+    element: <ProtectedRoute roles={[...clientRoleGroups.management]}><AdminStaffPage /></ProtectedRoute>,
   },
   {
-    path: "/staff/time-clock",
-    element: <ProtectedRoute roles={["staff", "pt"]}><StaffTimeClockPage /></ProtectedRoute>,
+    path: routePaths.staffTimeClock,
+    element: <ProtectedRoute roles={[...clientRoleGroups.workforce]}><StaffTimeClockPage /></ProtectedRoute>,
   },
   {
-    path: "/pt/dashboard",
-    element: <ProtectedRoute roles={["pt"]}><PtDashboardPage /></ProtectedRoute>,
+    path: routePaths.ptDashboard,
+    element: <ProtectedRoute roles={[...clientRoleGroups.trainer]}><PtDashboardPage /></ProtectedRoute>,
   },
-  { path: "/permission-denied", element: <PermissionDeniedPage /> },
+  { path: routePaths.permissionDenied, element: <PermissionDeniedPage /> },
 
   // Existing Day 11-20 URLs remain usable as aliases.
-  { path: "/member", element: <Navigate to="/app/dashboard" replace /> },
-  { path: "/profile", element: <Navigate to="/app/profile" replace /> },
-  { path: "/billing", element: <Navigate to="/app/billing" replace /> },
-  { path: "/pt", element: <Navigate to="/pt/dashboard" replace /> },
+  { path: routePaths.memberAlias, element: <Navigate to={routePaths.memberDashboard} replace /> },
+  { path: routePaths.profileAlias, element: <Navigate to={routePaths.memberProfile} replace /> },
+  { path: routePaths.billingAlias, element: <Navigate to={routePaths.memberBilling} replace /> },
+  { path: routePaths.ptAlias, element: <Navigate to={routePaths.ptDashboard} replace /> },
   { path: "*", element: <NotFoundPage /> },
 ]);

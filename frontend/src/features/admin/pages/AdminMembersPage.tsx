@@ -5,6 +5,7 @@ import { Download, Search, UserRoundPlus } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { routeFor } from "@/app/routes";
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/FeedbackState";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { DataTable } from "@/components/operations/DataTable";
@@ -17,7 +18,7 @@ import { formatDate } from "@/lib/format";
 import type { AdminMember, AdminMemberPage } from "@/types/operations";
 
 const columns: ColumnDef<AdminMember>[] = [
-  { header: "Member", cell: ({ row }) => <div><Link className="font-extrabold text-primary underline-offset-4 hover:underline" to={`/admin/members/${row.original.id}`}>{row.original.name}</Link><p className="mt-1 text-[11px] text-muted-foreground">{row.original.email}</p></div> },
+  { header: "Member", cell: ({ row }) => <div><Link className="font-extrabold text-primary underline-offset-4 hover:underline" to={routeFor.adminMemberDetail(row.original.id)}>{row.original.name}</Link><p className="mt-1 text-[11px] text-muted-foreground">{row.original.email}</p></div> },
   { header: "Contact", cell: ({ row }) => <span>{row.original.phone}</span> },
   { header: "Role / tier", cell: ({ row }) => <div className="capitalize"><strong>{row.original.role}</strong><p className="mt-1 text-[11px] text-muted-foreground">{row.original.tier}</p></div> },
   { header: "Membership", cell: ({ row }) => row.original.membership ? <div><StatusBadge value={row.original.membership.status} /><p className="mt-1.5 text-[11px] text-muted-foreground">{row.original.membership.plan_name}</p></div> : <StatusBadge value="none" /> },

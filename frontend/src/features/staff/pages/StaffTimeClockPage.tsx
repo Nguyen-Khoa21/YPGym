@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Clock3, LogIn, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
+import { workforceNavigationForRole } from "@/app/navigation";
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/FeedbackState";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { Panel, StatusBadge } from "@/components/operations/OperationsUi";
@@ -31,9 +32,7 @@ export function StaffTimeClockPage() {
     },
     onError: (error) => toast.error(toUiError(error).message),
   });
-  const nav = user?.role === "pt"
-    ? [{ to: "/pt/dashboard", label: "Trainer workspace" }, { to: "/staff/time-clock", label: "Time clock" }, { to: "/app/profile", label: "Account" }]
-    : [{ to: "/staff/time-clock", label: "Time clock" }, { to: "/admin/attendance", label: "Attendance operations" }, { to: "/app/profile", label: "Account" }];
+  const nav = workforceNavigationForRole(user?.role);
 
   return <AppFrame navigation={nav}><main id="main-content" className="mx-auto min-h-[calc(100vh-4.8rem)] max-w-5xl px-5 py-10 sm:px-8">
     <p className="page-kicker">Workforce operations</p><h1 className="page-title">Staff time clock.</h1><p className="page-description">Server timestamps are authoritative. Times below use the configured gym timezone.</p>
