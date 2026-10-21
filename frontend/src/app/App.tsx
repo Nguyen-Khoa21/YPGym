@@ -4,10 +4,12 @@ import { RouterProvider } from "react-router-dom";
 import { AppProviders } from "@/app/providers";
 import { router } from "@/app/router";
 import { LoadingState } from "@/components/common/FeedbackState";
+import { PwaStatus } from "@/components/common/PwaStatus";
 
 export function App() {
   return (
     <AppProviders>
+      <PwaStatus />
       <Suspense fallback={<RouteLoadingFallback />}>
         <RouterProvider router={router} />
       </Suspense>

@@ -8,6 +8,8 @@ For Windows startup/build commands, all local demo logins, and phone/emulator/Ex
 
 For a deployment image that builds the React bundle once and serves it with Nginx, see the [production frontend runbook](docs/runbooks/frontend-production.md). The existing Compose frontend remains the local Vite development server.
 
+For production service-worker, installation, offline-shell, update, and cache-clearing checks, see the [PWA runbook](docs/runbooks/pwa.md). The Expo application remains a separate native client.
+
 Google/Facebook publication remains an owner-managed deployment gate. See the [OAuth production checklist](docs/oauth-production-checklist.md) for development and production callbacks, dashboard steps, and acceptance cases.
 
 VNPay sandbox membership checkout is documented in the [payment architecture](docs/api/vnpay-payments.md) and [Cloudflare Quick Tunnel runbook](docs/runbooks/vnpay-sandbox.md).
