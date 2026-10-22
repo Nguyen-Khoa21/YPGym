@@ -40,6 +40,7 @@ Values are persisted, centrally validated, cached in Redis, invalidated on updat
 
 - Admin class creation/update requires timezone-aware future start, end after start, capacity 1-500, valid active trainer when assigned, and no trainer/location overlap.
 - Cancellation is a reasoned, audited status transition; rows are not hard-deleted.
+- A scheduled class completes automatically after its stored end time. The assigned personal trainer may confirm completion after the class start time; another trainer and pre-start confirmation are rejected. Both paths lock the class row and create an audit record, and repeated confirmation is idempotent.
 - Manager/admin trainer profile changes are audited. Public/member responses expose only name, bio, specialty, availability, active state, and bounded upcoming classes.
 - Trainer deactivation is blocked while a scheduled future class is assigned; historical rows are never deleted.
 - An active or expiring-soon effective membership is required to book or join a waitlist. Frozen, pending-verification, expired, cancelled, revoked, and absent memberships are ineligible.

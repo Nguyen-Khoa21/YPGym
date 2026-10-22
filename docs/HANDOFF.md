@@ -1,6 +1,15 @@
 # YPGym Handoff
 
-Last updated: 2026-10-13, Feature 10 staff accounts and time clock verified for the current checkpoint.
+Last updated: 2026-10-23, class completion automation and assigned-PT confirmation verified in the current working tree.
+
+## October 22–23 continuation — class completion lifecycle
+
+- Scheduled classes now transition to `completed` through two controlled paths: a Celery beat task runs every minute after the stored class end time, or the personal trainer assigned to the class confirms it after the stored start time.
+- Both paths reuse the centralized class FSM, lock class rows, and write `class.completed` audit records in the same transaction. Automatic records have no actor; PT confirmation records the authenticated trainer user. Repeated PT confirmation is idempotent, while another trainer and pre-start confirmation return `403` and `409` respectively.
+- PT-only `GET /trainers/me/classes` returns the assigned scheduled classes whose start time has passed. `POST /trainers/me/classes/{class_id}/complete` performs confirmation. The `/pt/dashboard` now includes loading, error, empty, in-progress/ended, confirmation, pending and success states for this flow.
+- No database schema, migration or dependency changed. The focused PostgreSQL/Redis integration file passed 3 tests. The full isolated suite passed **182 tests with 12 existing Starlette deprecation warnings**. Python compileall, Compose config, Alembic current/check, frontend lint, all **20 frontend tests**, and the frontend production/PWA build passed; the existing large-chunk build warning remains.
+- The ignored class/waitlist/refund state diagram and audit were synchronized and visually checked at 3,566 × 2,009. Finding M3 is resolved in the current working tree. The next unresolved code issue from the audit is M4: payment failure/expiry releases effective class capacity without triggering waitlist promotion.
+- The normal local frontend and Celery containers were rebuilt/recreated without touching PostgreSQL or Redis data. The frontend route returned HTTP 200, `/api/v1/health` returned `success`, the worker registered `app.workers.complete_finished_classes`, and beat dispatched the task successfully.
 
 ## October 13 continuation — Feature 10 staff accounts and time clock
 

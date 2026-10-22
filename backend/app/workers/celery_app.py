@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from app.core.config import get_settings
 from app.db.session import AsyncSessionLocal, engine
 from app.services.attendance_service import AttendanceService
+from app.services.class_service import ClassService
 from app.services.configuration_service import ConfigurationService
 from app.services.email_service import EmailDeliveryService
 from app.services.lifecycle_service import MembershipLifecycleService
@@ -36,6 +37,10 @@ celery_app.conf.beat_schedule = {
     },
     "class-reminders-minute": {
         "task": "app.workers.send_class_reminders",
+        "schedule": 60.0,
+    },
+    "class-completion-minute": {
+        "task": "app.workers.complete_finished_classes",
         "schedule": 60.0,
     },
     "welcome-emails-minute": {
@@ -109,6 +114,16 @@ async def _send_class_reminders() -> int:
 @celery_app.task(name="app.workers.send_class_reminders")
 def send_class_reminders() -> int:
     return _run_async_task(_send_class_reminders)
+
+
+async def _complete_finished_classes() -> int:
+    async with AsyncSessionLocal() as session:
+        return await ClassService(session).complete_finished_classes()
+
+
+@celery_app.task(name="app.workers.complete_finished_classes")
+def complete_finished_classes() -> int:
+    return _run_async_task(_complete_finished_classes)
 
 
 async def _send_welcome_emails() -> int:

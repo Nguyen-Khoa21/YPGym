@@ -46,7 +46,7 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 | YPTrain catalogue | `/admin/exercises` | Manager/admin | `/admin/training/exercises`, image upload | Shared record create/edit/archive/restore, search/filter, validated image replacement and audit |
 | Workforce accounts and shift report | `/admin/staff` | Manager/admin | `/admin/staff-accounts`, `/admin/staff-shifts` | Connected one-time credential provisioning, PT linkage, search/role/status/local-date filters and pagination |
 | Staff time clock | `/staff/time-clock` | Staff/PT | `/staff/shifts/me`, clock-in/out | Connected server UTC timestamps, one-open-shift constraint, audit and gym-timezone presentation |
-| PT dashboard | `/pt/dashboard` | PT | Auth role | Intentionally lightweight protected landing page; payroll/client-programming scope is not fabricated |
+| PT dashboard | `/pt/dashboard` | PT | `/trainers/me`, `/trainers/me/classes`, `/trainers/me/classes/{class_id}/complete` | Connected trainer profile/upcoming assignments plus assigned-class confirmation after start; classes also complete automatically after their end time. Payroll/client-programming scope is not fabricated. |
 
 ## Attendance field mapping
 

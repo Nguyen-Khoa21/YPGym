@@ -1,9 +1,12 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from sqlalchemy import func, select
 
 from app.models.classes import GymClass, PersonalTrainer
+from app.models.operations import AuditLog
 from app.models.user import User
+from app.services.class_service import ClassService
 from app.utils.security import create_access_token
 
 pytestmark = pytest.mark.asyncio
@@ -51,3 +54,133 @@ async def test_trainer_workspace_is_owned_bounded_and_role_protected(client, sto
         await session.commit()
     assert (await client.get(path, headers=headers[0])).json()["is_active"] is False
     assert (await client.get(f"/api/v1/trainers/{own.id}")).status_code == 404
+
+
+async def test_assigned_trainer_can_complete_started_class_once(client, storage):
+    sessions, _ = storage
+    now = datetime.now(UTC)
+    async with sessions() as session:
+        assigned_user = User(
+            name="Assigned trainer",
+            email="assigned-completion@example.com",
+            phone="55551001",
+            role="pt",
+            password_hash="unused",
+            is_email_verified=True,
+        )
+        other_user = User(
+            name="Other trainer",
+            email="other-completion@example.com",
+            phone="55551002",
+            role="pt",
+            password_hash="unused",
+            is_email_verified=True,
+        )
+        session.add_all([assigned_user, other_user])
+        await session.flush()
+        assigned = PersonalTrainer(user_id=assigned_user.id, display_name="Assigned coach", is_active=True)
+        other = PersonalTrainer(user_id=other_user.id, display_name="Other coach", is_active=True)
+        session.add_all([assigned, other])
+        await session.flush()
+        started = GymClass(
+            title="Active coaching session",
+            class_type="Strength",
+            start_at=now - timedelta(minutes=30),
+            end_at=now + timedelta(minutes=30),
+            capacity=10,
+            trainer_id=assigned.id,
+            location="Studio A",
+            status="scheduled",
+        )
+        future = GymClass(
+            title="Future coaching session",
+            class_type="Strength",
+            start_at=now + timedelta(hours=1),
+            end_at=now + timedelta(hours=2),
+            capacity=10,
+            trainer_id=assigned.id,
+            location="Studio A",
+            status="scheduled",
+        )
+        session.add_all([started, future])
+        await session.commit()
+
+    assigned_headers = {
+        "Authorization": f"Bearer {create_access_token(user_id=assigned_user.id, role='pt', tier=assigned_user.tier)[0]}",
+    }
+    other_headers = {
+        "Authorization": f"Bearer {create_access_token(user_id=other_user.id, role='pt', tier=other_user.tier)[0]}",
+    }
+    classes_path = "/api/v1/trainers/me/classes"
+    assert (await client.get(classes_path)).status_code == 401
+    response = await client.get(classes_path, headers=assigned_headers)
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()] == [str(started.id)]
+
+    complete_path = f"{classes_path}/{started.id}/complete"
+    assert (await client.post(complete_path, headers=other_headers)).status_code == 403
+    response = await client.post(complete_path, headers=assigned_headers)
+    assert response.status_code == 200
+    assert response.json()["status"] == "completed"
+    assert (await client.post(complete_path, headers=assigned_headers)).status_code == 200
+    assert (await client.post(f"{classes_path}/{future.id}/complete", headers=assigned_headers)).status_code == 409
+
+    async with sessions() as session:
+        assert await session.scalar(
+            select(func.count())
+            .select_from(AuditLog)
+            .where(AuditLog.action == "class.completed", AuditLog.entity_id == str(started.id)),
+        ) == 1
+
+
+async def test_finished_classes_complete_automatically_and_are_audited(storage):
+    sessions, _ = storage
+    now = datetime.now(UTC)
+    async with sessions() as session:
+        ended = GymClass(
+            title="Ended scheduled class",
+            class_type="Mobility",
+            start_at=now - timedelta(hours=2),
+            end_at=now - timedelta(hours=1),
+            capacity=10,
+            location="Studio A",
+            status="scheduled",
+        )
+        in_progress = GymClass(
+            title="In-progress class",
+            class_type="Mobility",
+            start_at=now - timedelta(minutes=30),
+            end_at=now + timedelta(minutes=30),
+            capacity=10,
+            location="Studio B",
+            status="scheduled",
+        )
+        cancelled = GymClass(
+            title="Cancelled ended class",
+            class_type="Mobility",
+            start_at=now - timedelta(hours=2),
+            end_at=now - timedelta(hours=1),
+            capacity=10,
+            location="Studio C",
+            status="cancelled",
+        )
+        session.add_all([ended, in_progress, cancelled])
+        await session.commit()
+
+    async with sessions() as session:
+        assert await ClassService(session).complete_finished_classes(now=now) == 1
+
+    async with sessions() as session:
+        assert (await session.get(GymClass, ended.id)).status == "completed"
+        assert (await session.get(GymClass, in_progress.id)).status == "scheduled"
+        assert (await session.get(GymClass, cancelled.id)).status == "cancelled"
+        audit = (
+            await session.execute(
+                select(AuditLog).where(
+                    AuditLog.action == "class.completed",
+                    AuditLog.entity_id == str(ended.id),
+                ),
+            )
+        ).scalar_one()
+        assert audit.actor_user_id is None
+        assert audit.reason == "Class end time passed"

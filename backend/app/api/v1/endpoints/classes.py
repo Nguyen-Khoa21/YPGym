@@ -162,6 +162,23 @@ async def own_trainer_profile(
     return await TrainerService(session).get_own(current_user)
 
 
+@trainer_router.get("/me/classes", response_model=list[ClassItem])
+async def own_started_classes(
+    current_user: Annotated[User, Depends(require_roles("pt"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> list[ClassItem]:
+    return await TrainerService(session).list_started_own_classes(current_user)
+
+
+@trainer_router.post("/me/classes/{class_id}/complete", response_model=ClassItem)
+async def complete_own_class(
+    class_id: UUID,
+    current_user: Annotated[User, Depends(require_roles("pt"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> ClassItem:
+    return await ClassService(session).complete_by_trainer(class_id=class_id, actor=current_user)
+
+
 @trainer_router.get("/{trainer_id}", response_model=TrainerItem)
 async def public_trainer(
     trainer_id: UUID,

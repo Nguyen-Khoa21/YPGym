@@ -8,6 +8,8 @@ All paths are under `/api/v1`. Errors use the shared `{ "error": { "code", "mess
 |---|---|---|
 | `GET /trainers` | Public | Active member-safe trainer cards with at most three upcoming assigned classes. |
 | `GET /trainers/me` | PT only | Authenticated PT's linked profile and at most three future scheduled assignments; identity is derived from the JWT, never a query parameter. |
+| `GET /trainers/me/classes` | PT only | Scheduled classes assigned to the authenticated PT whose start time has passed, bounded to 25 newest-first results. |
+| `POST /trainers/me/classes/{class_id}/complete` | Assigned PT only | Complete an assigned scheduled class after its start time. Repeated confirmation of an already-completed class is idempotent. |
 | `GET /trainers/{trainer_id}` | Public | One active member-safe trainer card. |
 | `GET /admin/trainers?active=true|false` | Manager, admin | Active/inactive profile management list. |
 | `POST /admin/trainers` | Manager, admin | Create a profile with name, bio, specialty, availability, and optional existing PT user link. |
@@ -16,7 +18,9 @@ All paths are under `/api/v1`. Errors use the shared `{ "error": { "code", "mess
 
 Create/update/deactivate write audit records. Deactivation returns `409 CONFLICT` with future class IDs when reassignment is still required. Invalid or already-linked PT user IDs return `422 TRAINER_USER_INVALID` or `409 CONFLICT`.
 
-The own-workspace route is declared before `/{trainer_id}` and returns `404` when no profile is linked. An inactive linked profile remains readable by its owner. It uses the existing member-safe `TrainerItem`; internal user IDs, credentials and admin-only fields are excluded. Other roles receive `403`. This is a lightweight read-only workspace; manager/admin profile maintenance and admin-only scheduling remain separate.
+The own-workspace routes are declared before `/{trainer_id}` and return `404` when no profile is linked. An inactive linked profile remains readable by its owner. They use the existing member-safe trainer and class schemas; internal user IDs, credentials and admin-only fields are excluded. Other roles receive `403`. Class confirmation locks the row, checks the PT-to-class assignment on the backend, rejects confirmation before `start_at`, uses the centralized `scheduled -> completed` transition, and writes an audit record in the same transaction. Manager/admin profile maintenance and admin-only scheduling remain separate.
+
+Celery also scans scheduled classes every minute. Rows with `end_at <= now` are selected in bounded batches with `FOR UPDATE SKIP LOCKED`, transitioned to `completed`, and audited with no actor. This handles classes whose assigned PT does not confirm completion.
 
 ## Member classes and bookings
 

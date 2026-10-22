@@ -57,6 +57,41 @@ class ClassRepository:
     async def upcoming_for_trainer(self, trainer_id: UUID) -> list[GymClass]:
         return await self.upcoming_for_trainers([trainer_id])
 
+    async def started_scheduled_for_trainer(
+        self,
+        trainer_id: UUID,
+        *,
+        now: datetime,
+        limit: int = 25,
+    ) -> list[GymClass]:
+        return list(
+            (
+                await self.session.execute(
+                    select(GymClass)
+                    .where(
+                        GymClass.trainer_id == trainer_id,
+                        GymClass.status == "scheduled",
+                        GymClass.start_at <= now,
+                    )
+                    .order_by(GymClass.end_at.desc(), GymClass.id)
+                    .limit(limit),
+                )
+            ).scalars().all(),
+        )
+
+    async def finished_scheduled_for_update(self, *, now: datetime, limit: int = 100) -> list[GymClass]:
+        return list(
+            (
+                await self.session.execute(
+                    select(GymClass)
+                    .where(GymClass.status == "scheduled", GymClass.end_at <= now)
+                    .order_by(GymClass.end_at, GymClass.id)
+                    .limit(limit)
+                    .with_for_update(skip_locked=True),
+                )
+            ).scalars().all(),
+        )
+
     async def get_class(self, class_id: UUID, *, for_update: bool = False) -> GymClass | None:
         query = select(GymClass).where(GymClass.id == class_id)
         if for_update:

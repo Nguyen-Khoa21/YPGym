@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio import Redis
 
-from app.core.exceptions import AppError, ConflictError, ResourceNotFoundError
+from app.core.exceptions import AppError, ConflictError, PermissionDeniedError, ResourceNotFoundError
 from app.models.classes import ClassBooking, ClassWaitlist, GymClass, PersonalTrainer
 from app.models.enums import ClassBookingStatus, ClassStatus, PaymentStatus, RefundStatus, WaitlistStatus
 from app.models.user import User
@@ -184,6 +184,59 @@ class ClassService:
         await self.session.refresh(item)
         return self._item(item, trainer_name)
 
+    async def complete_by_trainer(self, *, class_id: UUID, actor: User) -> ClassItem:
+        trainer = await self.classes.get_trainer_by_user(actor.id)
+        if not trainer:
+            raise ResourceNotFoundError("Your trainer profile has not been linked. Contact a manager.")
+        item = await self.classes.get_class(class_id, for_update=True)
+        if not item:
+            raise ResourceNotFoundError("Class was not found.")
+        if item.trainer_id != trainer.id:
+            raise PermissionDeniedError("Only the assigned personal trainer can complete this class.")
+        if item.status == ClassStatus.COMPLETED:
+            return self._item(item, trainer.display_name)
+        if item.status != ClassStatus.SCHEDULED:
+            raise ConflictError("Only scheduled classes can be completed.")
+        now = datetime.now(UTC)
+        if item.start_at > now:
+            raise ConflictError("A class cannot be completed before it starts.")
+        before = self._audit_data(item)
+        transition_class(item, ClassStatus.COMPLETED)
+        await self.audit.create(
+            actor_user_id=actor.id,
+            action="class.completed",
+            entity_type="class",
+            entity_id=str(item.id),
+            reason="Confirmed by assigned personal trainer",
+            outcome="completed",
+            summary=f"Class '{item.title}' was completed by its assigned trainer.",
+            before_data=before,
+            after_data=self._audit_data(item),
+        )
+        await self.session.commit()
+        await self.session.refresh(item)
+        return self._item(item, trainer.display_name)
+
+    async def complete_finished_classes(self, *, now: datetime | None = None, limit: int = 100) -> int:
+        effective_now = now or datetime.now(UTC)
+        items = await self.classes.finished_scheduled_for_update(now=effective_now, limit=limit)
+        for item in items:
+            before = self._audit_data(item)
+            transition_class(item, ClassStatus.COMPLETED)
+            await self.audit.create(
+                action="class.completed",
+                entity_type="class",
+                entity_id=str(item.id),
+                reason="Class end time passed",
+                outcome="completed",
+                summary=f"Class '{item.title}' was completed automatically.",
+                before_data=before,
+                after_data=self._audit_data(item),
+            )
+        if items:
+            await self.session.commit()
+        return len(items)
+
     async def _trainer_name(self, trainer_id: UUID | None, *, require_active: bool = True) -> str | None:
         if not trainer_id:
             return None
@@ -258,6 +311,13 @@ class TrainerService:
         if not trainer:
             raise ResourceNotFoundError("Your trainer profile has not been linked. Contact a manager.")
         return self.public_item(trainer, await self.trainers.upcoming_for_trainer(trainer.id))
+
+    async def list_started_own_classes(self, user: User) -> list[ClassItem]:
+        trainer = await self.trainers.get_trainer_by_user(user.id)
+        if not trainer:
+            raise ResourceNotFoundError("Your trainer profile has not been linked. Contact a manager.")
+        items = await self.trainers.started_scheduled_for_trainer(trainer.id, now=datetime.now(UTC))
+        return [ClassService._item(item, trainer.display_name) for item in items]
 
     async def list_admin(self, *, active: bool | None) -> list[TrainerAdminItem]:
         trainers = await self.trainers.list_trainers(active=active)
