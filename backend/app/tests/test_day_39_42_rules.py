@@ -13,6 +13,7 @@ from app.repositories.operations_repository import NotificationRepository
 from app.services.class_service import BookingService, TrainerService, can_cancel_class_booking
 from app.services.dashboard_service import DashboardService
 from app.services.notification_service import NotificationService
+from app.services.waitlist_service import WaitlistPromotionService
 
 
 def test_trainer_profile_accepts_member_safe_fields() -> None:
@@ -130,7 +131,14 @@ async def test_promotion_skips_ineligible_member_and_uses_next_entry() -> None:
     second_user = SimpleNamespace(id=uuid4(), is_email_verified=True)
     first = SimpleNamespace(id=uuid4(), user_id=first_user.id, position=1, status="waiting")
     second = SimpleNamespace(id=uuid4(), user_id=second_user.id, position=2, status="waiting")
-    gym_class = SimpleNamespace(id=class_id, capacity=1, title="Mobility", price_vnd=150_000, start_at=datetime.now(UTC) + timedelta(days=1))
+    gym_class = SimpleNamespace(
+        id=class_id,
+        capacity=1,
+        title="Mobility",
+        price_vnd=150_000,
+        start_at=datetime.now(UTC) + timedelta(days=1),
+        status="scheduled",
+    )
 
     class FakeClasses:
         async def occupied_booking_count(self, _: object) -> int:
@@ -153,11 +161,11 @@ async def test_promotion_skips_ineligible_member_and_uses_next_entry() -> None:
             self.user_id = user.id
             return 1
 
-    service = object.__new__(BookingService)
+    service = object.__new__(WaitlistPromotionService)
     service.classes = FakeClasses()
     service.notifications = FakeNotifications()
     service.settings = SimpleNamespace(VNPAY_TRANSACTION_TTL_MINUTES=15)
-    promoted = await service._promote(gym_class)
+    promoted = await service.promote(gym_class)
     assert first.status == "cancelled"
     assert second.status == "promoted"
     assert promoted.user_id == second_user.id

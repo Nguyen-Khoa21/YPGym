@@ -322,6 +322,7 @@ class ClassRepository:
             (
                 await self.session.execute(
                     select(ClassBooking)
+                    .options(selectinload(ClassBooking.current_payment))
                     .where(
                         ClassBooking.class_id == class_id,
                         ClassBooking.status == "pending_payment",

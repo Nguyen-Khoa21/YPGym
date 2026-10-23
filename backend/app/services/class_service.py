@@ -30,8 +30,6 @@ from app.schemas.class_schema import (
 )
 from app.schemas.operations_schema import PageInfo
 from app.services.configuration_service import ConfigurationService
-from app.core.config import get_settings
-from app.services.notification_service import NotificationService
 from app.services.state_transitions import (
     transition_booking,
     transition_class,
@@ -39,6 +37,7 @@ from app.services.state_transitions import (
     transition_refund,
     transition_waitlist,
 )
+from app.services.waitlist_service import WaitlistPromotionService
 
 
 def validate_class_times(start_at: datetime, end_at: datetime, *, allow_past: bool = False) -> None:
@@ -478,9 +477,8 @@ class BookingService:
         self.session = session
         self.classes = ClassRepository(session)
         self.configuration = ConfigurationService(session, redis)
-        self.notifications = NotificationService(session)
         self.audit = AuditRepository(session)
-        self.settings = get_settings()
+        self.waitlist_promotions = WaitlistPromotionService(session)
 
     @staticmethod
     def _require_verified(user: User) -> None:
@@ -667,52 +665,7 @@ class BookingService:
         )
 
     async def _promote(self, gym_class: GymClass) -> ClassBooking | None:
-        if await self.classes.occupied_booking_count(gym_class.id) >= gym_class.capacity:
-            return None
-        for waitlist, user in await self.classes.waiting_entries_for_update(gym_class.id):
-            if not user.is_email_verified:
-                transition_waitlist(waitlist, WaitlistStatus.CANCELLED)
-                continue
-            booking = await self.classes.get_booking_for_user(
-                class_id=gym_class.id, user_id=user.id, for_update=True
-            )
-            if booking and booking.status in {"confirmed", "pending_payment"}:
-                transition_waitlist(waitlist, WaitlistStatus.CANCELLED)
-                continue
-            if booking and booking.refund_status == RefundStatus.REQUIRED.value:
-                transition_waitlist(waitlist, WaitlistStatus.CANCELLED)
-                continue
-            reserved_until = min(
-                datetime.now(UTC) + timedelta(minutes=self.settings.VNPAY_TRANSACTION_TTL_MINUTES),
-                gym_class.start_at,
-            )
-            if booking:
-                transition_booking(booking, ClassBookingStatus.PENDING_PAYMENT)
-                booking.price_vnd = gym_class.price_vnd
-                booking.entitlement_source = "paid"
-                booking.current_payment_id = None
-                booking.reserved_until = reserved_until
-                transition_refund(booking, RefundStatus.NONE, idempotent=True)
-            else:
-                booking = await self.classes.create_booking(
-                    class_id=gym_class.id,
-                    user_id=user.id,
-                    status="pending_payment",
-                    price_vnd=gym_class.price_vnd,
-                    entitlement_source="paid",
-                    reserved_until=reserved_until,
-                )
-            transition_waitlist(waitlist, WaitlistStatus.PROMOTED)
-            await self.notifications.queue_class_promotion(
-                user=user,
-                class_id=gym_class.id,
-                class_title=gym_class.title,
-                class_start=gym_class.start_at,
-                waitlist_id=waitlist.id,
-                waitlist_position=waitlist.position,
-            )
-            return booking
-        return None
+        return await self.waitlist_promotions.promote(gym_class)
 
     @staticmethod
     def _booking_item_with_window(booking: ClassBooking, gym_class: MemberClassItem, window: int) -> BookingItem:

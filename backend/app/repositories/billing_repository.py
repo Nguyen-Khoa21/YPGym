@@ -132,6 +132,7 @@ class PaymentRepository:
     async def list_expired_pending_for_update(self, now: datetime, limit: int = 100) -> list[Payment]:
         result = await self.session.execute(
             select(Payment)
+            .options(selectinload(Payment.class_booking))
             .where(
                 Payment.status == "pending",
                 Payment.expires_at.is_not(None),

@@ -24,6 +24,7 @@ from app.services.invoice_service import InvoicePdfService
 from app.services.membership_service import MembershipService
 from app.services.state_transitions import transition_booking, transition_payment, transition_refund
 from app.services.vnpay_service import VNPaySigner
+from app.services.waitlist_service import WaitlistPromotionService
 
 
 class VNPayPaymentService:
@@ -39,6 +40,7 @@ class VNPayPaymentService:
         self.email_deliveries = EmailDeliveryRepository(session)
         self.notifications = NotificationRepository(session)
         self.audit = AuditRepository(session)
+        self.waitlist_promotions = WaitlistPromotionService(session, self.settings)
 
     def _signer(self) -> VNPaySigner:
         if not self.settings.vnpay_enabled:
@@ -169,8 +171,11 @@ class VNPayPaymentService:
         expired = await self.classes.expired_holds_for_class(class_id, now)
         for item in expired:
             transition_booking(item, ClassBookingStatus.EXPIRED)
+            item.reserved_until = None
             if item.current_payment and item.current_payment.status == PaymentStatus.PENDING.value:
                 transition_payment(item.current_payment, PaymentStatus.EXPIRED)
+                await self._audit_payment_expiry(item.current_payment)
+            await self.waitlist_promotions.promote(gym_class, now=now)
         booking = await self.classes.get_booking_for_user(class_id=class_id, user_id=user.id, for_update=True)
         has_active_hold = bool(
             booking
@@ -185,6 +190,8 @@ class VNPayPaymentService:
         if has_active_hold and booking.current_payment_id:
             raise AppError("CLASS_CHECKOUT_PENDING", "A payment is already pending for this seat.", 409)
         if not has_active_hold and await self.classes.occupied_booking_count(class_id) >= gym_class.capacity:
+            if expired:
+                await self.session.commit()
             raise AppError("CLASS_FULL", "This class is full. Join the waitlist instead.", 409)
 
         reserved_until = min(
@@ -315,10 +322,11 @@ class VNPayPaymentService:
                 PaymentStatus.CANCELLED if response_code == "24" else PaymentStatus.FAILED,
             )
             if payment.product_type == "class_booking" and payment.class_booking_id:
-                booking = await self.classes.get_booking(payment.class_booking_id, for_update=True)
-                if booking and booking.current_payment_id == payment.id and booking.status == "pending_payment":
-                    transition_booking(booking, ClassBookingStatus.PAYMENT_FAILED)
-                    booking.reserved_until = None
+                await self._release_current_class_hold(
+                    payment=payment,
+                    target=ClassBookingStatus.PAYMENT_FAILED,
+                    now=now,
+                )
             await self.audit.create(
                 target_user_id=payment.user_id,
                 action=f"payment.vnpay.{payment.status}",
@@ -336,10 +344,13 @@ class VNPayPaymentService:
         return {"RspCode": "00", "Message": "Confirm Success"}
 
     async def _finalize_class_payment(self, *, payment, user: User, now: datetime) -> None:
+        linked_booking = payment.class_booking
+        if not linked_booking:
+            raise ResourceNotFoundError("Class booking was not found.")
+        gym_class = await self.classes.get_class(linked_booking.class_id, for_update=True)
         booking = await self.classes.get_booking(payment.class_booking_id, for_update=True)
         if not booking:
             raise ResourceNotFoundError("Class booking was not found.")
-        gym_class = await self.classes.get_class(booking.class_id, for_update=True)
         valid_hold = (
             booking.current_payment_id == payment.id
             and booking.status == "pending_payment"
@@ -352,10 +363,14 @@ class VNPayPaymentService:
         )
         if not valid_hold:
             transition_payment(payment, PaymentStatus.PAID_REVIEW)
+            released = False
             if booking.status == "pending_payment":
                 transition_booking(booking, ClassBookingStatus.EXPIRED)
                 booking.reserved_until = None
+                released = True
             transition_refund(booking, RefundStatus.REQUIRED)
+            if released and gym_class:
+                await self.waitlist_promotions.promote(gym_class, now=now)
             await self.audit.create(
                 target_user_id=user.id,
                 action="payment.vnpay.class_resolution_required",
@@ -489,10 +504,40 @@ class VNPayPaymentService:
             return
         transition_payment(payment, PaymentStatus.EXPIRED)
         if payment.product_type == "class_booking" and payment.class_booking_id:
-            booking = await self.classes.get_booking(payment.class_booking_id, for_update=True)
-            if booking and booking.current_payment_id == payment.id and booking.status == "pending_payment":
-                transition_booking(booking, ClassBookingStatus.EXPIRED)
-                booking.reserved_until = None
+            await self._release_current_class_hold(
+                payment=payment,
+                target=ClassBookingStatus.EXPIRED,
+                now=now,
+            )
+        await self._audit_payment_expiry(payment)
+        if commit:
+            await self.session.commit()
+
+    async def _release_current_class_hold(
+        self,
+        *,
+        payment,
+        target: ClassBookingStatus,
+        now: datetime,
+    ) -> bool:
+        linked_booking = payment.class_booking
+        if not linked_booking:
+            return False
+        gym_class = await self.classes.get_class(linked_booking.class_id, for_update=True)
+        booking = await self.classes.get_booking(payment.class_booking_id, for_update=True)
+        if (
+            not booking
+            or booking.current_payment_id != payment.id
+            or booking.status != ClassBookingStatus.PENDING_PAYMENT.value
+        ):
+            return False
+        transition_booking(booking, target)
+        booking.reserved_until = None
+        if gym_class:
+            await self.waitlist_promotions.promote(gym_class, now=now)
+        return True
+
+    async def _audit_payment_expiry(self, payment) -> None:
         await self.audit.create(
             target_user_id=payment.user_id,
             action="payment.vnpay.expired",
@@ -502,8 +547,6 @@ class VNPayPaymentService:
             summary="A pending VNPay payment expired before confirmation.",
             after_data={"product_type": payment.product_type},
         )
-        if commit:
-            await self.session.commit()
 
     async def resolve_class_refund(self, *, payment_id: UUID, actor: User, reason: str) -> PaymentStatusResponse:
         payment = await self.payments.get_by_id(payment_id, for_update=True)

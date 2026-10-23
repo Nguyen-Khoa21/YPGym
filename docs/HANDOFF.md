@@ -1,6 +1,14 @@
 # YPGym Handoff
 
-Last updated: 2026-10-23, class completion automation and assigned-PT confirmation verified in the current working tree.
+Last updated: 2026-10-23, paid-class hold release and waitlist promotion verified in the current working tree.
+
+## October 23 continuation — payment release and waitlist fairness
+
+- Paid-class capacity released by a verified VNPay failure/cancellation, owner status polling, the scheduled expiry worker, checkout stale-hold cleanup, or a late successful payment requiring review now promotes the earliest eligible waiting member in the same class-locked transaction.
+- The existing promotion rules were moved into `WaitlistPromotionService` and remain shared with member cancellation: deterministic queue order, eligibility filtering, a bounded payment hold, reusable booking rows, preference-aware deduplicated notifications, and no promotion after the class starts or leaves `scheduled` state.
+- Checkout cleanup now commits expired holds and the resulting promotion before returning `CLASS_FULL` to an unrelated buyer, so a new checkout cannot bypass the queue. Repeated provider callbacks remain idempotent and do not create a second promotion or duplicate per-channel notifications.
+- Four PostgreSQL integration cases cover failure, owner-observed expiry, Celery-style batch expiry, and opportunistic cleanup. Focused isolated verification passed **27 tests with three existing Starlette deprecation warnings**; the full isolated suite passed **186 tests with 12 existing Starlette deprecation warnings**. Compose validation, Python compileall, Alembic current (`20261013_0018 (head)`) and Alembic drift checks also passed.
+- No model, migration, stored-data contract, frontend code, or dependency changed. The next unresolved code issue from the state-transition audit is M5: a late successful membership payment still has no explicit review/reconciliation state comparable to paid-class `paid_review`.
 
 ## October 22–23 continuation — class completion lifecycle
 

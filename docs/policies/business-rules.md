@@ -43,10 +43,11 @@ Values are persisted, centrally validated, cached in Redis, invalidated on updat
 - A scheduled class completes automatically after its stored end time. The assigned personal trainer may confirm completion after the class start time; another trainer and pre-start confirmation are rejected. Both paths lock the class row and create an audit record, and repeated confirmation is idempotent.
 - Manager/admin trainer profile changes are audited. Public/member responses expose only name, bio, specialty, availability, active state, and bounded upcoming classes.
 - Trainer deactivation is blocked while a scheduled future class is assigned; historical rows are never deleted.
-- An active or expiring-soon effective membership is required to book or join a waitlist. Frozen, pending-verification, expired, cancelled, revoked, and absent memberships are ineligible.
+- A verified member account may independently purchase a paid class or join its waitlist; an active gym membership is not required for that class entitlement.
 - Booking, waitlist allocation, cancellation, and promotion lock the class row, so concurrent requests cannot overbook capacity or allocate the same queue position.
 - A member cannot hold both a confirmed booking and a waiting entry for one class. Existing cancelled rows are safely reactivated instead of bypassing database uniqueness.
 - Waitlist join is available only when the class is full and the configured `waitlist_size` is not exhausted.
 - Cancellation is allowed at the exact configured cutoff and rejected after it. Started, completed, or administratively cancelled classes cannot use member cancellation.
 - Cancellation frees capacity and automatically promotes the earliest eligible waiting entry in the same transaction. Ineligible entries transition to cancelled and the scan continues.
+- A failed, cancelled, expired, or late-review class payment also releases its live hold and promotes the earliest eligible waiting entry in the same locked transaction. Checkout cleanup preserves queue priority before accepting an unrelated buyer.
 - Promotion notifications respect general in-app/email preferences and use channel-specific dedupe keys.

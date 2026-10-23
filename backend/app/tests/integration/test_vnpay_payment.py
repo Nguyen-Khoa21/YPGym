@@ -8,11 +8,12 @@ import pytest
 from sqlalchemy import func, select
 
 from app.models.billing import Invoice, Payment
-from app.models.classes import ClassBooking, GymClass
+from app.models.classes import ClassBooking, ClassWaitlist, GymClass
 from app.models.email_delivery import EmailDelivery
 from app.models.membership import MembershipPlan, UserMembership
 from app.models.operations import AuditLog, Notification
 from app.models.user import User
+from app.services.payment_service import VNPayPaymentService
 from app.services.vnpay_service import VNPaySigner
 from app.utils.security import create_access_token
 
@@ -215,7 +216,7 @@ async def test_ipn_renews_existing_membership_and_handles_cancel_and_expiry(clie
     assert expired.json()["status"] == "expired"
 
 
-async def create_paid_class_fixture(storage, *, capacity: int = 2):
+async def create_paid_class_fixture(storage, *, capacity: int = 2, member_count: int = 2):
     sessions, _ = storage
     async with sessions() as session:
         users = [
@@ -227,7 +228,7 @@ async def create_paid_class_fixture(storage, *, capacity: int = 2):
                 password_hash="unused",
                 is_email_verified=True,
             )
-            for index in range(2)
+            for index in range(member_count)
         ]
         staff = User(
             id=uuid4(),
@@ -343,6 +344,178 @@ async def test_promoted_waitlist_member_can_start_checkout(client, storage):
     promoted_checkout = await start_class_payment(client, gym_class, headers[1], "promoted-member-checkout")
     assert promoted_checkout.status_code == 201, promoted_checkout.text
     assert promoted_checkout.json()["booking_id"]
+
+
+async def test_failed_class_payment_promotes_waitlist_once(client, storage):
+    gym_class, users, headers, _ = await create_paid_class_fixture(storage, capacity=1)
+    checkout = (await start_class_payment(client, gym_class, headers[0], "failed-seat-owner")).json()
+    joined = await client.post(f"/api/v1/classes/{gym_class.id}/waitlist", headers=headers[1])
+    assert joined.status_code == 200, joined.text
+
+    callback = signed_ipn(
+        txn_ref=checkout["txn_ref"],
+        amount=15_000_000,
+        response_code="07",
+        transaction_status="02",
+    )
+    assert (await client.get("/api/v1/payments/vnpay/ipn", params=callback)).json()["RspCode"] == "00"
+    assert (await client.get("/api/v1/payments/vnpay/ipn", params=callback)).json()["RspCode"] == "02"
+
+    sessions, _ = storage
+    async with sessions() as session:
+        failed_booking = await session.get(ClassBooking, checkout["booking_id"])
+        promoted_waitlist = (
+            await session.execute(
+                select(ClassWaitlist).where(
+                    ClassWaitlist.class_id == gym_class.id,
+                    ClassWaitlist.user_id == users[1].id,
+                )
+            )
+        ).scalar_one()
+        promoted_booking = (
+            await session.execute(
+                select(ClassBooking).where(
+                    ClassBooking.class_id == gym_class.id,
+                    ClassBooking.user_id == users[1].id,
+                )
+            )
+        ).scalar_one()
+        notification_channels = list(
+            (
+                await session.execute(
+                    select(Notification.channel).where(
+                        Notification.user_id == users[1].id,
+                        Notification.notification_type == "waitlist_promoted",
+                    )
+                )
+            ).scalars()
+        )
+        assert failed_booking.status == "payment_failed"
+        assert failed_booking.reserved_until is None
+        assert promoted_waitlist.status == "promoted"
+        assert promoted_booking.status == "pending_payment"
+        assert sorted(notification_channels) == ["email", "in_app"]
+
+    promoted_checkout = await start_class_payment(client, gym_class, headers[1], "after-failed-payment")
+    assert promoted_checkout.status_code == 201, promoted_checkout.text
+
+
+async def test_owner_status_expiry_promotes_waitlist(client, storage):
+    gym_class, users, headers, _ = await create_paid_class_fixture(storage, capacity=1)
+    checkout = (await start_class_payment(client, gym_class, headers[0], "expiring-seat-owner")).json()
+    joined = await client.post(f"/api/v1/classes/{gym_class.id}/waitlist", headers=headers[1])
+    assert joined.status_code == 200, joined.text
+
+    sessions, _ = storage
+    async with sessions() as session:
+        payment = await session.get(Payment, checkout["transaction_id"])
+        booking = await session.get(ClassBooking, checkout["booking_id"])
+        expired_at = datetime.now(UTC) - timedelta(seconds=1)
+        payment.expires_at = expired_at
+        booking.reserved_until = expired_at
+        await session.commit()
+
+    status = await client.get(f"/api/v1/payments/{checkout['transaction_id']}", headers=headers[0])
+    assert status.status_code == 200, status.text
+    assert status.json()["status"] == "expired"
+    assert status.json()["booking_status"] == "expired"
+
+    async with sessions() as session:
+        promoted_waitlist = (
+            await session.execute(
+                select(ClassWaitlist).where(
+                    ClassWaitlist.class_id == gym_class.id,
+                    ClassWaitlist.user_id == users[1].id,
+                )
+            )
+        ).scalar_one()
+        assert promoted_waitlist.status == "promoted"
+
+    promoted_checkout = await start_class_payment(client, gym_class, headers[1], "after-status-expiry")
+    assert promoted_checkout.status_code == 201, promoted_checkout.text
+
+
+async def test_expiry_worker_promotes_waitlist(client, storage):
+    gym_class, users, headers, _ = await create_paid_class_fixture(storage, capacity=1)
+    checkout = (await start_class_payment(client, gym_class, headers[0], "worker-expiring-owner")).json()
+    joined = await client.post(f"/api/v1/classes/{gym_class.id}/waitlist", headers=headers[1])
+    assert joined.status_code == 200, joined.text
+
+    sessions, _ = storage
+    async with sessions() as session:
+        payment = await session.get(Payment, checkout["transaction_id"])
+        booking = await session.get(ClassBooking, checkout["booking_id"])
+        expired_at = datetime.now(UTC) - timedelta(seconds=1)
+        payment.expires_at = expired_at
+        booking.reserved_until = expired_at
+        await session.commit()
+
+    async with sessions() as session:
+        assert await VNPayPaymentService(session).expire_pending() == 1
+
+    async with sessions() as session:
+        payment = await session.get(Payment, checkout["transaction_id"])
+        owner_booking = await session.get(ClassBooking, checkout["booking_id"])
+        promoted_waitlist = (
+            await session.execute(
+                select(ClassWaitlist).where(
+                    ClassWaitlist.class_id == gym_class.id,
+                    ClassWaitlist.user_id == users[1].id,
+                )
+            )
+        ).scalar_one()
+        assert payment.status == "expired"
+        assert owner_booking.status == "expired"
+        assert promoted_waitlist.status == "promoted"
+
+
+async def test_checkout_cleanup_preserves_waitlist_priority(client, storage):
+    gym_class, users, headers, _ = await create_paid_class_fixture(storage, capacity=1, member_count=3)
+    checkout = (await start_class_payment(client, gym_class, headers[0], "cleanup-expiring-owner")).json()
+    joined = await client.post(f"/api/v1/classes/{gym_class.id}/waitlist", headers=headers[1])
+    assert joined.status_code == 200, joined.text
+
+    sessions, _ = storage
+    async with sessions() as session:
+        payment = await session.get(Payment, checkout["transaction_id"])
+        booking = await session.get(ClassBooking, checkout["booking_id"])
+        expired_at = datetime.now(UTC) - timedelta(seconds=1)
+        payment.expires_at = expired_at
+        booking.reserved_until = expired_at
+        await session.commit()
+
+    outsider = await start_class_payment(client, gym_class, headers[2], "cleanup-outsider")
+    assert outsider.status_code == 409, outsider.text
+    assert outsider.json()["error"]["code"] == "CLASS_FULL"
+
+    async with sessions() as session:
+        expired_payment = await session.get(Payment, checkout["transaction_id"])
+        promoted_waitlist = (
+            await session.execute(
+                select(ClassWaitlist).where(
+                    ClassWaitlist.class_id == gym_class.id,
+                    ClassWaitlist.user_id == users[1].id,
+                )
+            )
+        ).scalar_one()
+        assert expired_payment.status == "expired"
+        assert promoted_waitlist.status == "promoted"
+
+    promoted_checkout = await start_class_payment(client, gym_class, headers[1], "after-checkout-cleanup")
+    assert promoted_checkout.status_code == 201, promoted_checkout.text
+
+    async with sessions() as session:
+        payment = await session.get(Payment, checkout["transaction_id"])
+        promoted_waitlist = (
+            await session.execute(
+                select(ClassWaitlist).where(
+                    ClassWaitlist.class_id == gym_class.id,
+                    ClassWaitlist.user_id == users[1].id,
+                )
+            )
+        ).scalar_one()
+        assert payment.status == "expired"
+        assert promoted_waitlist.status == "promoted"
 
 
 async def test_last_seat_race_and_late_paid_hold_require_resolution(client, storage):
