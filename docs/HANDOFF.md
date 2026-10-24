@@ -1,6 +1,14 @@
 # YPGym Handoff
 
-Last updated: 2026-10-23, paid-class hold release and waitlist promotion verified in the current working tree.
+Last updated: 2026-10-24, YPTrain release validation and trainer completion UI correction verified in the current working tree.
+
+## October 24 continuation — YPTrain release validation
+
+- Re-audited the owner-approved post-Day-60 scope from `v0.60.1` through current `main`. No YPFood model, migration, endpoint, client route or feature file exists; the only remaining YPFood text records that the earlier proposal was cancelled. The shared YPTrain catalogue, attendance-linked logging, history/comparisons/muscle map, deterministic non-AI weekly summary and attendance renewal benefit remain implemented on the common backend for web and Expo.
+- Fresh frontend lint found one regression in the later trainer class-completion UI: `PtDashboardPage` called `Date.now()` during render. The backend already returns only classes eligible for confirmation, so the redundant client-clock branch was removed and the card now shows the stable `ready` status. Server start-time authorization and automatic end-time completion remain unchanged.
+- Fresh isolated PostgreSQL/Redis verification passed **186 tests with 12 existing Starlette deprecation warnings**. Alembic upgraded an empty disposable database through `20261013_0018 (head)`, reported no schema drift, and `pip check` found no broken requirements. Compose configuration passed.
+- Web verification passed all **20 tests**, TypeScript production build and lint with the existing TanStack Table compiler warning only. Mobile verification passed all **12 tests**, typecheck, Expo lint and Android export. The web build retains the existing large main-chunk warning.
+- Feature 8 remains intentionally limited to an explicitly labelled deterministic, non-AI summary because the owner deferred provider integration. Live SMTP delivery, physical Android/iOS testing and human UAT remain external verification gates.
 
 ## October 23 continuation — payment release and waitlist fairness
 

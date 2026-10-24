@@ -71,20 +71,17 @@ export function PtDashboardPage() {
         {startedClasses.isError ? <ErrorState className="m-4" title={toUiError(startedClasses.error).title} message={toUiError(startedClasses.error).message} action={<Button variant="outline" onClick={() => void startedClasses.refetch()}>Retry</Button>} /> : null}
         {startedClasses.data?.length === 0 ? <EmptyState className="m-4" title="No classes need confirmation" message="An assigned class will appear here after it starts and disappear once it is completed or cancelled." /> : null}
         {startedClasses.data?.length ? <ul className="grid gap-3 p-4 sm:grid-cols-2">
-          {startedClasses.data.map((item) => {
-            const hasEnded = new Date(item.end_at).getTime() <= Date.now();
-            return <li className="rounded-xl border border-border p-4" key={item.id}>
+          {startedClasses.data.map((item) => <li className="rounded-xl border border-border p-4" key={item.id}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <strong className="block">{item.title}</strong>
                   <p className="mt-1 text-xs text-muted-foreground">{item.location}</p>
                 </div>
-                <StatusBadge value={hasEnded ? "ended" : "in progress"} />
+                <StatusBadge value="ready" />
               </div>
               <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground"><Clock3 className="size-4" aria-hidden />{formatDateTime(item.start_at)} to {new Date(item.end_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
               <Button className="mt-4 w-full" onClick={() => setSelectedClass(item)}><CheckCircle2 className="size-4" aria-hidden />Confirm completed</Button>
-            </li>;
-          })}
+            </li>)}
         </ul> : null}
       </Panel>
 
