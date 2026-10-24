@@ -1,5 +1,13 @@
 # Isolated integration evidence
 
+## October 24 YPTrain integrated release checkpoint
+
+Current `main` through `1b016f9` was revalidated against the owner-approved post-Day-60 scope. No YPFood application artifact exists; the shared YPTrain catalogue, attendance-linked logging, history/comparisons/muscle exposure, deterministic non-AI weekly summary, renewal benefit and retained workforce/management features remain present.
+
+The fresh isolated PostgreSQL/Redis command migrated through `20261013_0018` and completed **186 passed, 12 warnings in 92.90 seconds**. The warnings remain Starlette's `HTTP_422_UNPROCESSABLE_ENTITY` deprecation. A separate empty-database upgrade/current/check reached `20261013_0018 (head)` with no schema drift, and `pip check` found no broken requirements. The isolated containers, network and volumes were removed afterward.
+
+All **20 frontend tests** and **12 mobile tests** passed. Frontend lint and the production/PWA build passed after removing one impure render-time `Date.now()` check from the PT completion card; the existing TanStack Table and large-chunk warnings remain. Mobile typecheck, Expo lint and Android export passed. Physical Android/iOS, human UAT, live AI and live inbox delivery were not claimed. The full feature/commit/API/migration/limitation record is `docs/release/yptrain-release-checkpoint.md`.
+
 ## September 23 post-Day-60 Feature 6
 
 The final isolated command `docker compose -p ypgym-tests -f compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner --attach test-runner` migrated temporary PostgreSQL through `20260922_0011` and completed **117 passed, 7 warnings in 54.29 seconds**. The warnings remain Starlette's `HTTP_422_UNPROCESSABLE_ENTITY` deprecation. The test containers, network and temporary storage were removed afterward.

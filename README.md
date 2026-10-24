@@ -1,8 +1,10 @@
 # YPGym
 
-YPGym is a PostgreSQL/FastAPI/React gym-operations application. The connected web scope covers authentication and billing, membership lifecycle decisions, CRM, notifications, audited exports, system configuration, rotating QR attendance, occupancy and manager analytics, individual workforce accounts and shifts, trainer profiles, transaction-safe class booking/waitlists, and an integrated member dashboard. The Day 43–47 Expo member app uses the same backend contracts; its documented Android emulator rehearsal covers the member journeys and session/error states listed in `docs/design/evidence/day-47-mobile/README.md`.
+YPGym is a PostgreSQL/FastAPI/React gym-operations application. The connected web scope covers authentication and billing, membership lifecycle decisions, CRM, notifications, audited exports, system configuration, rotating QR attendance, occupancy and manager analytics, individual workforce accounts and shifts, trainer profiles, transaction-safe class booking/waitlists, and YPTrain exercise/workout tracking. The Expo member app uses the same backend contracts for member operations and YPTrain; its documented Android emulator rehearsal covers the member journeys and session/error states listed in `docs/design/evidence/day-47-mobile/README.md`.
 
 The implementation follows `YPGym_60_Day_Development_Plan_Revised_PostgreSQL (1).md`. Detailed recovery evidence is in `docs/recovery/day-22-38-recovery-audit.md`; the current continuation contract is in `docs/HANDOFF.md`.
+
+The former YPFood proposal was cancelled and replaced by YPTrain. The verified feature, commit, API, migration and limitation record is [docs/release/yptrain-release-checkpoint.md](docs/release/yptrain-release-checkpoint.md).
 
 For Windows startup/build commands, all local demo logins, and phone/emulator/Expo web setup, see [RUN_GUIDE.md](RUN_GUIDE.md).
 
@@ -32,6 +34,7 @@ Member routes:
 - `/app/membership-requests`
 - `/app/notifications`, `/app/notifications/preferences`
 - `/app/classes`, `/app/bookings` for live capacity, trainer cards, booking, cancellation, waitlist, and promotion states.
+- `/app/train` and `/app/train/:id` for the shared YPTrain catalogue, attendance-linked logging, history, comparisons and weekly muscle exposure.
 
 Operations routes:
 
@@ -43,6 +46,7 @@ Operations routes:
 - `/admin/billing` and `/admin/classes` for admin
 - `/admin/pt-assignments` for manager/admin trainer profile maintenance.
 - `/admin/staff` for manager/admin workforce account provisioning and shift reporting.
+- `/admin/exercises` for manager/admin YPTrain catalogue and muscle-tag management.
 - `/staff/time-clock` for staff/PT self-service clock-in, clock-out and recent shifts.
 
 The current feature set also includes the native member dashboard, rotating QR recovery, classes and booking/waitlist flows, renewal and invoice history, SecureStore session recovery, and a connected personal-trainer workspace. Release hardening covers isolated demo data, audited exports, bounded query review, role/ownership tests, and privacy-safe session/error handling.

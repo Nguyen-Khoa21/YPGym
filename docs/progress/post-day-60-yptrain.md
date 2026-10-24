@@ -1,6 +1,6 @@
 # Post-Day-60 mobile and YPTrain tracker
 
-Updated October 13, 2026. This tracker covers the owner-approved post-Day-60 YPTrain roadmap. The completed Day 42–60 release remains recorded separately in `day-43-60-tracker.md`.
+Updated October 24, 2026. This tracker covers the owner-approved post-Day-60 YPTrain roadmap. The completed Day 42–60 release remains recorded separately in `day-43-60-tracker.md`; the integrated post-Day-60 result is recorded in `docs/release/yptrain-release-checkpoint.md`.
 
 ## Discovery baseline
 
@@ -23,6 +23,8 @@ Updated October 13, 2026. This tracker covers the owner-approved post-Day-60 YPT
 - Feature 8 data-only preparation adds a backend-derived deterministic weekly balance to the existing authenticated muscle-map response. Web and Expo label it **Rule-based summary · not AI**, list highest/lower weighted-set-exposure groups and repeat the no-prescription disclosure. The isolated suite passes **142 tests with 10 existing Starlette deprecation warnings**; web lint/build, mobile typecheck/lint and all **10 mobile tests** pass. No provider call, dependency, key, model or migration was added. Live guarded AI remains decision gated.
 - Feature 9 implements the approved better-of/first-successful-renewal policy. The backend calculates previous-complete-month QR attendance, reserves/consumes the benefit atomically, and snapshots the audit line on payments/invoices. Web and Expo display the same quote and billing result. Migration 0017, 147 backend tests, client checks and Android export pass; `docs/api/attendance-renewal-benefit.md` is the contract.
 - Feature 9 and its VNPay/paid-class prerequisites were pushed in combined billing commit `2431fd0`. Feature 10 adds manager-created individual staff/PT accounts, one-time temporary credentials, a first-login password gate, automatic PT-profile linkage, and audited UTC shift clocking/reporting. Migration 0018 and the full isolated suite pass **149 tests with 11 existing Starlette deprecation warnings**; web lint/build and authenticated manager browser review pass. Physical-device testing does not apply to this web-only slice.
+- Feature 11 was pushed as `e5dc423` (`feat(admin): add reliable management action feedback`). Trainer creation/deactivation updates the active filter immediately, connected query groups refresh before success feedback, broadcasts/configuration/class changes use stable success/error toasts, and management forms expose pending, validation and retry states. Feature 10 already removed the fixed trainer-account card height and connected workforce account creation.
+- Feature 12 revalidated current `main` through `1b016f9`. The isolated PostgreSQL/Redis suite passes **186 tests with 12 existing Starlette deprecation warnings**; Alembic reaches `20261013_0018 (head)` with no drift; `pip check` is clean; all **20 web tests** and **12 mobile tests** pass; web lint/build, mobile typecheck/lint and Android export pass. The only fresh defect was the PT completion card's impure render-time clock check, corrected and pushed as `1b016f9`.
 
 ## Existing dependency map
 
@@ -53,13 +55,13 @@ Updated October 13, 2026. This tracker covers the owner-approved post-Day-60 YPT
 | 7. History, comparisons and muscle map | FR49–FR50 | Development verified; physical/native-device verification pending | Shared weighted-set-exposure metric, paginated calendar/day detail, descriptive comparisons and accessible Monday–Sunday map pass isolated storage, client build/export and responsive web/Expo-web checks |
 | 8. Guarded weekly training review | FR51 | Partial; live AI decision gated | Shared deterministic data-only balance is implemented and explicitly labelled not AI; no approved provider or existing guarded FR39 pipeline has been verified |
 | 9. Attendance renewal discount | FR56 | Pushed in combined billing commit `2431fd0` | Better-of plan/10% rule, first-successful-renewal consumption, previous-month QR attendance, invoice snapshots and web/Expo parity pass isolated verification |
-| 10. Staff accounts and time clock | FR43, FR44 | Development verified; included in the current Feature 10 checkpoint | Individual staff/PT provisioning, one-time credentials, first-login password replacement, PT linkage, one-open-shift enforcement, own history, manager filters/pagination/timezone rendering and audit pass the full isolated suite and web checks |
-| 11. Management UX corrections | FR43, FR54–FR55 | Not started | Reuses the current Sonner/query patterns and Feature 10 accounts |
-| 12. Integrated regression and release checkpoint | FR40–FR56 | Not started | Begins only after all functional slices and push gates |
+| 10. Staff accounts and time clock | FR43, FR44 | Development verified | Individual staff/PT provisioning, one-time credentials, first-login password replacement, PT linkage, one-open-shift enforcement, own history, manager filters/pagination/timezone rendering and audit pass the full isolated suite and web checks |
+| 11. Management UX corrections | FR43, FR54–FR55 | Verified | `e5dc423` centralizes connected query refresh and stable mutation feedback for trainers, broadcasts, configuration and classes; Feature 10 supplies workforce account creation and flexible PT account/profile layout |
+| 12. Integrated regression and release checkpoint | FR40–FR56 | Verified for implemented scope | Current isolated backend, migration/drift, dependency, web, mobile and Android-export gates pass; Feature 8 remains an owner-deferred non-AI summary and external/live-device gates remain explicitly unclaimed |
 
 ## Scope controls
 
-- Each slice is committed separately and waits for explicit push permission before the next slice starts.
+- Each completed slice was committed separately and pushed only after explicit owner authorization.
 - YPFood catalogue, cart, checkout, stock, shipping, review and payment functionality is cancelled and must not be introduced.
 - FR39 remains deferred. Feature 8 is a narrower guarded weekly review and cannot become live AI without an approved provider and safety pipeline.
 - YPTrain history is descriptive and must not provide medical, injury, diet, rehabilitation or automatic next-workout prescriptions.

@@ -1,6 +1,6 @@
 # Post-Day-60 requirements
 
-Created September 20, 2026 and revised September 21, 2026 for the owner-approved YPTrain scope. The BRD identifiers FR1–FR39 remain unchanged. FR40–FR55 were reserved by the first post-Day-60 slice; FR56 is the next unused identifier. The former YPFood meanings for FR45–FR51 are cancelled rather than implemented. Status describes the current repository, not the intended roadmap.
+Created September 20, 2026 and last reconciled October 24, 2026 for the owner-approved YPTrain scope. The BRD identifiers FR1–FR39 remain unchanged. FR40–FR55 were reserved by the first post-Day-60 slice; FR56 is the next unused identifier. The former YPFood meanings for FR45–FR51 are cancelled rather than implemented. Status describes the current repository, not the intended roadmap.
 
 | ID | Requirement | Current status | Planned feature slice |
 |---|---|---|---|
@@ -16,9 +16,9 @@ Created September 20, 2026 and revised September 21, 2026 for the owner-approved
 | FR49 | Workout history calendar and same-exercise comparisons | Implemented from member-owned attendance/workout snapshots on web and Expo; physical/native-device verification remains pending | Feature 7 |
 | FR50 | Weekly front/back muscle heatmap | Implemented with one documented weighted-set-exposure metric, Monday–Sunday gym-local boundary, text legend/list and non-prescriptive disclosure on web and Expo | Feature 7 |
 | FR51 | Guarded AI weekly training review | Data-only deterministic weekly balance is implemented on web/mobile; live AI still requires an approved provider and guarded pipeline | Feature 8 |
-| FR52 | Live gym equipment/exercise guide | Shared guide implemented; illustrative machine entries do not confirm installation and logging awaits Feature 6 | Feature 5 |
+| FR52 | Live gym equipment/exercise guide | Shared guide implemented and connected to Feature 6 logging; illustrative machine entries do not confirm installation | Feature 5 |
 | FR53 | Registration welcome email through configurable SMTP delivery | Provider-neutral development delivery and SMTP adapter verified in Feature 4; live delivery remains credential gated | Feature 4 |
-| FR54 | Consistent action success/error feedback and real-time UI refresh | Partially implemented in Features 1–2 and existing connected clients; later mutation corrections remain | Features 1, 2, 10 and 11 |
+| FR54 | Consistent action success/error feedback and real-time UI refresh | Implemented across member reliability flows and management mutations; connected trainer, broadcast, configuration and class query groups refresh before confirmed feedback | Features 1, 2, 10 and 11 |
 | FR55 | White-and-green workout-oriented responsive design system | Verified in Feature 2 across shared mobile components/member routes and the web foundation; physical-device and iOS verification remain pending | Feature 2 and later UI slices |
 | FR56 | Previous-month attendance-based membership discount | Implemented with owner-approved better-of pricing and first-successful-renewal consumption; isolated backend, web and Expo verification pass | Feature 9 |
 
@@ -104,3 +104,15 @@ Weighted set exposure is descriptive and load-independent: bodyweight/zero-load 
 | FR56 | Member-only previous-complete-month quote from distinct gym-local `iot_scanner` dates; 80% threshold; better of plan discount or 10%; first successful renewal consumes the month; failed/cancelled/expired payment releases it; PostgreSQL reservation uniqueness and immutable payment/invoice snapshots | `test_attendance_benefit.py` and integration coverage for month boundaries, thresholds, zero attendance, source/deduplication/privacy, frozen coverage, both discount orders, replay/concurrency, mock/VNPay paths and invoice state; full isolated suite and web/mobile builds pass |
 
 The full calculation and state contract is `docs/api/attendance-renewal-benefit.md`. The server derives member identity, attendance, price and final discount; neither web nor Expo submits those values.
+
+## Feature 11 traceability
+
+| Requirement | Implementation | Verification |
+|---|---|---|
+| FR43 | Trainer management directs production account creation to `/admin/staff`; unlinked member-facing profiles remain clearly identified | Existing staff-operation RBAC/account tests plus web navigation and management tests |
+| FR54 | Shared management mutation keys refresh trainers, assignments, classes, bookings, dashboards, broadcasts and configuration before stable success feedback; active/inactive filters update immediately | `frontend/tests/managementFeedback.test.mjs`; all 20 current frontend tests and lint/build |
+| FR55 | Trainer profile/account cards use content-driven height, wrapped controls and explicit text status; forms expose pending, validation, retry and safe error states | Responsive existing components and current production build |
+
+## Feature 12 traceability
+
+The October 24 checkpoint at `1b016f9` passed 186 isolated backend tests, Alembic head/drift validation, dependency integrity, 20 web tests with lint/build, and 12 mobile tests with typecheck/lint/Android export. `docs/release/yptrain-release-checkpoint.md` records commands, commit mapping, migrations, API contracts and limitations. Feature 8 remains intentionally partial because the owner deferred live AI; its deterministic output is explicitly labelled non-AI.
