@@ -15,7 +15,7 @@ export type AdminMember = {
   id: string;
   name: string;
   email: string;
-  phone: string;
+  phone: string | null;
   role: string;
   tier: string;
   is_email_verified: boolean;
@@ -67,7 +67,7 @@ export type AuditItem = {
 };
 
 export type AdminMemberDetail = {
-  profile: { id: string; name: string; email: string; phone: string; role: string; tier: string; is_email_verified: boolean };
+  profile: { id: string; name: string; email: string; phone: string | null; role: string; tier: string; is_email_verified: boolean };
   memberships: MembershipRecord[];
   payments: { id: string; plan_name: string; amount: string; discount_amount: string; status: string; reference: string; created_at: string }[];
   invoices: { id: string; invoice_number: string; plan_name: string; amount: string; transaction_date: string }[];

@@ -76,6 +76,25 @@ async def test_google_login_uses_single_use_state_and_exchange_without_email_mer
         identity = (await session.execute(select(ExternalIdentity))).scalar_one()
         assert identity.provider_subject == "google-subject-1"
         assert identity.provider_email == "social@example.com"
+        admin = User(
+            name="CRM Admin",
+            email="crm-admin@example.com",
+            phone="0900000000",
+            password_hash=hash_password("AdminPass123!"),
+            role="admin",
+            is_email_verified=True,
+        )
+        session.add(admin)
+        await session.commit()
+
+    admin_token, _ = create_access_token(user_id=admin.id, role=admin.role, tier=admin.tier)
+    crm = await client.get(
+        "/api/v1/admin/members",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert crm.status_code == 200, crm.text
+    social_member = next(item for item in crm.json()["items"] if item["email"] == "social@example.com")
+    assert social_member["phone"] is None
 
 
 async def test_mobile_web_oauth_returns_to_expo_and_exchanges_once(client, monkeypatch):

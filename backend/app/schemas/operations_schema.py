@@ -29,7 +29,7 @@ class AdminMemberListItem(BaseModel):
     id: UUID
     name: str
     email: str
-    phone: str
+    phone: str | None
     role: str
     tier: str
     is_email_verified: bool
