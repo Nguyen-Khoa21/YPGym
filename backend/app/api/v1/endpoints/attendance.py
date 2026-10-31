@@ -20,6 +20,8 @@ from app.schemas.attendance_schema import (
     ManualCloseRequest,
     PeakHoursResponse,
     QrTokenResponse,
+    ScannerDeviceRequest,
+    ScannerDeviceResponse,
     ScannerRequest,
     ScannerResponse,
 )
@@ -59,6 +61,7 @@ async def check_in(
         device_id=payload.device_id,
         api_key=device_api_key,
         qr_token=payload.qr_token,
+        request_id=request.state.request_id,
     )
 
 
@@ -80,6 +83,27 @@ async def check_out(
         device_id=payload.device_id,
         api_key=device_api_key,
         qr_token=payload.qr_token,
+        request_id=request.state.request_id,
+    )
+
+
+@router.post("/device/verify", response_model=ScannerDeviceResponse)
+async def verify_scanner_device(
+    payload: ScannerDeviceRequest,
+    request: Request,
+    device_api_key: Annotated[str, Header(alias="X-Device-Api-Key")],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> ScannerDeviceResponse:
+    await rate_limits.enforce(
+        redis,
+        key=f"ypgym:rate:scanner:verify:ip:{hash_token(request.client.host if request.client else 'unknown')}",
+        limit=20,
+        window_seconds=60,
+    )
+    return await AttendanceService(session, redis).verify_device(
+        device_id=payload.device_id,
+        api_key=device_api_key,
     )
 
 
@@ -133,6 +157,7 @@ async def admin_attendance(
 async def manual_close(
     session_id: UUID,
     payload: ManualCloseRequest,
+    request: Request,
     current_user: Annotated[User, Depends(require_roles("staff", "manager", "admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     redis: Annotated[Redis, Depends(get_redis_client)],
@@ -141,6 +166,7 @@ async def manual_close(
         session_id=session_id,
         actor=current_user,
         reason=payload.reason,
+        request_id=request.state.request_id,
     )
 
 

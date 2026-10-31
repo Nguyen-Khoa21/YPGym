@@ -13,6 +13,18 @@ X-Device-Api-Key: local-iot-key
 
 Production deployments must provision a unique key per device over a separate trusted process. The API stores only a SHA-256 key hash. Device credentials are not member JWTs and must not be embedded in the member QR code.
 
+The dedicated phone app can verify a provisioned device before saving it:
+
+```http
+POST /api/v1/attendance/device/verify
+X-Device-Api-Key: <device key>
+Content-Type: application/json
+
+{"device_id":"front-door-1"}
+```
+
+The response contains only `device_id`, `display_name`, and `status`. It does not return the key.
+
 ## Check-in and check-out
 
 ```http
@@ -35,6 +47,12 @@ Success response:
   "message": "Check-in recorded.",
   "session_id": "<uuid>",
   "member_id": "<uuid>",
+  "member": {
+    "display_name": "Nguyen Anh Khoa",
+    "membership_status": "active"
+  },
+  "attendance_status": "active",
+  "action": "check_in",
   "occurred_at": "2026-07-18T08:00:00Z",
   "occupancy": {
     "active_count": 1,
@@ -46,7 +64,19 @@ Success response:
 }
 ```
 
-Checkout uses `CHECK_OUT_SUCCESS` and closes the member's active session. Clients should branch on `code`, not English `message` text.
+Checkout uses `CHECK_OUT_SUCCESS`, `action: "check_out"`, and `attendance_status: "checked_out"`. The added fields are backward compatible with the original response. Identity/status are derived on the server; the response deliberately excludes email, phone, payment and membership history. Clients should branch on `code`, not English `message` text.
+
+## Authenticated realtime invalidation
+
+Authenticated web/member clients connect to `WS /api/v1/attendance/realtime`, then send the ordinary access token in the first JSON frame within five seconds:
+
+```json
+{"type":"authenticate","access_token":"<access JWT>"}
+```
+
+The access token is never placed in the URL. Members receive only their own attendance invalidation plus identity-free occupancy invalidation. Staff, manager and admin receive operations invalidation. Clients answer application `ping` frames with `{"type":"pong"}` and refetch authorized REST data after connect, reconnect, `attendance_changed`, `occupancy_changed`, or `resync_required`.
+
+Post-commit events use Redis Pub/Sub across API processes. They contain safe IDs/timestamps, not member names, contact data, QR material, device keys, or access tokens. PostgreSQL remains authoritative; a publish failure cannot undo committed attendance. Timeout batches publish per-member invalidation but only one occupancy invalidation.
 
 ## Stable failure responses
 

@@ -20,6 +20,19 @@ async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> User:
+    user = await get_user_from_access_token(token, session)
+
+    if user.must_change_password and not request.url.path.endswith(("/auth/me", "/users/me")):
+        raise AppError(
+            "PASSWORD_CHANGE_REQUIRED",
+            "Change your temporary password before continuing.",
+            403,
+        )
+
+    return user
+
+
+async def get_user_from_access_token(token: str, session: AsyncSession) -> User:
     payload = decode_access_token(token)
     user_id = payload.get("sub")
     if not user_id:
@@ -33,13 +46,6 @@ async def get_current_user(
     user = await UserRepository(session).get_by_id(parsed_user_id)
     if not user:
         raise AuthenticationError("The authenticated user could not be found.")
-
-    if user.must_change_password and not request.url.path.endswith(("/auth/me", "/users/me")):
-        raise AppError(
-            "PASSWORD_CHANGE_REQUIRED",
-            "Change your temporary password before continuing.",
-            403,
-        )
 
     return user
 

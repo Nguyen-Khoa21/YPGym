@@ -1,6 +1,17 @@
 # YPGym Handoff
 
-Last updated: 2026-10-24, YPTrain release validation and trainer completion UI correction verified in the current working tree.
+Last updated: 2026-10-31, dedicated attendance scanner app, realtime attendance invalidation, and scanner run guide prepared for release.
+
+## October 27 continuation — dedicated attendance scanner app
+
+- Added a separate Expo SDK 58 application under `scanner-mobile/`; the existing member app remains member-only. The scanner supports backend-verified device provisioning, camera-only rotating-QR capture, explicit check-in/check-out modes, SecureStore credentials, no offline queue, safe result/error guidance, foreground recovery, screen-awake behavior, and Android export.
+- Extended the existing scanner response additively with the server-derived member display name, effective membership status, resulting attendance status, and scan action. Existing session/member/time/occupancy fields and simulator behavior remain compatible. Checkout still closes an active session even if membership state changed after check-in.
+- Added authenticated first-frame attendance WebSockets backed by Redis Pub/Sub. Events are post-commit invalidations only; PostgreSQL and authorized REST endpoints remain authoritative. Member isolation, operations-role authorization, bounded connection queues, heartbeat, reconnect/resync, and safe publication failure behavior are covered.
+- The web and existing member mobile clients now refetch their established attendance, dashboard, crowdedness, QR/access, and attendance-gated training queries after relevant events, reconnect, and foreground restoration. Connections stop on logout or expired authentication.
+- Added device verification and per-device provisioning/revocation commands. Manual key entry is explicitly development-only; keys are hidden, hashed server-side, stored in device SecureStore, excluded from environment/public bundles, and never returned after provisioning.
+- Final isolated verification passed **199 backend tests with 14 existing Starlette deprecation warnings**; the final realtime file then passed **11 tests** after adding Redis reconnect and heartbeat assertions. Web passed **26 tests**, lint, and production/PWA build. Member mobile passed **18 tests**, typecheck, lint, and Android export. Scanner mobile passed **12 tests**, typecheck, lint, dependency-tree checks, and Android export. Live simulator/device/WebSocket checks covered valid check-in, duplicate, checkout, invalid token, unauthorized device, safe verification, and realtime attendance/occupancy events.
+- No model, migration, database constraint, dependency in an existing application, or external service changed. The only remaining release gate is a physical two-phone acceptance run; exact steps and owner distribution actions are in `docs/runbooks/scanner-mobile.md` and `docs/release/scanner-mobile-evidence.md`.
+- Implementation began at `4224a2b`; `main` advanced during verification to `a62a835` through an unrelated administrator member-list fix. Final checks ran on the advanced working tree, and `scanner_runguide.md` records the operator startup and acceptance flow.
 
 ## October 24 continuation — YPTrain release validation
 

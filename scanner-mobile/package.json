@@ -1,0 +1,31 @@
+{
+  "name": "ypgym-scanner-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "expo lint",
+    "export:android": "expo export --platform android"
+  },
+  "dependencies": {
+    "expo": "^58.0.22",
+    "expo-camera": "~58.0.14",
+    "expo-haptics": "~58.0.7",
+    "expo-keep-awake": "~58.0.3",
+    "expo-secure-store": "~58.0.2",
+    "expo-status-bar": "~58.0.4",
+    "react": "19.3.0",
+    "react-native": "0.88.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.3.0",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~58.0.4",
+    "typescript": "~6.0.3"
+  }
+}

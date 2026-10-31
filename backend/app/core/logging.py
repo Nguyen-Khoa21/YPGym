@@ -37,6 +37,7 @@ async def request_logging_middleware(request: Request, call_next):
         request_id = str(uuid.UUID(request.headers.get("x-request-id", "")))
     except ValueError:
         request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
     started_at = time.perf_counter()
 
     try:

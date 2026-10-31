@@ -20,6 +20,13 @@ class AttendanceRepository:
             )
         ).scalar_one_or_none()
 
+    async def get_device(self, device_id: str) -> IoTDevice | None:
+        return (
+            await self.session.execute(
+                select(IoTDevice).where(IoTDevice.device_id == device_id),
+            )
+        ).scalar_one_or_none()
+
     async def get_active_session(self, user_id: UUID, *, for_update: bool = False) -> AttendanceSession | None:
         query = select(AttendanceSession).where(
             AttendanceSession.user_id == user_id,

@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "YPGym Scanner",
+    "slug": "ypgym-scanner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "com.ownerapproval.ypgymscanner",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.ownerapproval.ypgymscanner",
+      "permissions": [
+        "CAMERA"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.ownerapproval.ypgymscanner",
+      "infoPlist": {
+        "NSCameraUsageDescription": "YPGym Scanner uses the camera only to read a member's rotating attendance QR code."
+      }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow YPGym Scanner to scan attendance QR codes."
+        }
+      ],
+      "expo-secure-store",
+      "expo-status-bar"
+    ]
+  }
+}

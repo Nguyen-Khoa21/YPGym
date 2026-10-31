@@ -24,6 +24,7 @@ VNPay sandbox membership checkout is documented in the [payment architecture](do
 - Celery worker/beat for membership status, expiry reminder, and attendance-timeout jobs
 - Optional hardware-agnostic IoT scanner simulator
 - Expo/React Native member app in `mobile/` (see `mobile/README.md` for Android emulator and phone setup)
+- Separate Expo/React Native entrance scanner in `scanner-mobile/` (see `docs/runbooks/scanner-mobile.md` for per-device provisioning and physical-phone setup)
 
 ## Connected routes
 

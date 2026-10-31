@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AppState, Platform } from 'react-native';
 
 import { AuthProvider } from '@/lib/auth';
+import { AttendanceRealtime } from '@/lib/AttendanceRealtime';
 import { queryClient } from '@/lib/query';
 import { colors } from '@/lib/theme';
 
@@ -17,6 +18,7 @@ export default function RootLayout() {
 
   return <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <AttendanceRealtime />
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }} />
     </AuthProvider>

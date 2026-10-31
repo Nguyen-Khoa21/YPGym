@@ -26,11 +26,14 @@ from app.schemas.attendance_schema import (
     PeakHourCell,
     PeakHoursResponse,
     QrTokenResponse,
+    ScannerDeviceResponse,
+    ScannerMemberSummary,
     ScannerResponse,
 )
 from app.schemas.operations_schema import PageInfo
 from app.services.configuration_service import ConfigurationService
 from app.services.lifecycle_service import MembershipLifecycleService
+from app.services.attendance_realtime_service import AttendanceRealtimePublisher, realtime_request_id
 from app.services.state_transitions import transition_attendance
 from app.utils.security import hash_token
 
@@ -174,16 +177,28 @@ class AttendanceService:
         self.configuration = ConfigurationService(session, redis)
         self.qr = QrTokenService(session, redis)
         self.crowdedness = CrowdednessService(session, redis)
+        self.realtime = AttendanceRealtimePublisher(redis)
         self.settings = get_settings()
 
-    async def check_in(self, *, device_id: str, api_key: str, qr_token: str) -> ScannerResponse:
+    async def verify_device(self, *, device_id: str, api_key: str) -> ScannerDeviceResponse:
+        device = await self._authenticate_device(device_id, api_key, for_update=False)
+        return ScannerDeviceResponse(device_id=device.device_id, display_name=device.display_name)
+
+    async def check_in(
+        self,
+        *,
+        device_id: str,
+        api_key: str,
+        qr_token: str,
+        request_id: str | None = None,
+    ) -> ScannerResponse:
         device = await self._authenticate_device(device_id, api_key)
         user_id, jti = await self.qr.validate(qr_token)
         user = await self.session.get(User, user_id)
         if not user:
             raise AppError("INVALID_TOKEN", "The QR token member no longer exists.", 400)
         try:
-            await MembershipLifecycleService(self.session).require_eligible_membership(user)
+            membership = await MembershipLifecycleService(self.session).require_eligible_membership(user)
         except AppError as exc:
             if exc.code in {"MEMBERSHIP_INELIGIBLE", "MEMBERSHIP_REQUIRED"}:
                 raise AppError("INACTIVE_MEMBERSHIP", exc.message, 403, exc.details) from exc
@@ -228,20 +243,42 @@ class AttendanceService:
                 await self.redis.delete(duplicate_key)
             except RedisError:
                 pass
-            raise AppError("INTERNAL_FAILURE", "The attendance session could not be created.", 500) from exc
+            raise AppError("INTERNAL_SERVER_ERROR", "The attendance session could not be created.", 500) from exc
         occupancy = await self.crowdedness.get(force_reconcile=True)
+        await self.realtime.publish_transition(
+            action="check_in",
+            user_id=user_id,
+            session_id=attendance_session.id,
+            occurred_at=now,
+            occupancy=occupancy,
+            request_id=realtime_request_id(request_id),
+        )
         return ScannerResponse(
             code="CHECK_IN_SUCCESS",
             message="Check-in recorded.",
             session_id=attendance_session.id,
             member_id=user_id,
+            member=ScannerMemberSummary(display_name=user.name, membership_status=membership.status),
+            attendance_status="active",
+            action="check_in",
             occurred_at=now,
             occupancy=occupancy,
         )
 
-    async def check_out(self, *, device_id: str, api_key: str, qr_token: str) -> ScannerResponse:
+    async def check_out(
+        self,
+        *,
+        device_id: str,
+        api_key: str,
+        qr_token: str,
+        request_id: str | None = None,
+    ) -> ScannerResponse:
         device = await self._authenticate_device(device_id, api_key)
         user_id, _ = await self.qr.validate(qr_token)
+        user = await self.session.get(User, user_id)
+        if not user:
+            raise AppError("INVALID_TOKEN", "The QR token member no longer exists.", 400)
+        _, membership_status, _, _ = await MembershipLifecycleService(self.session).access_snapshot(user)
         attendance_session = await self.attendance.get_active_session(user_id, for_update=True)
         if not attendance_session:
             raise AppError("NO_ACTIVE_SESSION", "This member has no active attendance session.", 409)
@@ -258,16 +295,34 @@ class AttendanceService:
         device.last_seen_at = now
         await self.session.commit()
         occupancy = await self.crowdedness.get(force_reconcile=True)
+        await self.realtime.publish_transition(
+            action="check_out",
+            user_id=user_id,
+            session_id=attendance_session.id,
+            occurred_at=now,
+            occupancy=occupancy,
+            request_id=realtime_request_id(request_id),
+        )
         return ScannerResponse(
             code="CHECK_OUT_SUCCESS",
             message="Check-out recorded.",
             session_id=attendance_session.id,
             member_id=user_id,
+            member=ScannerMemberSummary(display_name=user.name, membership_status=membership_status),
+            attendance_status="checked_out",
+            action="check_out",
             occurred_at=now,
             occupancy=occupancy,
         )
 
-    async def manual_close(self, *, session_id: UUID, actor: User, reason: str) -> AttendanceSessionItem:
+    async def manual_close(
+        self,
+        *,
+        session_id: UUID,
+        actor: User,
+        reason: str,
+        request_id: str | None = None,
+    ) -> AttendanceSessionItem:
         attendance_session = await self.attendance.get_session(session_id, for_update=True)
         if not attendance_session:
             raise ResourceNotFoundError("Attendance session was not found.")
@@ -298,10 +353,18 @@ class AttendanceService:
             summary="An active attendance session was manually closed.",
         )
         await self.session.commit()
-        await self.crowdedness.get(force_reconcile=True)
+        occupancy = await self.crowdedness.get(force_reconcile=True)
+        await self.realtime.publish_transition(
+            action="manual_close",
+            user_id=attendance_session.user_id,
+            session_id=attendance_session.id,
+            occurred_at=now,
+            occupancy=occupancy,
+            request_id=realtime_request_id(request_id),
+        )
         return self._session_item(attendance_session, [*events.get(attendance_session.id, []), event])
 
-    async def close_timed_out_sessions(self) -> int:
+    async def close_timed_out_sessions(self, *, request_id: str | None = None) -> int:
         timeout_minutes = await self.configuration.get_int("attendance_timeout_minutes")
         now = datetime.now(UTC)
         candidates = await self.attendance.timeout_candidates(now - timedelta(minutes=timeout_minutes))
@@ -319,9 +382,21 @@ class AttendanceService:
                 metadata={"timeout_minutes": timeout_minutes},
             )
         await self.session.commit()
-        if candidates:
-            await self.crowdedness.get(force_reconcile=True)
-        return len(candidates)
+        closed = [item for item in candidates if item.status == AttendanceSessionStatus.TIMED_OUT.value]
+        if closed:
+            occupancy = await self.crowdedness.get(force_reconcile=True)
+            transition_request_id = realtime_request_id(request_id)
+            for index, attendance_session in enumerate(closed):
+                await self.realtime.publish_transition(
+                    action="timeout",
+                    user_id=attendance_session.user_id,
+                    session_id=attendance_session.id,
+                    occurred_at=now,
+                    occupancy=occupancy,
+                    request_id=transition_request_id,
+                    include_occupancy=index == len(closed) - 1,
+                )
+        return len(closed)
 
     async def member_history(self, *, user: User, page: int, page_size: int) -> AttendancePage:
         sessions, total, events = await self.attendance.list_member_sessions(
@@ -378,10 +453,14 @@ class AttendanceService:
             date_to=date_to,
         )
 
-    async def _authenticate_device(self, device_id: str, api_key: str) -> IoTDevice:
+    async def _authenticate_device(self, device_id: str, api_key: str, *, for_update: bool = True) -> IoTDevice:
         if not api_key:
             raise AppError("INVALID_DEVICE", "Device credentials are required.", 401)
-        device = await self.attendance.get_device_for_update(device_id)
+        device = (
+            await self.attendance.get_device_for_update(device_id)
+            if for_update
+            else await self.attendance.get_device(device_id)
+        )
         if not device or not device.is_active or not compare_digest(device.api_key_hash, hash_token(api_key)):
             raise AppError("INVALID_DEVICE", "Device credentials are invalid.", 401)
         await rate_limits.enforce(
