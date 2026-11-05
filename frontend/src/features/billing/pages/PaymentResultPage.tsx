@@ -17,32 +17,39 @@ import type { PaymentStatus } from "@/types/api";
 export function PaymentResultPage() {
   const { token } = useAuth();
   const [search] = useSearchParams();
-  const transactionId = search.get("transaction_id") ?? sessionStorage.getItem("ypgym:vnpay:last-transaction");
-  const returnState = search.get("state");
-  const [timedOutTransaction, setTimedOutTransaction] = useState<string | null>(null);
-  const timedOut = timedOutTransaction === transactionId;
+  const transactionId = search.get("transaction_id") ?? sessionStorage.getItem("ypgym:payos:last-transaction");
+  const orderCode = search.get("orderCode");
+  const reference = transactionId ?? orderCode;
+  const cancelledReturn = search.get("cancel") === "true" || search.get("status") === "CANCELLED";
+  const [timedOutReference, setTimedOutReference] = useState<string | null>(null);
+  const timedOut = timedOutReference === reference;
+
   useEffect(() => {
-    const timer = window.setTimeout(() => setTimedOutTransaction(transactionId), 30_000);
+    const timer = window.setTimeout(() => setTimedOutReference(reference), 30_000);
     return () => window.clearTimeout(timer);
-  }, [transactionId]);
+  }, [reference]);
+
   const payment = useQuery({
-    queryKey: ["payment", transactionId],
-    queryFn: ({ signal }) => apiRequest<PaymentStatus>(`/payments/${transactionId}`, { token, signal }),
-    enabled: Boolean(transactionId && returnState !== "invalid"),
+    queryKey: ["payment", reference],
+    queryFn: ({ signal }) => apiRequest<PaymentStatus>(
+      transactionId ? `/payments/${transactionId}` : `/payments/payos/${orderCode}`,
+      { token, signal },
+    ),
+    enabled: Boolean(reference),
     retry: false,
     refetchInterval: (query) => shouldPollPayment((query.state.data as PaymentStatus | undefined)?.status, timedOut) ? 2_000 : false,
   });
 
-  if (!transactionId || returnState === "invalid") return <MemberShell><ResultCard tone="error" title="Payment response could not be verified" detail="Return to the product page and start a new VNPay checkout." action={<LinkButton to="/app/billing">View billing</LinkButton>} /></MemberShell>;
-  if (payment.isLoading) return <MemberShell><LoadingState title="Checking VNPay confirmation" /></MemberShell>;
+  if (!reference) return <MemberShell><ResultCard tone="error" title="Payment reference unavailable" detail="Return to the product page and start a new payOS checkout." action={<LinkButton to="/app/billing">View billing</LinkButton>} /></MemberShell>;
+  if (payment.isLoading) return <MemberShell><LoadingState title="Checking payOS confirmation" /></MemberShell>;
   if (payment.isError) return <MemberShell><ErrorState title={toUiError(payment.error).title} message={toUiError(payment.error).message} action={<Button variant="outline" onClick={() => payment.refetch()}><RefreshCw className="size-4" />Retry status check</Button>} /></MemberShell>;
 
   const result = payment.data!;
-  if (result.status === "paid") return <MemberShell><ResultCard tone="success" title={result.product_type === "class_booking" ? "Class booking confirmed" : "Membership payment confirmed"} detail={`VNPay confirmed ${formatMoney(result.amount_vnd)} for ${result.product_name}.`} body={<div className="grid gap-3 sm:grid-cols-2">{result.product_type === "class_booking" ? <><Detail label="Booking status" value={result.booking_status ?? "confirmed"} /><Detail label="Session" value={result.class_start_at ? formatDate(result.class_start_at) : "Scheduled"} /></> : <><Detail label="Membership status" value={result.membership_status ?? "active"} /><Detail label="Coverage expiry" value={result.membership_expiry_date ? formatDate(result.membership_expiry_date) : "Updating"} />{result.discount_details ? <><Detail label="Applied discount" value={`${Number(result.discount_details.pricing.applied_discount_percent)}%`} /><Detail label="Previous-month visits" value={`${result.discount_details.attended_days}/${result.discount_details.period_days}`} /></> : null}</>}</div>} action={<div className="flex flex-wrap gap-3">{result.invoice_id ? <LinkButton to="/app/billing"><ReceiptText className="size-4" />View invoice</LinkButton> : null}<LinkButton to={result.product_type === "class_booking" ? "/app/bookings" : "/app/dashboard"}>{result.product_type === "class_booking" ? "My bookings" : "Member dashboard"}</LinkButton></div>} /></MemberShell>;
-  if (result.status === "paid_review") return <MemberShell><ResultCard tone="processing" title="Payment received — staff review required" detail="VNPay reported payment after the seat hold could no longer be fulfilled. No extra seat was confirmed; staff will resolve the refund." action={<LinkButton to="/app/billing">View payment record</LinkButton>} /></MemberShell>;
-  if (["failed", "cancelled", "expired"].includes(result.status)) return <MemberShell><ResultCard tone="error" title={result.status === "cancelled" ? "Payment cancelled" : result.status === "expired" ? "Payment expired" : "Payment unsuccessful"} detail={result.product_type === "class_booking" ? "No class seat was confirmed. Start a fresh checkout when you are ready." : "Your membership was not changed. Start a fresh checkout when you are ready."} action={<LinkButton to={result.product_type === "class_booking" ? routePaths.memberClasses : result.membership_plan_id ? routeFor.membershipPurchase(result.membership_plan_id) : routePaths.membershipPlans}>Try VNPay again</LinkButton>} /></MemberShell>;
+  if (result.status === "paid") return <MemberShell><ResultCard tone="success" title={result.product_type === "class_booking" ? "Class booking confirmed" : "Membership payment confirmed"} detail={`payOS confirmed ${formatMoney(result.amount_vnd)} for ${result.product_name}.`} body={<div className="grid gap-3 sm:grid-cols-2">{result.product_type === "class_booking" ? <><Detail label="Booking status" value={result.booking_status ?? "confirmed"} /><Detail label="Session" value={result.class_start_at ? formatDate(result.class_start_at) : "Scheduled"} /></> : <><Detail label="Membership status" value={result.membership_status ?? "active"} /><Detail label="Coverage expiry" value={result.membership_expiry_date ? formatDate(result.membership_expiry_date) : "Updating"} />{result.discount_details ? <><Detail label="Applied discount" value={`${Number(result.discount_details.pricing.applied_discount_percent)}%`} /><Detail label="Previous-month visits" value={`${result.discount_details.attended_days}/${result.discount_details.period_days}`} /></> : null}</>}</div>} action={<div className="flex flex-wrap gap-3">{result.invoice_id ? <LinkButton to="/app/billing"><ReceiptText className="size-4" />View invoice</LinkButton> : null}<LinkButton to={result.product_type === "class_booking" ? "/app/bookings" : "/app/dashboard"}>{result.product_type === "class_booking" ? "My bookings" : "Member dashboard"}</LinkButton></div>} /></MemberShell>;
+  if (result.status === "paid_review") return <MemberShell><ResultCard tone="processing" title="Payment received — staff review required" detail="payOS reported payment after the local attempt could no longer be fulfilled. No entitlement was duplicated; staff will resolve it." action={<LinkButton to="/app/billing">View payment record</LinkButton>} /></MemberShell>;
+  if (["failed", "cancelled", "expired"].includes(result.status)) return <MemberShell><ResultCard tone="error" title={result.status === "cancelled" ? "Payment cancelled" : result.status === "expired" ? "Payment expired" : "Payment unsuccessful"} detail={result.product_type === "class_booking" ? "No class seat was confirmed. Start a fresh checkout when you are ready." : "Your membership was not changed. Start a fresh checkout when you are ready."} action={<LinkButton to={result.product_type === "class_booking" ? routePaths.memberClasses : result.membership_plan_id ? routeFor.membershipPurchase(result.membership_plan_id) : routePaths.membershipPlans}>Try payOS again</LinkButton>} /></MemberShell>;
 
-  return <MemberShell><ResultCard tone="processing" title={timedOut ? "Confirmation is taking longer" : "Payment confirmation pending"} detail={timedOut ? "VNPay may still deliver the confirmation. You can check again without repeating the payment." : "Keep this page open while YPGym waits for VNPay's signed server confirmation."} action={<Button variant="outline" onClick={() => payment.refetch()}><RefreshCw className="size-4" />Check again</Button>} /></MemberShell>;
+  return <MemberShell><ResultCard tone="processing" title={cancelledReturn ? "Checkout cancelled — awaiting final status" : timedOut ? "Confirmation is taking longer" : "Payment confirmation pending"} detail={timedOut ? "payOS may still deliver the webhook. Check again without repeating the payment." : "YPGym is waiting for the signed payOS webhook; this browser return cannot activate the purchase."} action={<Button variant="outline" onClick={() => payment.refetch()}><RefreshCw className="size-4" />Check again</Button>} /></MemberShell>;
 }
 
 function ResultCard({ tone, title, detail, body, action }: { tone: "success" | "error" | "processing"; title: string; detail: string; body?: ReactNode; action: ReactNode }) {

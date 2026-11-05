@@ -103,7 +103,7 @@ Detailed procedures are in `docs/api/training-catalogue.md`, `docs/api/workout-l
 
 - Live guarded AI remains owner-deferred. The deterministic weekly balance is complete but is not AI.
 - SMTP adapters and controlled tests pass; a real recipient/inbox acceptance run is not claimed by this checkpoint.
-- VNPay uses its configured sandbox/integration boundary; internal refund `resolved` state is not proof of a provider reversal.
+- At this historical release checkpoint, VNPay used its configured sandbox/integration boundary; internal refund `resolved` state was not proof of a provider reversal. The active provider is now payOS.
 - Physical Android/iOS rendering, app-store packaging and human UAT were not rerun.
 - Illustrative catalogue entries do not assert which equipment is physically installed at YPGym.
 - Generated state diagrams remain local/ignored under the owner's later instruction and are not part of this release commit.

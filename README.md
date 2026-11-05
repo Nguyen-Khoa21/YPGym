@@ -14,7 +14,7 @@ For production service-worker, installation, offline-shell, update, and cache-cl
 
 Google/Facebook publication remains an owner-managed deployment gate. See the [OAuth production checklist](docs/oauth-production-checklist.md) for development and production callbacks, dashboard steps, and acceptance cases.
 
-VNPay sandbox membership checkout is documented in the [payment architecture](docs/api/vnpay-payments.md) and [Cloudflare Quick Tunnel runbook](docs/runbooks/vnpay-sandbox.md).
+payOS VietQR membership and paid-class checkout is documented in the [payment architecture](docs/api/payos-payments.md). payOS has no sandbox; automated tests mock the SDK and any real low-value test requires explicit owner approval.
 
 ## Stack
 
@@ -121,9 +121,9 @@ The standalone `compose.demo.yml` starts a separate examiner stack with automati
 
 In development, registration and password-reset emails are prepared in the ignored `backend/storage/mail/new/` Maildir outbox. Open the newest message with a text editor or mail client and use its one-time link. These private links are no longer printed to application or Uvicorn access logs. `DEVELOPMENT_MAIL_DIR` can relocate the outbox; keep it outside release archives. This local outbox does not deliver external SMTP mail.
 
-Membership plans, legacy mock payments, VNPay payments, billing totals, and regenerated invoice PDFs use VND. Migration `20260723_0007` converts the existing development billing records with the fixed project conversion of 6,000 VND per former RM unit; this is deterministic demo pricing, not a live foreign-exchange integration. Migration `20260929_0015` preserves those records while adding integer-VND VNPay settlement fields and constraints.
+Membership plans, legacy mock payments, payOS payments, billing totals, and regenerated invoice PDFs use VND. Migration `20260723_0007` converts the existing development billing records with the fixed project conversion of 6,000 VND per former RM unit; this is deterministic demo pricing, not a live foreign-exchange integration. Migration `20261103_0019` adds payOS order/link mapping while retaining historical VNPay rows.
 
-Class sessions are independently priced products. A verified account can buy one seat without an active membership; settlement confirms only that class and issues a class receipt. Historical bookings remain legacy entitlements without fabricated transactions. See `docs/api/paid-class-bookings.md` for the API, migration, refund workflow, and sandbox procedure.
+Class sessions are independently priced products. A verified account can buy one seat without an active membership; settlement confirms only that class and issues a class receipt. Historical bookings remain legacy entitlements without fabricated transactions. See `docs/api/paid-class-bookings.md` for the API, migration, refund workflow, and deployment procedure.
 
 The scanner contract and simulator scenarios are documented in `docs/api/iot-scanner.md`. Trainer, booking, waitlist, dashboard, and manager analytics contracts are documented in `docs/api/classes-booking-dashboard.md`; the examiner runbook is `docs/demo/demo-script.md`. The Day54 probe and Day59 disposable rehearsal are documented in `docs/release/performance-report.md` and `docs/release/rehearsal-report.md`. From `iot-simulator/`, run `python -m app.main --help` for all supported scenarios.
 
@@ -136,4 +136,4 @@ The scanner contract and simulator scenarios are documented in `docs/api/iot-sca
 - Login, reset-request, and scanner mutations use Redis-backed fixed-window limits; see `docs/policies/security.md`.
 - The BRD Design Architecture, `docs/design/route-screen-map.md`, and the shared local design system are the UI authority used for this recovery.
 - Days 39-42 preserve the same layering and serialize every class-capacity change on the PostgreSQL class row.
-- Physical-device firmware, advanced PT workflows, and AI/personalization remain outside the completed scope. VNPay query reconciliation and refunds remain separate production follow-ups.
+- Physical-device firmware, advanced PT workflows, and AI/personalization remain outside the completed scope. Automated payOS refunds remain a separate production follow-up; current refund resolution is explicitly manual.

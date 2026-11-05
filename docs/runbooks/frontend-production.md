@@ -7,7 +7,7 @@ YPGym keeps its existing Vite development container for local work. Deployments 
 - A public HTTPS API URL ending in `/api/v1`.
 - A TLS-terminating reverse proxy or platform load balancer in front of this container.
 - The deployed frontend origin added to the backend `FRONTEND_URL` or `CORS_EXTRA_ORIGINS` configuration.
-- Google, Facebook and VNPay callback settings updated for the deployed HTTPS origins when those integrations are enabled.
+- Google/Facebook callbacks and payOS return/cancel/webhook settings updated for the deployed HTTPS origins when those integrations are enabled.
 
 `VITE_API_BASE_URL` is compiled into the browser bundle and is therefore public configuration, not a secret. The production build fails when it is omitted so an image cannot silently point at the development API.
 

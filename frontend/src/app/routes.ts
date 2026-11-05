@@ -17,6 +17,8 @@ export const routePaths = {
   memberSecurity: "/app/security",
   memberBilling: "/app/billing",
   paymentResult: "/app/payments/result",
+  payosSuccess: "/payment/payos/success",
+  payosCancel: "/payment/payos/cancel",
   memberQr: "/app/qr",
   memberAttendance: "/app/attendance",
   membershipRequests: "/app/membership-requests",

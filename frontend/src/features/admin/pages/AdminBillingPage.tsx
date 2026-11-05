@@ -40,7 +40,7 @@ const paymentColumns: ColumnDef<BillingPayment>[] = [
   { header: "Tier", cell: ({ row }) => <span className="capitalize">{row.original.member_tier}</span> },
   { header: "Amount", cell: ({ row }) => <strong>{formatMoney(row.original.amount)}</strong> },
   { header: "Provider", cell: ({ row }) => <span className="uppercase">{row.original.provider}</span> },
-  { header: "Reference", cell: ({ row }) => <div><span className="font-mono text-xs">{row.original.transaction_reference}</span>{row.original.provider_transaction_no ? <p className="mt-1 text-[11px] text-muted-foreground">VNPay {row.original.provider_transaction_no}</p> : null}</div> },
+  { header: "Reference", cell: ({ row }) => <div><span className="font-mono text-xs">{row.original.transaction_reference}</span>{row.original.provider_transaction_no ? <p className="mt-1 text-[11px] text-muted-foreground">{row.original.provider} {row.original.provider_transaction_no}</p> : null}</div> },
   { header: "Status", cell: ({ row }) => <div><StatusBadge value={row.original.status} />{row.original.refund_status === "required" ? <><p className="mt-1 text-[11px] font-bold text-destructive">Refund review</p><ResolveRefundButton payment={row.original} /></> : null}</div> },
   { header: "Settlement", cell: ({ row }) => <div><span>{row.original.bank_code ?? "—"}{row.original.card_type ? ` · ${row.original.card_type}` : ""}</span><p className="mt-1 text-[11px] text-muted-foreground">Email: {row.original.email_delivery_state ?? "not queued"}</p></div> },
   { header: "Created", cell: ({ row }) => formatDateTime(row.original.created_at) },

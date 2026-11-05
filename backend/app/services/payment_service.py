@@ -1,7 +1,5 @@
-import secrets
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -19,16 +17,21 @@ from app.repositories.email_delivery_repository import EmailDeliveryRepository
 from app.repositories.membership_repository import MembershipPlanRepository
 from app.repositories.operations_repository import AuditRepository, NotificationRepository
 from app.schemas.class_schema import ClassCheckoutRequest, ClassCheckoutResponse
-from app.schemas.payment_schema import PaymentStatusResponse, VNPayCreateRequest, VNPayCreateResponse
+from app.schemas.payment_schema import PaymentStatusResponse, PayOSCreateRequest, PayOSCreateResponse
 from app.services.invoice_service import InvoicePdfService
 from app.services.membership_service import MembershipService
+from app.services.payos_service import PayOSClient
 from app.services.state_transitions import transition_booking, transition_payment, transition_refund
-from app.services.vnpay_service import VNPaySigner
 from app.services.waitlist_service import WaitlistPromotionService
 
 
-class VNPayPaymentService:
-    def __init__(self, session: AsyncSession, settings: Settings | None = None) -> None:
+class PayOSPaymentService:
+    def __init__(
+        self,
+        session: AsyncSession,
+        settings: Settings | None = None,
+        payos: PayOSClient | None = None,
+    ) -> None:
         self.session = session
         self.settings = settings or get_settings()
         self.payments = PaymentRepository(session)
@@ -41,40 +44,33 @@ class VNPayPaymentService:
         self.notifications = NotificationRepository(session)
         self.audit = AuditRepository(session)
         self.waitlist_promotions = WaitlistPromotionService(session, self.settings)
+        self._payos = payos
 
-    def _signer(self) -> VNPaySigner:
-        if not self.settings.vnpay_enabled:
-            raise AppError("VNPAY_DISABLED", "VNPay payment is not configured.", 503)
-        return VNPaySigner(self.settings.VNPAY_HASH_SECRET.get_secret_value())
+    def _client(self) -> PayOSClient:
+        if not self.settings.PAYOS_ENABLED:
+            raise AppError("PAYOS_DISABLED", "payOS payment is not configured.", 503)
+        if self._payos is None:
+            self._payos = PayOSClient(self.settings)
+        return self._payos
 
     @staticmethod
-    def _txn_ref(now: datetime) -> str:
-        return f"{now.astimezone(ZoneInfo('Asia/Ho_Chi_Minh')):%y%m%d}{secrets.token_hex(10).upper()}"
+    def _description(order_code: int) -> str:
+        return f"YPG{order_code % 1_000_000:06d}"
 
-    def _payment_url(self, *, payment, locale: str, bank_code: str | None, client_ip: str, label: str) -> str:
-        now = payment.created_at or datetime.now(UTC)
-        local_now = now.astimezone(ZoneInfo("Asia/Ho_Chi_Minh"))
-        parameters: dict[str, str | int] = {
-            "vnp_Version": "2.1.0",
-            "vnp_Command": "pay",
-            "vnp_TmnCode": self.settings.VNPAY_TMN_CODE,
-            "vnp_Amount": payment.amount_vnd * 100,
-            "vnp_CurrCode": "VND",
-            "vnp_TxnRef": payment.txn_ref,
-            "vnp_OrderInfo": f"YPGym {label} {payment.txn_ref}",
-            "vnp_OrderType": "other",
-            "vnp_Locale": locale,
-            "vnp_ReturnUrl": self.settings.VNPAY_RETURN_URL,
-            "vnp_IpAddr": client_ip or "127.0.0.1",
-            "vnp_CreateDate": local_now.strftime("%Y%m%d%H%M%S"),
-            "vnp_ExpireDate": payment.expires_at.astimezone(ZoneInfo("Asia/Ho_Chi_Minh")).strftime("%Y%m%d%H%M%S"),
-        }
-        if bank_code:
-            parameters["vnp_BankCode"] = bank_code
-        return self._signer().build_payment_url(self.settings.VNPAY_PAYMENT_URL, parameters)
+    async def _attach_payment_link(self, payment) -> None:
+        response = await self._client().create_payment_link(
+            order_code=payment.payos_order_code,
+            amount=payment.amount_vnd,
+            description=self._description(payment.payos_order_code),
+            expired_at=int(payment.expires_at.timestamp()),
+        )
+        if response.order_code != payment.payos_order_code or response.amount != payment.amount_vnd:
+            raise AppError("PAYOS_RESPONSE_MISMATCH", "The payment provider returned inconsistent checkout data.", 502)
+        payment.payment_link_id = response.payment_link_id
+        payment.checkout_url = response.checkout_url
 
-    async def create_payment(self, *, user: User, payload: VNPayCreateRequest, client_ip: str) -> VNPayCreateResponse:
-        self._signer()
+    async def create_payment(self, *, user: User, payload: PayOSCreateRequest) -> PayOSCreateResponse:
+        self._client()
         await self.memberships.validate_self_service_eligibility(user)
         plan = await self.plans.get_by_id(payload.membership_plan_id)
         if not plan or not plan.is_active:
@@ -97,21 +93,23 @@ class VNPayPaymentService:
         if final_amount != integral_amount or integral_amount <= 0:
             raise AppError("INVALID_PLAN_PRICE", "The selected plan has an invalid VND price.", 409)
         now = datetime.now(UTC)
+        order_code = await self.payments.next_payos_order_code()
         try:
             payment = await self.payments.create(
                 user_id=user.id,
                 membership_id=current_membership.id if quote.pricing.transaction_kind == "renewal" else None,
                 plan_id=plan.id,
                 product_type="membership",
-                idempotency_key=f"vnpay:{self._txn_ref(now)}",
+                idempotency_key=f"payos:{order_code}",
                 amount=final_amount,
                 amount_vnd=int(integral_amount),
                 discount_amount=discount_amount,
                 status=PaymentStatus.PENDING.value,
-                mock_reference="",
-                provider="vnpay",
-                txn_ref=None,
-                expires_at=now + timedelta(minutes=self.settings.VNPAY_TRANSACTION_TTL_MINUTES),
+                mock_reference=str(order_code),
+                provider="payos",
+                txn_ref=str(order_code),
+                payos_order_code=order_code,
+                expires_at=now + timedelta(minutes=self.settings.PAYOS_TRANSACTION_TTL_MINUTES),
                 client_platform=payload.client_platform,
                 attendance_benefit_period_start=quote.period_start if quote.available else None,
                 discount_details=quote.model_dump(mode="json"),
@@ -125,19 +123,13 @@ class VNPayPaymentService:
                     409,
                 ) from exc
             raise
-        payment.txn_ref = payment.idempotency_key.removeprefix("vnpay:")
-        payment.mock_reference = payment.txn_ref
+        await self._attach_payment_link(payment)
         await self._commit_payment()
-        return VNPayCreateResponse(
+        return PayOSCreateResponse(
             transaction_id=payment.id,
-            txn_ref=payment.txn_ref,
-            payment_url=self._payment_url(
-                payment=payment,
-                locale=payload.locale,
-                bank_code=payload.bank_code,
-                client_ip=client_ip,
-                label="membership",
-            ),
+            order_code=payment.payos_order_code,
+            checkout_url=payment.checkout_url,
+            amount_vnd=payment.amount_vnd,
             expires_at=payment.expires_at,
         )
 
@@ -147,9 +139,8 @@ class VNPayPaymentService:
         class_id: UUID,
         user: User,
         payload: ClassCheckoutRequest,
-        client_ip: str,
     ) -> ClassCheckoutResponse:
-        self._signer()
+        self._client()
         if not user.is_email_verified:
             raise AppError("EMAIL_NOT_VERIFIED", "Please verify your email before booking a class.", 403)
         idempotency_key = f"class:{payload.idempotency_key}"
@@ -157,7 +148,7 @@ class VNPayPaymentService:
         if existing:
             if existing.product_type != "class_booking" or existing.class_booking.class_id != class_id:
                 raise AppError("IDEMPOTENCY_KEY_REUSED", "Use a new checkout key for this class.", 409)
-            return self._class_checkout_response(existing, payload, client_ip)
+            return self._class_checkout_response(existing)
 
         now = datetime.now(UTC)
         gym_class = await self.classes.get_class(class_id, for_update=True)
@@ -195,7 +186,7 @@ class VNPayPaymentService:
             raise AppError("CLASS_FULL", "This class is full. Join the waitlist instead.", 409)
 
         reserved_until = min(
-            now + timedelta(minutes=self.settings.VNPAY_TRANSACTION_TTL_MINUTES),
+            now + timedelta(minutes=self.settings.PAYOS_TRANSACTION_TTL_MINUTES),
             gym_class.start_at,
         )
         if booking:
@@ -216,7 +207,7 @@ class VNPayPaymentService:
                 entitlement_source="paid",
                 reserved_until=reserved_until,
             )
-        txn_ref = self._txn_ref(now)
+        order_code = await self.payments.next_payos_order_code()
         payment = await self.payments.create(
             user_id=user.id,
             membership_id=None,
@@ -228,13 +219,15 @@ class VNPayPaymentService:
             amount_vnd=gym_class.price_vnd,
             discount_amount=Decimal("0"),
             status=PaymentStatus.PENDING.value,
-            mock_reference=txn_ref,
-            provider="vnpay",
-            txn_ref=txn_ref,
+            mock_reference=str(order_code),
+            provider="payos",
+            txn_ref=str(order_code),
+            payos_order_code=order_code,
             expires_at=reserved_until,
             client_platform=payload.client_platform,
         )
         booking.current_payment_id = payment.id
+        await self._attach_payment_link(payment)
         try:
             await self.session.commit()
         except IntegrityError as exc:
@@ -242,41 +235,30 @@ class VNPayPaymentService:
             raise AppError("DUPLICATE_PAYMENT_REQUEST", "This checkout request has already been processed.", 409) from exc
         payment.class_booking = booking
         booking.gym_class = gym_class
-        return self._class_checkout_response(payment, payload, client_ip)
+        return self._class_checkout_response(payment)
 
-    def _class_checkout_response(self, payment, payload: ClassCheckoutRequest, client_ip: str) -> ClassCheckoutResponse:
+    @staticmethod
+    def _class_checkout_response(payment) -> ClassCheckoutResponse:
         return ClassCheckoutResponse(
             booking_id=payment.class_booking_id,
             transaction_id=payment.id,
-            txn_ref=payment.txn_ref,
-            payment_url=self._payment_url(
-                payment=payment,
-                locale=payload.locale,
-                bank_code=payload.bank_code,
-                client_ip=client_ip,
-                label="class",
-            ),
+            order_code=payment.payos_order_code,
+            checkout_url=payment.checkout_url,
+            amount_vnd=payment.amount_vnd,
             expires_at=payment.expires_at,
         )
 
-    async def process_ipn(self, raw_parameters: dict[str, str]) -> dict[str, str]:
-        signer = self._signer()
-        parameters = signer.expected_response(raw_parameters)
-        if not signer.validate(parameters):
-            return {"RspCode": "97", "Message": "Invalid signature"}
-        payment = await self.payments.get_by_txn_ref(parameters.get("vnp_TxnRef", ""), for_update=True)
+    async def process_webhook(self, payload: bytes) -> dict[str, str]:
+        data = await self._client().verify_webhook(payload)
+        payment = await self.payments.get_by_payos_order_code(data.order_code, for_update=True)
         if not payment:
-            return {"RspCode": "01", "Message": "Order not found"}
-        if parameters.get("vnp_TmnCode") != self.settings.VNPAY_TMN_CODE:
-            return {"RspCode": "97", "Message": "Invalid signature"}
-        try:
-            protocol_amount = int(parameters.get("vnp_Amount", ""))
-        except ValueError:
-            return {"RspCode": "04", "Message": "Invalid amount"}
-        if protocol_amount != payment.amount_vnd * 100:
-            return {"RspCode": "04", "Message": "Invalid amount"}
-        response_code = parameters.get("vnp_ResponseCode", "")
-        transaction_status = parameters.get("vnp_TransactionStatus", "")
+            return {"code": "00", "desc": "success"}
+        if data.amount != payment.amount_vnd or data.currency != "VND":
+            raise AppError("PAYOS_AMOUNT_MISMATCH", "The verified payment amount does not match the order.", 400)
+        if payment.payment_link_id and data.payment_link_id != payment.payment_link_id:
+            raise AppError("PAYOS_LINK_MISMATCH", "The verified payment link does not match the order.", 400)
+        if data.code != "00":
+            return {"code": "00", "desc": "success"}
         late_class_success = (
             payment.product_type == "class_booking"
             and payment.status in {
@@ -284,64 +266,55 @@ class VNPayPaymentService:
                 PaymentStatus.CANCELLED.value,
                 PaymentStatus.FAILED.value,
             }
-            and response_code == "00"
-            and transaction_status == "00"
         )
+        if payment.status in {PaymentStatus.PAID.value, PaymentStatus.PAID_REVIEW.value}:
+            return {"code": "00", "desc": "success"}
         if payment.status != PaymentStatus.PENDING.value and not late_class_success:
-            return {"RspCode": "02", "Message": "Order already confirmed"}
-
-        payment.response_code = response_code
-        payment.transaction_status = transaction_status
-        payment.provider_transaction_no = parameters.get("vnp_TransactionNo") or None
-        payment.bank_code = parameters.get("vnp_BankCode") or None
-        payment.card_type = parameters.get("vnp_CardType") or None
-        try:
-            payment.pay_date = signer.parse_pay_date(parameters.get("vnp_PayDate"))
-        except ValueError:
-            await self.session.rollback()
-            return {"RspCode": "99", "Message": "Unknown error"}
-        now = datetime.now(UTC)
-        if response_code == "00" and transaction_status == "00":
-            user = (
-                await self.session.execute(select(User).where(User.id == payment.user_id).with_for_update())
-            ).scalar_one()
-            payment.paid_at = payment.pay_date or now
-            if payment.product_type == "membership" and payment.plan_id and not payment.class_booking_id:
-                transition_payment(payment, PaymentStatus.PAID)
-                await self.memberships.finalize_vnpay_payment(
-                    user=user, plan=payment.plan, payment=payment, transaction_date=payment.paid_at
-                )
-            elif payment.product_type == "class_booking" and payment.class_booking_id and not payment.plan_id:
-                await self._finalize_class_payment(payment=payment, user=user, now=now)
-            else:
-                await self.session.rollback()
-                return {"RspCode": "99", "Message": "Unknown error"}
-        else:
-            transition_payment(
-                payment,
-                PaymentStatus.CANCELLED if response_code == "24" else PaymentStatus.FAILED,
-            )
-            if payment.product_type == "class_booking" and payment.class_booking_id:
-                await self._release_current_class_hold(
-                    payment=payment,
-                    target=ClassBookingStatus.PAYMENT_FAILED,
-                    now=now,
-                )
+            payment.provider_transaction_no = data.reference
+            payment.paid_at = datetime.now(UTC)
+            transition_payment(payment, PaymentStatus.PAID_REVIEW)
             await self.audit.create(
                 target_user_id=payment.user_id,
-                action=f"payment.vnpay.{payment.status}",
+                action="payment.payos.late_success",
                 entity_type="payment",
                 entity_id=str(payment.id),
-                outcome=payment.status,
-                summary="A verified VNPay IPN reported a non-successful payment outcome.",
-                after_data={"provider": "vnpay", "product_type": payment.product_type, "response_code": response_code},
+                outcome="paid_review",
+                summary="payOS reported payment after the local attempt reached a final state.",
+                after_data={"provider": "payos", "product_type": payment.product_type},
             )
+            await self.session.commit()
+            return {"code": "00", "desc": "success"}
+
+        payment.response_code = data.code
+        payment.transaction_status = "PAID"
+        payment.provider_transaction_no = data.reference
+        payment.payment_link_id = data.payment_link_id
+        try:
+            payment.pay_date = datetime.strptime(data.transaction_date_time, "%Y-%m-%d %H:%M:%S").replace(
+                tzinfo=ZoneInfo("Asia/Ho_Chi_Minh")
+            )
+        except ValueError:
+            payment.pay_date = None
+        now = datetime.now(UTC)
+        user = (
+            await self.session.execute(select(User).where(User.id == payment.user_id).with_for_update())
+        ).scalar_one()
+        payment.paid_at = payment.pay_date or now
+        if payment.product_type == "membership" and payment.plan_id and not payment.class_booking_id:
+            transition_payment(payment, PaymentStatus.PAID)
+            await self.memberships.finalize_provider_payment(
+                user=user, plan=payment.plan, payment=payment, transaction_date=payment.paid_at
+            )
+        elif payment.product_type == "class_booking" and payment.class_booking_id and not payment.plan_id:
+            await self._finalize_class_payment(payment=payment, user=user, now=now)
+        else:
+            raise AppError("PAYMENT_PRODUCT_INVALID", "The payment product mapping is invalid.", 409)
         try:
             await self.session.commit()
-        except IntegrityError:
+        except IntegrityError as exc:
             await self.session.rollback()
-            return {"RspCode": "99", "Message": "Unknown error"}
-        return {"RspCode": "00", "Message": "Confirm Success"}
+            raise AppError("PAYOS_REFERENCE_CONFLICT", "The payment reference was already processed.", 409) from exc
+        return {"code": "00", "desc": "success"}
 
     async def _finalize_class_payment(self, *, payment, user: User, now: datetime) -> None:
         linked_booking = payment.class_booking
@@ -373,11 +346,11 @@ class VNPayPaymentService:
                 await self.waitlist_promotions.promote(gym_class, now=now)
             await self.audit.create(
                 target_user_id=user.id,
-                action="payment.vnpay.class_resolution_required",
+                action="payment.payos.class_resolution_required",
                 entity_type="payment",
                 entity_id=str(payment.id),
                 outcome="paid_review",
-                summary="VNPay reported successful class payment after the reservation could no longer be fulfilled.",
+                summary="payOS reported successful class payment after the reservation could no longer be fulfilled.",
                 after_data={"class_booking_id": str(booking.id)},
             )
             return
@@ -445,49 +418,30 @@ class VNPayPaymentService:
             channel="in_app",
             delivery_state="delivered",
             delivered_at=payment.paid_at,
-            dedupe_key=f"vnpay-class-payment:{payment.id}:in_app",
+            dedupe_key=f"payos-class-payment:{payment.id}:in_app",
             action_type="class_booking",
             action_id=booking.id,
         )
         await self.audit.create(
             target_user_id=user.id,
-            action="payment.vnpay.class_confirmed",
+            action="payment.payos.class_confirmed",
             entity_type="payment",
             entity_id=str(payment.id),
             outcome="paid",
-            summary="A verified VNPay IPN confirmed one class reservation.",
+            summary="A verified payOS webhook confirmed one class reservation.",
             after_data={"class_booking_id": str(booking.id), "invoice_id": str(invoice.id)},
         )
-
-    async def return_redirect(self, raw_parameters: dict[str, str]) -> str:
-        signer = self._signer()
-        parameters = signer.expected_response(raw_parameters)
-        if not signer.validate(parameters):
-            return self._result_url(self.settings.FRONTEND_PAYMENT_RESULT_URL, state="invalid")
-        payment = await self.payments.get_by_txn_ref(parameters.get("vnp_TxnRef", ""))
-        if not payment:
-            return self._result_url(self.settings.FRONTEND_PAYMENT_RESULT_URL, state="invalid")
-        if payment.client_platform == "mobile":
-            target = self.settings.MOBILE_PAYMENT_RESULT_URL
-        elif payment.client_platform == "mobile_web":
-            target = f"{self.settings.MOBILE_WEB_URL.rstrip('/')}/payment-result"
-        else:
-            target = self.settings.FRONTEND_PAYMENT_RESULT_URL
-        if payment.status == PaymentStatus.PAID.value:
-            state = "success"
-        elif payment.status == PaymentStatus.PAID_REVIEW.value:
-            state = "review"
-        elif parameters.get("vnp_ResponseCode") == "24":
-            state = "cancelled"
-        elif parameters.get("vnp_ResponseCode") != "00" or parameters.get("vnp_TransactionStatus") != "00":
-            state = "failed"
-        else:
-            state = "processing"
-        return self._result_url(target, transaction_id=str(payment.id), state=state)
 
     async def get_status(self, *, user: User, payment_id: UUID) -> PaymentStatusResponse:
         payment = await self.payments.get_for_user(payment_id=payment_id, user_id=user.id, for_update=True)
         if not payment:
+            raise ResourceNotFoundError("Payment was not found.")
+        await self._expire_payment_if_due(payment, datetime.now(UTC))
+        return self._status_response(payment)
+
+    async def get_status_by_order_code(self, *, user: User, order_code: int) -> PaymentStatusResponse:
+        payment = await self.payments.get_by_payos_order_code(order_code, for_update=True)
+        if not payment or payment.user_id != user.id:
             raise ResourceNotFoundError("Payment was not found.")
         await self._expire_payment_if_due(payment, datetime.now(UTC))
         return self._status_response(payment)
@@ -540,11 +494,11 @@ class VNPayPaymentService:
     async def _audit_payment_expiry(self, payment) -> None:
         await self.audit.create(
             target_user_id=payment.user_id,
-            action="payment.vnpay.expired",
+            action="payment.payos.expired",
             entity_type="payment",
             entity_id=str(payment.id),
             outcome="expired",
-            summary="A pending VNPay payment expired before confirmation.",
+            summary="A pending payOS payment expired before confirmation.",
             after_data={"product_type": payment.product_type},
         )
 
@@ -560,7 +514,7 @@ class VNPayPaymentService:
         await self.audit.create(
             actor_user_id=actor.id,
             target_user_id=payment.user_id,
-            action="payment.vnpay.class_refund_resolved",
+            action="payment.payos.class_refund_resolved",
             entity_type="payment",
             entity_id=str(payment.id),
             reason=reason.strip(),
@@ -578,13 +532,6 @@ class VNPayPaymentService:
         except IntegrityError as exc:
             await self.session.rollback()
             raise AppError("PAYMENT_REFERENCE_CONFLICT", "Please start the payment again.", 409) from exc
-
-    @staticmethod
-    def _result_url(base_url: str, **values: str) -> str:
-        parts = urlsplit(base_url)
-        query = dict(parse_qsl(parts.query, keep_blank_values=True))
-        query.update(values)
-        return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
     @staticmethod
     def _status_response(payment) -> PaymentStatusResponse:

@@ -2,7 +2,7 @@ from uuid import UUID
 
 from datetime import date, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -13,6 +13,9 @@ from app.models.classes import ClassBooking
 class PaymentRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    async def next_payos_order_code(self) -> int:
+        return int(await self.session.scalar(text("SELECT nextval('payos_order_code_seq')")))
 
     async def get_by_idempotency_key(
         self,
@@ -55,6 +58,7 @@ class PaymentRepository:
         product_type: str = "membership",
         attendance_benefit_period_start: date | None = None,
         discount_details: dict | None = None,
+        payos_order_code: int | None = None,
     ) -> Payment:
         payment = Payment(
             user_id=user_id,
@@ -75,6 +79,7 @@ class PaymentRepository:
             client_platform=client_platform,
             attendance_benefit_period_start=attendance_benefit_period_start,
             discount_details=discount_details,
+            payos_order_code=payos_order_code,
         )
         self.session.add(payment)
         await self.session.flush()
@@ -109,6 +114,21 @@ class PaymentRepository:
                 selectinload(Payment.class_booking).selectinload(ClassBooking.gym_class),
             )
             .where(Payment.txn_ref == txn_ref)
+        )
+        if for_update:
+            query = query.with_for_update()
+        return (await self.session.execute(query)).scalar_one_or_none()
+
+    async def get_by_payos_order_code(self, order_code: int, *, for_update: bool = False) -> Payment | None:
+        query = (
+            select(Payment)
+            .options(
+                selectinload(Payment.plan),
+                selectinload(Payment.membership),
+                selectinload(Payment.invoice),
+                selectinload(Payment.class_booking).selectinload(ClassBooking.gym_class),
+            )
+            .where(Payment.provider == "payos", Payment.payos_order_code == order_code)
         )
         if for_update:
             query = query.with_for_update()

@@ -9,7 +9,7 @@ The database continues to store strings. The Python `StrEnum` members in `backen
 | Domain | Permitted transitions | Main side effects retained in service |
 |---|---|---|
 | Membership | `pending_verification -> active/expiring_soon/expired/frozen/cancelled/revoked`; `active -> pending_verification/expiring_soon/expired/frozen/cancelled/revoked`; `expiring_soon -> pending_verification/active/expired/frozen/cancelled/revoked`; `expired -> pending_verification/active/revoked`; `frozen -> pending_verification/active/expiring_soon/expired/cancelled/revoked` | Email-verification access downgrade, freeze dates, cancellation/revocation metadata, audit records, renewal coverage and expiry calculations. |
-| Payment | `pending -> paid/failed/cancelled/expired/paid_review`; `failed/cancelled/expired -> paid_review` for a verified late class callback | VNPay signature and amount verification, row locks, invoices, membership activation, class confirmation, notifications, email outbox and audit records. |
+| Payment | `pending -> paid/failed/cancelled/expired/paid_review`; `failed/cancelled/expired -> paid_review` for a verified late webhook | payOS signature and exact amount verification, row locks, invoices, membership activation, class confirmation, notifications, email outbox and audit records. |
 | Class | `scheduled -> cancelled/completed` | Cancellation reason, affected bookings/waitlists, refund review and audit records. |
 | Class booking | `pending_payment -> confirmed/cancelled/expired/payment_failed`; `confirmed -> cancelled`; `cancelled -> pending_payment/refunded`; `expired/payment_failed -> pending_payment/cancelled/refunded`; `refunded -> pending_payment` | Seat holds, capacity checks, timestamps, payment linkage, refunds, waitlist promotion and audit records. |
 | Waitlist | `waiting -> promoted/cancelled`; `promoted/cancelled -> waiting` when the member becomes eligible to queue again | Position allocation, seat promotion and configuration limits. |
@@ -17,11 +17,11 @@ The database continues to store strings. The Python `StrEnum` members in `backen
 | Approval request | `pending -> approved/rejected` | Reviewer identity, decision reason, outcome, membership changes and audit records. |
 | Refund | `none -> required -> resolved`; `resolved -> none` when a resolved booking starts a new checkout | Refund review remains explicit and blocks checkout until staff resolves it. |
 
-States without outgoing transitions are terminal. A repeated event is accepted only where the calling workflow explicitly requests idempotency. VNPay duplicate callbacks keep their existing early response, and attendance/membership APIs keep their existing domain-specific duplicate behavior.
+States without outgoing transitions are terminal. A repeated event is accepted only where the calling workflow explicitly requests idempotency. payOS duplicate webhooks return success without repeating effects, and attendance/membership APIs keep their existing domain-specific duplicate behavior.
 
 ## Legacy payment compatibility
 
-`succeeded` remains a recognized, terminal legacy payment state. It is not silently rewritten to `paid`. Current VNPay transactions use `pending`, `paid`, `failed`, `cancelled`, `expired`, and `paid_review`. A cryptographically verified successful class callback received after failure, cancellation, or expiry can only move to `paid_review`, preserving manual financial resolution instead of restoring a seat implicitly.
+`succeeded` remains a recognized, terminal legacy payment state, and historical `provider = 'vnpay'` rows are not rewritten. Current payOS transactions use `pending`, `paid`, `failed`, `cancelled`, `expired`, and `paid_review`. A verified success received after failure, cancellation, or expiry can only move to `paid_review`, preserving manual financial resolution instead of restoring an entitlement implicitly.
 
 ## Concurrency and transaction boundary
 

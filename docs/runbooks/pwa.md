@@ -10,7 +10,7 @@ YPGym's React website is a PWA-capable web application. It remains separate from
 - The existing `manifest.webmanifest` remains authoritative. The plugin does not replace it.
 - Development service-worker generation is disabled to prevent stale-cache confusion while using `npm run dev`.
 - Production builds precache only the generated application shell, versioned JavaScript/CSS, HTML, icons, SVG and the manifest.
-- Every YPGym `/api/**` request uses `NetworkOnly` for GET, POST, PUT, PATCH and DELETE. Authentication, OAuth, QR, attendance, VNPay, account data and mutations are never written to Cache Storage.
+- Every YPGym `/api/**` request uses `NetworkOnly` for GET, POST, PUT, PATCH and DELETE. Authentication, OAuth, QR, attendance, payOS, account data and mutations are never written to Cache Storage.
 - External provider pages are outside the service worker's origin and have no runtime cache rule.
 
 The shell can open after one successful online visit. Private data and server actions still require the API, and the offline notice says so explicitly.

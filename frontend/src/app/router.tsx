@@ -108,6 +108,14 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute roles={[...clientRoleGroups.member]}><PaymentResultPage /></ProtectedRoute>,
   },
   {
+    path: routePaths.payosSuccess,
+    element: <PaymentResultPage />,
+  },
+  {
+    path: routePaths.payosCancel,
+    element: <PaymentResultPage />,
+  },
+  {
     path: routePaths.memberQr,
     element: <ProtectedRoute roles={[...clientRoleGroups.member]}><MemberQrPage /></ProtectedRoute>,
   },

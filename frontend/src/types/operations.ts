@@ -342,8 +342,9 @@ export type MemberBookings = {
 export type ClassCheckoutResponse = {
   booking_id: string;
   transaction_id: string;
-  txn_ref: string;
-  payment_url: string;
+  order_code: number;
+  checkout_url: string;
+  amount_vnd: number;
   expires_at: string;
 };
 

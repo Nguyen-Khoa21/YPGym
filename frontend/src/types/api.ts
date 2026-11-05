@@ -75,10 +75,11 @@ export type PaymentHistoryItem = {
   discount_details: AttendanceBenefitQuote | null;
 };
 
-export type VNPayCreateResponse = {
+export type PayOSCreateResponse = {
   transaction_id: string;
-  txn_ref: string;
-  payment_url: string;
+  order_code: number;
+  checkout_url: string;
+  amount_vnd: number;
   expires_at: string;
 };
 

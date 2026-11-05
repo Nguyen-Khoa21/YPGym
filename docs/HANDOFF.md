@@ -2,6 +2,14 @@
 
 Last updated: 2026-10-31, dedicated attendance scanner app, realtime attendance invalidation, and scanner run guide prepared for release.
 
+## November 3 continuation — payOS replaces VNPay sandbox
+
+- payOS is the active membership and independent-class payment provider. Backend-only credentials create hosted VietQR/Napas 24/7 links; the signed POST webhook is the sole settlement authority. Browser return/cancel pages only poll authenticated local state.
+- PostgreSQL sequence-backed integer order codes, payment-link identifiers and checkout metadata were added in migration `20261103_0019`. Historical `provider = 'vnpay'` rows and legacy settlement columns remain untouched for audit/financial history; no active VNPay route, signer, configuration or client flow remains.
+- Existing membership/class fulfillment, invoices, deduplicated email intents, notifications, admin billing, refund review, audit records, capacity locking and waitlist promotion are reused. Verified late payments become `paid_review` rather than recreating an entitlement.
+- payOS has no sandbox. Automated tests mock link creation and sign local fixtures. A real low-value payment, stable public HTTPS domains, webhook dashboard registration and physical mobile acceptance remain owner-controlled deployment gates. See `docs/api/payos-payments.md`.
+- Sections below describing VNPay are historical implementation records only and must not be used as current setup instructions.
+
 ## October 27 continuation — dedicated attendance scanner app
 
 - Added a separate Expo SDK 58 application under `scanner-mobile/`; the existing member app remains member-only. The scanner supports backend-verified device provisioning, camera-only rotating-QR capture, explicit check-in/check-out modes, SecureStore credentials, no offline queue, safe result/error guidance, foreground recovery, screen-awake behavior, and Android export.

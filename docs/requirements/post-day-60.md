@@ -101,7 +101,7 @@ Weighted set exposure is descriptive and load-independent: bodyweight/zero-load 
 
 | Requirement | Implementation | Verification |
 |---|---|---|
-| FR56 | Member-only previous-complete-month quote from distinct gym-local `iot_scanner` dates; 80% threshold; better of plan discount or 10%; first successful renewal consumes the month; failed/cancelled/expired payment releases it; PostgreSQL reservation uniqueness and immutable payment/invoice snapshots | `test_attendance_benefit.py` and integration coverage for month boundaries, thresholds, zero attendance, source/deduplication/privacy, frozen coverage, both discount orders, replay/concurrency, mock/VNPay paths and invoice state; full isolated suite and web/mobile builds pass |
+| FR56 | Member-only previous-complete-month quote from distinct gym-local `iot_scanner` dates; 80% threshold; better of plan discount or 10%; first successful renewal consumes the month; failed/cancelled/expired payment releases it; PostgreSQL reservation uniqueness and immutable payment/invoice snapshots | `test_attendance_benefit.py` and integration coverage for month boundaries, thresholds, zero attendance, source/deduplication/privacy, frozen coverage, both discount orders, replay/concurrency, mock/payOS paths and invoice state; full isolated suite and web/mobile builds pass |
 
 The full calculation and state contract is `docs/api/attendance-renewal-benefit.md`. The server derives member identity, attendance, price and final discount; neither web nor Expo submits those values.
 

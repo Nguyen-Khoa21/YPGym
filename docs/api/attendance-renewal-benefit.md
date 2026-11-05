@@ -17,7 +17,7 @@ Feature 9 implements FR56 with the owner-approved **better-of** and **first succ
 
 Possible states are `eligible`, `not_qualified`, `not_renewal`, `pending` and `consumed`. Web `/memberships/buy/:planId` and Expo `/(member)/renew/confirm` render this response and disable checkout while the server reports a reserved pending benefit. Payment results, billing history and invoices expose the immutable calculation snapshot.
 
-Both VNPay checkout and the retained mock purchase endpoint calculate price on the backend. The client cannot supply attendance, discount or final amount.
+Both payOS checkout and the retained mock purchase endpoint calculate price on the backend. The client cannot supply attendance, discount or final amount.
 
 ## Persistence and concurrency
 
@@ -28,7 +28,7 @@ Migration `20261009_0017_attendance_renewal_benefit.py` adds:
 - a membership-product constraint; and
 - a partial unique index for one pending/paid/succeeded benefit reservation per member and attendance month.
 
-The payment, membership extension, invoice, snapshot, notification, email intents and audit record use the existing transaction. VNPay IPN replay and concurrent checkout cannot apply the benefit twice. Invoice regeneration reads the stored snapshot rather than recalculating historical attendance.
+The payment, membership extension, invoice, snapshot, notification, email intents and audit record use the existing transaction. payOS webhook replay and concurrent checkout cannot apply the benefit twice. Invoice regeneration reads the stored snapshot rather than recalculating historical attendance.
 
 ## Verification
 

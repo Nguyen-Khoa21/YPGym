@@ -7,19 +7,18 @@ from pydantic import BaseModel, ConfigDict
 from app.schemas.membership_schema import AttendanceBenefitQuote
 
 
-class VNPayCreateRequest(BaseModel):
+class PayOSCreateRequest(BaseModel):
     membership_plan_id: UUID
-    locale: Literal["vn", "en"] = "vn"
-    bank_code: Literal["VNPAYQR", "VNBANK", "INTCARD"] | None = None
     client_platform: Literal["web", "mobile", "mobile_web"] = "web"
 
     model_config = ConfigDict(extra="forbid")
 
 
-class VNPayCreateResponse(BaseModel):
+class PayOSCreateResponse(BaseModel):
     transaction_id: UUID
-    txn_ref: str
-    payment_url: str
+    order_code: int
+    checkout_url: str
+    amount_vnd: int
     expires_at: datetime
 
 
@@ -50,6 +49,6 @@ class PaymentStatusResponse(BaseModel):
     discount_details: AttendanceBenefitQuote | None
 
 
-class VNPayIpnResponse(BaseModel):
-    RspCode: str
-    Message: str
+class PayOSWebhookResponse(BaseModel):
+    code: str = "00"
+    desc: str = "success"

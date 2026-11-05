@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +30,7 @@ from app.schemas.class_schema import (
     WaitlistItem,
 )
 from app.services.class_service import BookingService, ClassService, TrainerService
-from app.services.payment_service import VNPayPaymentService
+from app.services.payment_service import PayOSPaymentService
 from app.core.rate_limit import rate_limits
 from app.utils.security import hash_token
 
@@ -74,7 +74,6 @@ async def book_class(
 async def checkout_class(
     class_id: UUID,
     payload: ClassCheckoutRequest,
-    request: Request,
     current_user: Annotated[User, Depends(require_roles("member"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     redis: Annotated[Redis, Depends(get_redis_client)],
@@ -85,11 +84,10 @@ async def checkout_class(
         limit=10,
         window_seconds=60,
     )
-    return await VNPayPaymentService(session).create_class_payment(
+    return await PayOSPaymentService(session).create_class_payment(
         class_id=class_id,
         user=current_user,
         payload=payload,
-        client_ip=request.client.host if request.client else "127.0.0.1",
     )
 
 

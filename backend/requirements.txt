@@ -3,7 +3,8 @@ uvicorn[standard]
 pydantic
 pydantic-settings
 python-dotenv
-sqlalchemy
+payos==1.1.0
+sqlalchemy[asyncio]
 asyncpg
 psycopg[binary]
 alembic

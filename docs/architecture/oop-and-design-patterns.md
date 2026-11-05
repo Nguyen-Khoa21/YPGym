@@ -14,7 +14,7 @@ Encapsulation keeps state and the operations that protect it together behind a s
 
 Current evidence includes:
 
-- `VNPaySigner` in `backend/app/services/vnpay_service.py`, which owns payment signing and verification rules instead of exposing secret-handling details to endpoints.
+- `PayOSClient` in `backend/app/services/payos_service.py`, which encapsulates the official async SDK, timeouts and safe provider errors instead of exposing credential handling to endpoints.
 - `MembershipLifecycleService` in `backend/app/services/lifecycle_service.py` and `UserMembershipRepository` in `backend/app/repositories/membership_repository.py`, which keep domain transitions and database operations out of route handlers.
 - React `AuthContext` in `frontend/src/features/auth/AuthContext.tsx`, which owns session state and exposes authenticated actions to the component tree.
 
@@ -74,7 +74,7 @@ This improves testability and permits provider or presentation changes without r
 
 **Definition:** a service layer coordinates domain rules and transaction-level operations for an application use case.
 
-**YPGym use:** services under `backend/app/services/` coordinate membership, attendance, booking, payment, notification, OAuth, training, and administrative workflows. Examples include `BookingService` in `class_service.py` and `VNPayPaymentService` in `payment_service.py`.
+**YPGym use:** services under `backend/app/services/` coordinate membership, attendance, booking, payment, notification, OAuth, training, and administrative workflows. Examples include `BookingService` in `class_service.py` and `PayOSPaymentService` in `payment_service.py`.
 
 **Benefit:** endpoints stay focused on HTTP concerns while high-impact state changes, audits, and related writes are kept together.
 

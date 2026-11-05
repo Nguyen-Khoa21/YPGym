@@ -7,7 +7,7 @@ import { Action, Busy, Card, Heading, Message, PageTop, Screen, textStyles } fro
 import { errorMessage, formatMoney } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { colors } from '@/lib/theme';
-import type { AttendanceBenefitQuote, Plan, VNPayCreateResponse } from '@/lib/types';
+import type { AttendanceBenefitQuote, PayOSCreateResponse, Plan } from '@/lib/types';
 
 export default function ConfirmRenewalScreen() {
   const { planId } = useLocalSearchParams<{ planId: string }>();
@@ -20,30 +20,30 @@ export default function ConfirmRenewalScreen() {
     enabled: Boolean(plan),
   });
   const checkout = useMutation({
-    mutationFn: () => request<VNPayCreateResponse>('/payments/vnpay/create', {
+    mutationFn: () => request<PayOSCreateResponse>('/payments/payos/create', {
       method: 'POST',
-      body: { membership_plan_id: planId, locale: 'vn', bank_code: null, client_platform: Platform.OS === 'web' ? 'mobile_web' : 'mobile' },
+      body: { membership_plan_id: planId, client_platform: Platform.OS === 'web' ? 'mobile_web' : 'mobile' },
     }),
     onSuccess: async (result) => {
       router.push(`/payment-result?transaction_id=${encodeURIComponent(result.transaction_id)}&state=processing` as Href);
       if (Platform.OS === 'web') {
-        window.location.assign(result.payment_url);
+        window.location.assign(result.checkout_url);
       } else {
-        await WebBrowser.openBrowserAsync(result.payment_url);
+        await WebBrowser.openBrowserAsync(result.checkout_url);
       }
     },
   });
 
-  return <Screen><PageTop title="VNPay Checkout" fallback="/(member)/renew" /><Heading title="Confirm your membership" detail="VNPay handles the payment. YPGym activates coverage only after a signed server confirmation." />
+  return <Screen><PageTop title="payOS VietQR" fallback="/(member)/renew" /><Heading title="Confirm your membership" detail="payOS handles the VietQR transfer. YPGym activates coverage only after a signed webhook." />
     {plans.isLoading ? <Busy label="Loading selected plan" /> : null}{plans.isError ? <Message title="Plan unavailable" detail={errorMessage(plans.error)} action="Retry" onAction={() => void plans.refetch()} tone="error" /> : null}
     {plans.data && !plan ? <Message title="Plan unavailable" detail="Choose an active membership plan." action="View plans" onAction={() => router.replace('/(member)/renew')} /> : null}
-    {plan ? <Card accent><Text style={textStyles.eyebrow}>Selected plan</Text><Text style={textStyles.subheading}>{plan.name}</Text><Text style={textStyles.muted}>{plan.duration_months} months</Text><Text style={{ color: colors.primary, fontSize: 32, fontWeight: '900' }}>{formatMoney(benefit.data?.pricing.final_amount ?? plan.final_price)}</Text><Text style={textStyles.muted}>The server calculates the final price. VNPay lets you choose a supported bank, card or QR method.</Text></Card> : null}
+    {plan ? <Card accent><Text style={textStyles.eyebrow}>Selected plan</Text><Text style={textStyles.subheading}>{plan.name}</Text><Text style={textStyles.muted}>{plan.duration_months} months</Text><Text style={{ color: colors.primary, fontSize: 32, fontWeight: '900' }}>{formatMoney(benefit.data?.pricing.final_amount ?? plan.final_price)}</Text><Text style={textStyles.muted}>The server calculates the final price. payOS provides a Napas 24/7 VietQR transfer.</Text></Card> : null}
     {benefit.isLoading ? <Busy label="Checking attendance benefit" /> : null}
     {benefit.isError ? <Message title="Price unavailable" detail={errorMessage(benefit.error)} action="Retry" onAction={() => void benefit.refetch()} tone="error" /> : null}
     {benefit.data ? <Card><Text style={textStyles.eyebrow}>Previous-month attendance</Text><Text style={textStyles.subheading}>{benefit.data.attended_days}/{benefit.data.period_days} days · {benefit.data.attendance_percentage}%</Text><Text style={textStyles.body}>{benefitMessage(benefit.data)}</Text><Text style={textStyles.muted}>Plan discount: {benefit.data.pricing.plan_discount_percent}% · Attendance discount: {benefit.data.pricing.attendance_discount_percent}% · Applied: {benefit.data.pricing.applied_discount_percent}%</Text><Text style={textStyles.muted}>{benefit.data.period_start} to {benefit.data.period_end}. The higher discount applies, and attendance eligibility is consumed after one successful renewal.</Text></Card> : null}
-    <Card><Text style={textStyles.subheading}>VNPay</Text><Text style={textStyles.muted}>You will leave YPGym briefly to complete the sandbox checkout. Returning to the app does not activate the membership until the server notification is verified.</Text></Card>
+    <Card><Text style={textStyles.subheading}>payOS VietQR</Text><Text style={textStyles.muted}>You will leave YPGym briefly to complete checkout. Returning does not activate the membership until the signed webhook is verified.</Text></Card>
     {checkout.isError ? <Message title="Checkout not started" detail={errorMessage(checkout.error)} action="Retry" onAction={() => checkout.mutate()} tone="error" /> : null}
-    <Action label={checkout.isPending ? 'Preparing VNPay…' : 'Continue to VNPay'} disabled={!plan || !benefit.data || benefit.data.status === 'pending' || checkout.isPending || !user?.is_email_verified} onPress={() => checkout.mutate()} />
+    <Action label={checkout.isPending ? 'Preparing VietQR…' : 'Continue to payOS'} disabled={!plan || !benefit.data || benefit.data.status === 'pending' || checkout.isPending || !user?.is_email_verified} onPress={() => checkout.mutate()} />
     {!user?.is_email_verified ? <Text style={textStyles.muted}>Verify your email before purchasing.</Text> : null}
   </Screen>;
 }

@@ -3,80 +3,71 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import RedirectResponse
+from payos import WebhookError
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import require_roles
+from app.core.exceptions import AppError
 from app.core.rate_limit import rate_limits
 from app.db.redis import get_redis_client
 from app.db.session import get_db_session
 from app.models.user import User
-from app.schemas.payment_schema import (
-    PaymentStatusResponse,
-    VNPayCreateRequest,
-    VNPayCreateResponse,
-    VNPayIpnResponse,
-)
 from app.schemas.class_schema import BookingRefundResolution
-from app.services.payment_service import VNPayPaymentService
+from app.schemas.payment_schema import PayOSCreateRequest, PayOSCreateResponse, PayOSWebhookResponse, PaymentStatusResponse
+from app.services.payment_service import PayOSPaymentService
 from app.utils.security import hash_token
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 
-def _query_parameters(request: Request) -> dict[str, str] | None:
-    items = list(request.query_params.multi_items())
-    values = dict(items)
-    return values if len(values) == len(items) else None
-
-
-@router.post("/vnpay/create", response_model=VNPayCreateResponse, status_code=201)
-async def create_vnpay_payment(
-    payload: VNPayCreateRequest,
-    request: Request,
+@router.post("/payos/create", response_model=PayOSCreateResponse, status_code=201)
+async def create_payos_payment(
+    payload: PayOSCreateRequest,
     current_user: Annotated[User, Depends(require_roles("member"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     redis: Annotated[Redis, Depends(get_redis_client)],
-) -> VNPayCreateResponse:
+) -> PayOSCreateResponse:
     await rate_limits.enforce(
         redis,
-        key=f"ypgym:rate:vnpay-create:{hash_token(str(current_user.id))}",
+        key=f"ypgym:rate:payos-create:{hash_token(str(current_user.id))}",
         limit=10,
         window_seconds=60,
     )
-    return await VNPayPaymentService(session).create_payment(
-        user=current_user,
-        payload=payload,
-        client_ip=request.client.host if request.client else "127.0.0.1",
-    )
+    return await PayOSPaymentService(session).create_payment(user=current_user, payload=payload)
 
 
-@router.get("/vnpay/ipn", response_model=VNPayIpnResponse)
-async def vnpay_ipn(
+@router.post("/payos/webhook", response_model=PayOSWebhookResponse)
+async def payos_webhook(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> dict[str, str]:
-    parameters = _query_parameters(request)
-    if parameters is None:
-        return {"RspCode": "97", "Message": "Invalid signature"}
+    content_length = request.headers.get("content-length")
     try:
-        return await VNPayPaymentService(session).process_ipn(parameters)
-    except Exception as exc:
+        declared_length = int(content_length) if content_length else None
+    except ValueError:
+        declared_length = None
+    if declared_length is not None and declared_length > 65_536:
+        raise AppError("PAYOS_WEBHOOK_TOO_LARGE", "Webhook payload is too large.", 413)
+    payload = await request.body()
+    if len(payload) > 65_536:
+        raise AppError("PAYOS_WEBHOOK_TOO_LARGE", "Webhook payload is too large.", 413)
+    try:
+        return await PayOSPaymentService(session).process_webhook(payload)
+    except WebhookError as exc:
         await session.rollback()
-        logger.error("vnpay_ipn_failed exception_type=%s", type(exc).__name__)
-        return {"RspCode": "99", "Message": "Unknown error"}
+        logger.warning("payos_webhook_rejected exception_type=%s", type(exc).__name__)
+        raise AppError("PAYOS_SIGNATURE_INVALID", "Webhook signature is invalid.", 400) from exc
 
 
-@router.get("/vnpay/return", include_in_schema=False)
-async def vnpay_return(
-    request: Request,
+@router.get("/payos/{order_code}", response_model=PaymentStatusResponse)
+async def get_payos_payment_status(
+    order_code: int,
+    current_user: Annotated[User, Depends(require_roles("member"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
-) -> RedirectResponse:
-    parameters = _query_parameters(request)
-    target = await VNPayPaymentService(session).return_redirect(parameters or {})
-    return RedirectResponse(target, status_code=302)
+) -> PaymentStatusResponse:
+    return await PayOSPaymentService(session).get_status_by_order_code(user=current_user, order_code=order_code)
 
 
 @router.get("/{payment_id}", response_model=PaymentStatusResponse)
@@ -85,7 +76,7 @@ async def get_payment_status(
     current_user: Annotated[User, Depends(require_roles("member"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> PaymentStatusResponse:
-    return await VNPayPaymentService(session).get_status(user=current_user, payment_id=payment_id)
+    return await PayOSPaymentService(session).get_status(user=current_user, payment_id=payment_id)
 
 
 @router.post("/{payment_id}/resolve-class-refund", response_model=PaymentStatusResponse)
@@ -95,7 +86,7 @@ async def resolve_class_refund(
     current_user: Annotated[User, Depends(require_roles("admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> PaymentStatusResponse:
-    return await VNPayPaymentService(session).resolve_class_refund(
+    return await PayOSPaymentService(session).resolve_class_refund(
         payment_id=payment_id,
         actor=current_user,
         reason=payload.reason,

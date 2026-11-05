@@ -14,6 +14,7 @@ def production_settings(**overrides) -> dict:
         "FRONTEND_URL": "https://app.example.com",
         "MOBILE_WEB_URL": "https://mobile.example.com",
         "OAUTH_CALLBACK_BASE_URL": "https://api.example.com/api/v1",
+        "PAYOS_ENABLED": False,
         **overrides,
     }
 
@@ -50,6 +51,36 @@ def test_production_rejects_default_or_short_signing_and_device_secrets() -> Non
         )
     )
     assert settings.ENVIRONMENT == "production"
+
+
+def test_payos_allows_local_returns_only_in_development_and_requires_https_webhook() -> None:
+    payos = {
+        "PAYOS_ENABLED": True,
+        "PAYOS_CLIENT_ID": "test-client",
+        "PAYOS_API_KEY": "test-api-key",
+        "PAYOS_CHECKSUM_KEY": "test-checksum-key",
+        "PAYOS_RETURN_URL": "http://localhost:5174/payment/payos/success",
+        "PAYOS_CANCEL_URL": "http://127.0.0.1:5174/payment/payos/cancel",
+        "PAYOS_WEBHOOK_URL": "https://temporary.example.com/api/v1/payments/payos/webhook",
+    }
+    settings = Settings(_env_file=None, ENVIRONMENT="development", **payos)
+    assert settings.PAYOS_RETURN_URL.startswith("http://localhost:")
+
+    with pytest.raises(ValidationError, match="PAYOS_WEBHOOK_URL must use HTTPS"):
+        Settings(
+            _env_file=None,
+            ENVIRONMENT="development",
+            **{**payos, "PAYOS_WEBHOOK_URL": "http://localhost:8001/api/v1/payments/payos/webhook"},
+        )
+
+    with pytest.raises(ValidationError, match="PAYOS_RETURN_URL must use HTTPS"):
+        Settings(
+            **production_settings(
+                JWT_SECRET_KEY="production-jwt-secret-with-at-least-32-characters",
+                IOT_DEVICE_API_KEY="production-iot-device-key-32-characters",
+                **payos,
+            )
+        )
 
 
 def build_app(environment: str) -> FastAPI:

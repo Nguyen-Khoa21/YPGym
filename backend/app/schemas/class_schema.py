@@ -174,8 +174,6 @@ class MemberBookings(BaseModel):
 
 class ClassCheckoutRequest(BaseModel):
     idempotency_key: str = Field(min_length=8, max_length=120)
-    locale: Literal["vn", "en"] = "vn"
-    bank_code: Literal["VNPAYQR", "VNBANK", "INTCARD"] | None = None
     client_platform: Literal["web", "mobile", "mobile_web"] = "web"
 
     model_config = ConfigDict(extra="forbid")
@@ -184,8 +182,9 @@ class ClassCheckoutRequest(BaseModel):
 class ClassCheckoutResponse(BaseModel):
     booking_id: UUID
     transaction_id: UUID
-    txn_ref: str
-    payment_url: str
+    order_code: int
+    checkout_url: str
+    amount_vnd: int
     expires_at: datetime
 
 

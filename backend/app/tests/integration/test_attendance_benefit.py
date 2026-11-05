@@ -1,9 +1,11 @@
 import asyncio
+import hashlib
+import hmac
 import math
 from calendar import monthrange
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
-from urllib.parse import parse_qs, urlsplit
+from types import SimpleNamespace
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -16,11 +18,24 @@ from app.models.billing import Invoice, Payment
 from app.models.membership import MembershipPlan, UserMembership
 from app.models.user import User
 from app.services.membership_service import MembershipService
-from app.services.vnpay_service import VNPaySigner
+from app.services.payos_service import PayOSClient
 from app.utils.security import create_access_token
 
 
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.fixture(autouse=True)
+def mock_payos_link_creation(monkeypatch):
+    async def create_payment_link(self, *, order_code, amount, description, expired_at):
+        return SimpleNamespace(
+            order_code=order_code,
+            amount=amount,
+            payment_link_id=f"link-{order_code}",
+            checkout_url=f"https://pay.payos.vn/web/link-{order_code}",
+        )
+
+    monkeypatch.setattr(PayOSClient, "create_payment_link", create_payment_link)
 
 
 def previous_month() -> tuple[date, date]:
@@ -81,29 +96,35 @@ async def create_fixture(storage, *, plan_discount: str = "5", membership_status
     return plan, member, headers, other_headers, qualifying_days
 
 
-def signed_ipn(*, txn_ref: str, amount_vnd: int, success: bool = True) -> dict[str, str]:
-    settings = get_settings()
-    parameters = {
-        "vnp_Amount": str(amount_vnd * 100),
-        "vnp_BankCode": "NCB",
-        "vnp_CardType": "ATM",
-        "vnp_OrderInfo": f"YPGym membership {txn_ref}",
-        "vnp_PayDate": datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")).strftime("%Y%m%d%H%M%S"),
-        "vnp_ResponseCode": "00" if success else "24",
-        "vnp_TmnCode": settings.VNPAY_TMN_CODE,
-        "vnp_TransactionNo": f"9{uuid4().int % 100000000:08d}",
-        "vnp_TransactionStatus": "00" if success else "02",
-        "vnp_TxnRef": txn_ref,
+def signed_webhook(*, order_code: int, amount_vnd: int) -> dict:
+    data = {
+        "orderCode": order_code,
+        "amount": amount_vnd,
+        "description": f"YPG{order_code % 1_000_000:06d}",
+        "accountNumber": "masked",
+        "reference": f"ref-{order_code}",
+        "transactionDateTime": "2026-11-03 10:30:00",
+        "currency": "VND",
+        "paymentLinkId": f"link-{order_code}",
+        "code": "00",
+        "desc": "success",
+        "counterAccountBankId": None,
+        "counterAccountBankName": None,
+        "counterAccountName": None,
+        "counterAccountNumber": None,
+        "virtualAccountName": None,
+        "virtualAccountNumber": None,
     }
-    parameters["vnp_SecureHash"] = VNPaySigner(settings.VNPAY_HASH_SECRET.get_secret_value()).sign(parameters)
-    return parameters
+    message = "&".join(f"{key}={'' if data[key] is None else data[key]}" for key in sorted(data))
+    signature = hmac.new(b"isolated-checksum-key", message.encode(), hashlib.sha256).hexdigest()
+    return {"code": "00", "desc": "success", "success": True, "data": data, "signature": signature}
 
 
 async def start_checkout(client, plan, headers):
     return await client.post(
-        "/api/v1/payments/vnpay/create",
+        "/api/v1/payments/payos/create",
         headers=headers,
-        json={"membership_plan_id": str(plan.id), "locale": "vn", "client_platform": "web"},
+        json={"membership_plan_id": str(plan.id), "client_platform": "web"},
     )
 
 
@@ -132,16 +153,18 @@ async def test_threshold_better_of_reservation_failure_release_and_consumption(c
     first = await start_checkout(client, plan, headers)
     assert first.status_code == 201, first.text
     first = first.json()
-    assert parse_qs(urlsplit(first["payment_url"]).query)["vnp_Amount"] == ["64800000"]
+    assert first["amount_vnd"] == 648_000
     pending = await start_checkout(client, plan, headers)
     assert pending.status_code == 409
     assert pending.json()["error"]["code"] == "ATTENDANCE_BENEFIT_PENDING"
 
-    failed = await client.get(
-        "/api/v1/payments/vnpay/ipn",
-        params=signed_ipn(txn_ref=first["txn_ref"], amount_vnd=648_000, success=False),
-    )
-    assert failed.json()["RspCode"] == "00"
+    sessions, _ = storage
+    async with sessions() as session:
+        payment = await session.get(Payment, first["transaction_id"])
+        payment.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+        await session.commit()
+    failed = await client.get(f"/api/v1/payments/{first['transaction_id']}", headers=headers)
+    assert failed.json()["status"] == "expired"
     assert (await client.get(
         "/api/v1/memberships/attendance-benefit/me",
         headers=headers,
@@ -149,11 +172,11 @@ async def test_threshold_better_of_reservation_failure_release_and_consumption(c
     )).json()["status"] == "eligible"
 
     second = (await start_checkout(client, plan, headers)).json()
-    settled = await client.get(
-        "/api/v1/payments/vnpay/ipn",
-        params=signed_ipn(txn_ref=second["txn_ref"], amount_vnd=648_000),
+    settled = await client.post(
+        "/api/v1/payments/payos/webhook",
+        json=signed_webhook(order_code=second["order_code"], amount_vnd=648_000),
     )
-    assert settled.json()["RspCode"] == "00"
+    assert settled.status_code == 200
     consumed = (await client.get(
         "/api/v1/memberships/attendance-benefit/me",
         headers=headers,
@@ -163,7 +186,6 @@ async def test_threshold_better_of_reservation_failure_release_and_consumption(c
     assert consumed["pricing"]["applied_discount_percent"] == "5.00"
     assert consumed["pricing"]["final_amount"] == "684000.00"
 
-    sessions, _ = storage
     async with sessions() as session:
         payment = await session.get(Payment, second["transaction_id"])
         invoice = (await session.execute(select(Invoice).where(Invoice.payment_id == payment.id))).scalar_one()
@@ -189,12 +211,12 @@ async def test_higher_plan_discount_wins_and_concurrent_checkout_reserves_once(c
     attempts = await asyncio.gather(start_checkout(client, plan, headers), start_checkout(client, plan, headers))
     assert sorted(response.status_code for response in attempts) == [201, 409]
     winner = next(response.json() for response in attempts if response.status_code == 201)
-    assert parse_qs(urlsplit(winner["payment_url"]).query)["vnp_Amount"] == ["61200000"]
-    settled = await client.get(
-        "/api/v1/payments/vnpay/ipn",
-        params=signed_ipn(txn_ref=winner["txn_ref"], amount_vnd=612_000),
+    assert winner["amount_vnd"] == 612_000
+    settled = await client.post(
+        "/api/v1/payments/payos/webhook",
+        json=signed_webhook(order_code=winner["order_code"], amount_vnd=612_000),
     )
-    assert settled.json()["RspCode"] == "00"
+    assert settled.status_code == 200
     consumed = (await client.get(
         "/api/v1/memberships/attendance-benefit/me",
         headers=headers,

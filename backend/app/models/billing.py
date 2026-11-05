@@ -45,6 +45,18 @@ class Payment(TimestampMixin, Base):
             postgresql_where=text("provider_transaction_no IS NOT NULL"),
         ),
         Index(
+            "uq_payments_payos_order_code",
+            "payos_order_code",
+            unique=True,
+            postgresql_where=text("payos_order_code IS NOT NULL"),
+        ),
+        Index(
+            "uq_payments_payment_link_id",
+            "payment_link_id",
+            unique=True,
+            postgresql_where=text("payment_link_id IS NOT NULL"),
+        ),
+        Index(
             "uq_payments_active_attendance_benefit",
             "user_id",
             "attendance_benefit_period_start",
@@ -88,6 +100,9 @@ class Payment(TimestampMixin, Base):
     txn_ref: Mapped[str | None] = mapped_column(String(100))
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="VND")
     provider_transaction_no: Mapped[str | None] = mapped_column(String(100))
+    payos_order_code: Mapped[int | None] = mapped_column(BigInteger)
+    payment_link_id: Mapped[str | None] = mapped_column(String(100))
+    checkout_url: Mapped[str | None] = mapped_column(String(2048))
     response_code: Mapped[str | None] = mapped_column(String(10))
     transaction_status: Mapped[str | None] = mapped_column(String(10))
     bank_code: Mapped[str | None] = mapped_column(String(20))

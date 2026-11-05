@@ -470,7 +470,7 @@ def can_cancel_class_booking(*, now: datetime, start_at: datetime, window_hours:
 
 class BookingService:
     CANCELLATION_TERMS = (
-        "Cancel before the session starts. Paid cancellations require staff to resolve the VNPay refund."
+        "Cancel before the session starts. Paid cancellations require staff to resolve the payOS refund."
     )
 
     def __init__(self, session: AsyncSession, redis: Redis) -> None:

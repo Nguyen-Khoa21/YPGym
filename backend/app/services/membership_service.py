@@ -339,7 +339,7 @@ class MembershipService:
         )
         return discount_amount, final_amount
 
-    async def finalize_vnpay_payment(self, *, user: User, plan, payment, transaction_date: datetime):
+    async def finalize_provider_payment(self, *, user: User, plan, payment, transaction_date: datetime):
         await self.validate_self_service_eligibility(user, for_update=True)
         today = transaction_date.astimezone(ZoneInfo(self.settings.GYM_TIMEZONE)).date()
         current_membership = (
@@ -420,19 +420,19 @@ class MembershipService:
             channel="in_app",
             delivery_state="delivered",
             delivered_at=transaction_date,
-            dedupe_key=f"vnpay-payment:{payment.id}:in_app",
+            dedupe_key=f"payos-payment:{payment.id}:in_app",
             action_type="invoice",
             action_id=invoice.id,
         )
         await AuditRepository(self.session).create(
             target_user_id=user.id,
-            action="payment.vnpay.confirmed",
+            action="payment.payos.confirmed",
             entity_type="payment",
             entity_id=str(payment.id),
             outcome="paid",
-            summary="A verified VNPay IPN confirmed payment and activated membership coverage.",
+            summary="A verified payOS webhook confirmed payment and activated membership coverage.",
             after_data={
-                "provider": "vnpay",
+                "provider": "payos",
                 "transaction_kind": transaction_kind,
                 "membership_id": str(membership.id),
                 "invoice_id": str(invoice.id),

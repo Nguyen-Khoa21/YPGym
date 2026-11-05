@@ -43,7 +43,7 @@ class WaitlistPromotionService:
                 transition_waitlist(waitlist, WaitlistStatus.CANCELLED)
                 continue
             reserved_until = min(
-                promotion_time + timedelta(minutes=self.settings.VNPAY_TRANSACTION_TTL_MINUTES),
+                promotion_time + timedelta(minutes=self.settings.PAYOS_TRANSACTION_TTL_MINUTES),
                 gym_class.start_at,
             )
             if booking:

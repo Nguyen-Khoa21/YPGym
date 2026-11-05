@@ -1,6 +1,7 @@
 import re
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import EmailStr, Field, SecretStr, field_validator, model_validator
@@ -54,23 +55,16 @@ class Settings(BaseSettings):
     FACEBOOK_APP_ID: str = ""
     FACEBOOK_APP_SECRET: SecretStr = SecretStr("")
     FACEBOOK_GRAPH_API_VERSION: str = "v24.0"
-    VNPAY_ENABLED: bool | None = None
-    VNPAY_ENVIRONMENT: Literal["sandbox", "production"] = "sandbox"
-    VNPAY_TMN_CODE: str = ""
-    VNPAY_HASH_SECRET: SecretStr = SecretStr("")
-    VNPAY_PAYMENT_URL: str = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
-    VNPAY_API_URL: str = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction"
-    VNPAY_RETURN_URL: str = ""
-    VNPAY_IPN_URL: str = ""
-    FRONTEND_PAYMENT_RESULT_URL: str = "http://localhost:5174/app/payments/result"
-    MOBILE_PAYMENT_RESULT_URL: str = "ypgym://payment-result"
-    VNPAY_TRANSACTION_TTL_MINUTES: int = Field(default=15, ge=5, le=60)
+    PAYOS_ENABLED: bool = False
+    PAYOS_CLIENT_ID: SecretStr = SecretStr("")
+    PAYOS_API_KEY: SecretStr = SecretStr("")
+    PAYOS_CHECKSUM_KEY: SecretStr = SecretStr("")
+    PAYOS_RETURN_URL: str = ""
+    PAYOS_CANCEL_URL: str = ""
+    PAYOS_WEBHOOK_URL: str = ""
+    PAYOS_TRANSACTION_TTL_MINUTES: int = Field(default=15, ge=5, le=60)
+    PAYOS_TIMEOUT_SECONDS: int = Field(default=10, ge=1, le=30)
     STAFF_ACCOUNT_EMAIL_DOMAIN: str = "ypgym.dev"
-
-    @field_validator("VNPAY_ENABLED", mode="before")
-    @classmethod
-    def empty_vnpay_enabled_is_auto(cls, value):
-        return None if value == "" else value
 
     @field_validator("GYM_TIMEZONE")
     @classmethod
@@ -158,33 +152,37 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
-    def validate_vnpay_configuration(self) -> "Settings":
-        secret = self.VNPAY_HASH_SECRET.get_secret_value()
-        configured = bool(self.VNPAY_TMN_CODE or secret or self.VNPAY_RETURN_URL or self.VNPAY_IPN_URL)
-        enabled = self.VNPAY_ENABLED if self.VNPAY_ENABLED is not None else configured
-        if not enabled:
+    def validate_payos_configuration(self) -> "Settings":
+        if not self.PAYOS_ENABLED:
             return self
-        if not all((self.VNPAY_TMN_CODE, secret, self.VNPAY_PAYMENT_URL, self.VNPAY_API_URL, self.VNPAY_RETURN_URL, self.VNPAY_IPN_URL)):
-            raise ValueError("VNPay configuration is incomplete while VNPay is enabled.")
-        if len(self.VNPAY_TMN_CODE) != 8 or not self.VNPAY_TMN_CODE.isalnum():
-            raise ValueError("VNPAY_TMN_CODE must contain exactly 8 alphanumeric characters.")
-        for name, value in (
-            ("VNPAY_PAYMENT_URL", self.VNPAY_PAYMENT_URL),
-            ("VNPAY_API_URL", self.VNPAY_API_URL),
-            ("VNPAY_RETURN_URL", self.VNPAY_RETURN_URL),
-            ("VNPAY_IPN_URL", self.VNPAY_IPN_URL),
+        if not all(
+            (
+                self.PAYOS_CLIENT_ID.get_secret_value(),
+                self.PAYOS_API_KEY.get_secret_value(),
+                self.PAYOS_CHECKSUM_KEY.get_secret_value(),
+                self.PAYOS_RETURN_URL,
+                self.PAYOS_CANCEL_URL,
+                self.PAYOS_WEBHOOK_URL,
+            )
         ):
-            if not value.startswith("https://"):
-                raise ValueError(f"{name} must use HTTPS.")
-        if self.VNPAY_ENVIRONMENT == "production" and "sandbox.vnpayment.vn" in self.VNPAY_PAYMENT_URL:
-            raise ValueError("Production VNPay cannot use the sandbox payment URL.")
+            raise ValueError("payOS configuration is incomplete while PAYOS_ENABLED is true.")
+        for name, value in (
+            ("PAYOS_RETURN_URL", self.PAYOS_RETURN_URL),
+            ("PAYOS_CANCEL_URL", self.PAYOS_CANCEL_URL),
+        ):
+            parsed = urlsplit(value)
+            is_https = parsed.scheme == "https" and bool(parsed.hostname)
+            is_local_development = (
+                self.ENVIRONMENT != "production"
+                and parsed.scheme == "http"
+                and parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+            )
+            if not is_https and not is_local_development:
+                raise ValueError(f"{name} must use HTTPS, except for loopback URLs in development.")
+        webhook = urlsplit(self.PAYOS_WEBHOOK_URL)
+        if webhook.scheme != "https" or not webhook.hostname:
+            raise ValueError("PAYOS_WEBHOOK_URL must use HTTPS.")
         return self
-
-    @property
-    def vnpay_enabled(self) -> bool:
-        if self.VNPAY_ENABLED is not None:
-            return self.VNPAY_ENABLED
-        return bool(self.VNPAY_TMN_CODE and self.VNPAY_HASH_SECRET.get_secret_value())
 
     model_config = SettingsConfigDict(
         env_file=".env",

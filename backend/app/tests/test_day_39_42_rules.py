@@ -164,7 +164,7 @@ async def test_promotion_skips_ineligible_member_and_uses_next_entry() -> None:
     service = object.__new__(WaitlistPromotionService)
     service.classes = FakeClasses()
     service.notifications = FakeNotifications()
-    service.settings = SimpleNamespace(VNPAY_TRANSACTION_TTL_MINUTES=15)
+    service.settings = SimpleNamespace(PAYOS_TRANSACTION_TTL_MINUTES=15)
     promoted = await service.promote(gym_class)
     assert first.status == "cancelled"
     assert second.status == "promoted"

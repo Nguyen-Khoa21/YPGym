@@ -5,16 +5,20 @@ from redis.exceptions import RedisError
 from app.core.exceptions import DependencyUnavailableError
 from app.db.redis import redis_client
 from app.db.session import AsyncSessionLocal
+from app.core.config import get_settings
 
 router = APIRouter()
 
 
 @router.get("/health")
 async def health_check() -> dict[str, str]:
+    settings = get_settings()
     return {
         "status": "success",
         "message": "YPGym API is running",
         "version": "0.1.0",
+        "payment_provider": "payos",
+        "payment_configuration": "ready" if settings.PAYOS_ENABLED else "disabled",
     }
 
 
