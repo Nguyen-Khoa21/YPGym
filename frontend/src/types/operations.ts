@@ -394,6 +394,7 @@ export type StaffAccountCreated = {
 
 export type StaffShift = {
   id: string;
+  gym_id: string;
   user_id: string;
   staff_name: string;
   staff_email: string;
@@ -414,4 +415,28 @@ export type StaffShiftPage = {
   items: StaffShift[];
   page: PageInfo;
   gym_timezone: string;
+};
+export type GymLocation = {
+  id: string;
+  name: string;
+  slug: string;
+  district: string;
+  address: string;
+  timezone: string;
+  capacity: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkforceGymAssignment = {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  gym_id: string;
+  gym_name: string;
+  assigned_role: "manager" | "staff" | "pt";
+  is_active: boolean;
+  created_at: string;
 };

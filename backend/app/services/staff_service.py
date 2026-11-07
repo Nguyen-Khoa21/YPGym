@@ -11,6 +11,7 @@ from app.core.exceptions import AppError, ConflictError
 from app.models.enums import MemberTier
 from app.models.user import User
 from app.repositories.class_repository import ClassRepository
+from app.repositories.gym_repository import GymRepository
 from app.repositories.operations_repository import AuditRepository
 from app.repositories.staff_repository import StaffRepository
 from app.repositories.user_repository import UserRepository
@@ -24,6 +25,7 @@ from app.schemas.staff_schema import (
     StaffShiftItem,
     StaffShiftPage,
 )
+from app.services.gym_service import GymScopeService
 from app.utils.security import hash_password
 
 
@@ -42,6 +44,24 @@ class StaffOperationsService:
             raise ConflictError("That staff login name is already in use.")
         if payload.phone and await self.users.get_by_phone(payload.phone):
             raise ConflictError("That phone number is already in use.")
+        gym_id = payload.gym_id
+        gym_scope = GymScopeService(self.session)
+        if actor.role == "manager":
+            assigned_gym_id = await gym_scope.effective_gym_id(user=actor)
+            if gym_id is not None and gym_id != assigned_gym_id:
+                raise AppError(
+                    "GYM_SCOPE_DENIED",
+                    "Managers can create workforce accounts only for their assigned gym.",
+                    403,
+                )
+            gym_id = assigned_gym_id
+        elif gym_id is None:
+            raise AppError(
+                "GYM_SELECTION_REQUIRED",
+                "Administrators must select a gym for the workforce account.",
+                422,
+            )
+        gym = await gym_scope.require_access(user=actor, requested_gym_id=gym_id)
         temporary_password = self._temporary_password()
         try:
             user = await self.users.create(
@@ -63,6 +83,7 @@ class StaffOperationsService:
                     is_active=True,
                 )
                 trainer_profile_id = trainer.id
+            await GymRepository(self.session).assign(user=user, gym=gym)
             await self.audit.create(
                 actor_user_id=actor.id,
                 target_user_id=user.id,
@@ -77,6 +98,7 @@ class StaffOperationsService:
                     "role": user.role,
                     "must_change_password": True,
                     "trainer_profile_id": str(trainer_profile_id) if trainer_profile_id else None,
+                    "gym_id": str(gym_id) if gym_id else None,
                 },
             )
             await self.session.commit()
@@ -121,7 +143,8 @@ class StaffOperationsService:
             raise ConflictError("You already have an open shift.")
         now = datetime.now(UTC)
         try:
-            shift = await self.staff.create_shift(user_id=user.id, clocked_in_at=now)
+            gym_id = await GymScopeService(self.session).effective_gym_id(user=user)
+            shift = await self.staff.create_shift(user_id=user.id, gym_id=gym_id, clocked_in_at=now)
             await self.audit.create(
                 actor_user_id=user.id,
                 target_user_id=user.id,
@@ -243,6 +266,7 @@ class StaffOperationsService:
         duration_minutes = max(0, int((end - shift.clocked_in_at).total_seconds() // 60))
         return StaffShiftItem(
             id=shift.id,
+            gym_id=shift.gym_id,
             user_id=user.id,
             staff_name=user.name,
             staff_email=user.email,

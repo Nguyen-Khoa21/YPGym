@@ -6,9 +6,10 @@ import pytest
 from sqlalchemy import func, select
 
 from app.db import seed
-from app.models.attendance import AttendanceEvent, AttendanceSession
+from app.models.attendance import AttendanceEvent, AttendanceSession, IoTDevice
 from app.models.billing import Invoice, Payment
 from app.models.classes import ClassBooking, ClassWaitlist, GymClass, PersonalTrainer
+from app.models.gym import GymLocation, WorkforceGymAssignment
 from app.models.membership import MembershipPlan, UserMembership
 from app.models.operations import BroadcastAnnouncement, Notification, NotificationPreference
 from app.models.user import User
@@ -23,9 +24,10 @@ async def test_demo_seed_repeatability_relative_dates_and_invoice_snapshot(stora
     await seed.seed_development_data(demo=True, now=now)
     await seed.seed_development_data(demo=True, now=now)
     expected_counts = {
-        User: 12, UserMembership: 7, MembershipPlan: 6, PersonalTrainer: 1,
-        GymClass: 3, ClassBooking: 2, ClassWaitlist: 1, Payment: 1, Invoice: 1,
-        Notification: 8, NotificationPreference: 12, AttendanceSession: 22, AttendanceEvent: 44,
+        User: 19, UserMembership: 9, MembershipPlan: 6, PersonalTrainer: 1,
+        GymLocation: 2, WorkforceGymAssignment: 7, IoTDevice: 2,
+        GymClass: 4, ClassBooking: 2, ClassWaitlist: 1, Payment: 1, Invoice: 1,
+        Notification: 8, NotificationPreference: 19, AttendanceSession: 50, AttendanceEvent: 100,
         BroadcastAnnouncement: 1,
     }
     async with sessions() as session:
@@ -52,6 +54,14 @@ async def test_demo_seed_repeatability_relative_dates_and_invoice_snapshot(stora
         assert (invoice.id, invoice.amount, invoice.transaction_date, invoice.membership_start_date, invoice.membership_expiry_date) == invoice_snapshot
         visits = (await session.scalars(select(AttendanceSession).where(AttendanceSession.source == "release_demo"))).all()
         assert all(later - timedelta(days=8) < visit.checked_in_at < later for visit in visits)
+        multigym_visits = (
+            await session.scalars(select(AttendanceSession).where(AttendanceSession.source == "multigym_demo"))
+        ).all()
+        assert len(multigym_visits) == 28
+        assert {visit.gym_id for visit in multigym_visits} == {
+            seed.DISTRICT_1_GYM_ID,
+            seed.DISTRICT_11_GYM_ID,
+        }
 
 
 async def test_demo_accounts_have_live_access_states_booking_and_promotion(client, storage, monkeypatch):

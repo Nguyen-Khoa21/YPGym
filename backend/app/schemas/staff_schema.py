@@ -12,6 +12,7 @@ class StaffAccountCreate(BaseModel):
     login_name: str = Field(min_length=3, max_length=64, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$")
     role: Literal["staff", "pt"]
     phone: str | None = Field(default=None, min_length=7, max_length=32)
+    gym_id: UUID | None = None
 
     @field_validator("name", "login_name", "phone", mode="before")
     @classmethod
@@ -55,6 +56,7 @@ class StaffAccountCreated(BaseModel):
 
 class StaffShiftItem(BaseModel):
     id: UUID
+    gym_id: UUID
     user_id: UUID
     staff_name: str
     staff_email: str

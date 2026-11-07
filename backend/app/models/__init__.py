@@ -3,6 +3,7 @@ from app.models.attendance import AttendanceEvent, AttendanceSession, IoTDevice
 from app.models.billing import Invoice, Payment
 from app.models.email_delivery import EmailDelivery
 from app.models.identity import ExternalIdentity, OAuthPendingLink
+from app.models.gym import GymLocation, WorkforceGymAssignment
 from app.models.classes import ClassBooking, ClassWaitlist, GymClass, PersonalTrainer
 from app.models.enums import (
     AttendanceEventType,
@@ -61,6 +62,7 @@ __all__ = [
     "NotificationDeliveryState",
     "NotificationPreference",
     "GymClass",
+    "GymLocation",
     "PasswordReset",
     "Payment",
     "PaymentStatus",
@@ -80,4 +82,5 @@ __all__ = [
     "UserMembership",
     "UserRole",
     "WaitlistStatus",
+    "WorkforceGymAssignment",
 ]

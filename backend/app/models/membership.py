@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.enums import MemberTier, MembershipStatus
+from app.models.gym import DISTRICT_1_GYM_ID
 from app.models.mixins import TimestampMixin
 
 
@@ -52,9 +53,15 @@ class UserMembership(TimestampMixin, Base):
         Index("ix_user_memberships_user_id", "user_id"),
         Index("ix_user_memberships_status", "status"),
         Index("ix_user_memberships_expiry_date", "expiry_date"),
+        Index("ix_user_memberships_home_gym_status", "home_gym_id", "status"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    home_gym_id: Mapped[UUID] = mapped_column(
+        ForeignKey("gym_locations.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=DISTRICT_1_GYM_ID,
+    )
     user_id: Mapped[UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,

@@ -5,6 +5,7 @@ from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, ForeignKe
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.models.gym import DISTRICT_1_GYM_ID
 from app.models.mixins import TimestampMixin
 
 
@@ -34,9 +35,15 @@ class GymClass(TimestampMixin, Base):
         Index("ix_classes_status", "status"),
         Index("ix_classes_trainer_id", "trainer_id"),
         Index("ix_classes_type_start", "class_type", "start_at"),
+        Index("ix_classes_gym_start", "gym_id", "start_at"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    gym_id: Mapped[UUID] = mapped_column(
+        ForeignKey("gym_locations.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=DISTRICT_1_GYM_ID,
+    )
     title: Mapped[str] = mapped_column(String(160), nullable=False)
     class_type: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)

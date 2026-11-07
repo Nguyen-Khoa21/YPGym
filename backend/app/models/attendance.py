@@ -6,6 +6,7 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Index, JSON, String, Text,
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.models.gym import DISTRICT_1_GYM_ID
 from app.models.mixins import TimestampMixin
 
 
@@ -15,9 +16,15 @@ class IoTDevice(TimestampMixin, Base):
         UniqueConstraint("device_id", name="uq_iot_devices_device_id"),
         Index("ix_iot_devices_device_id", "device_id"),
         Index("ix_iot_devices_is_active", "is_active"),
+        Index("ix_iot_devices_gym_active", "gym_id", "is_active"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    gym_id: Mapped[UUID] = mapped_column(
+        ForeignKey("gym_locations.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=DISTRICT_1_GYM_ID,
+    )
     device_id: Mapped[str] = mapped_column(String(100), nullable=False)
     display_name: Mapped[str] = mapped_column(String(160), nullable=False)
     api_key_hash: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -32,6 +39,7 @@ class AttendanceSession(TimestampMixin, Base):
         Index("ix_attendance_sessions_status", "status"),
         Index("ix_attendance_sessions_checked_in_at", "checked_in_at"),
         Index("ix_attendance_sessions_device_id", "device_id"),
+        Index("ix_attendance_sessions_gym_status", "gym_id", "status"),
         Index(
             "uq_attendance_sessions_active_user",
             "user_id",
@@ -41,6 +49,11 @@ class AttendanceSession(TimestampMixin, Base):
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    gym_id: Mapped[UUID] = mapped_column(
+        ForeignKey("gym_locations.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=DISTRICT_1_GYM_ID,
+    )
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     checked_in_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -60,9 +73,20 @@ class AttendanceEvent(Base):
         Index("ix_attendance_events_user_id", "user_id"),
         Index("ix_attendance_events_event_at", "event_at"),
         Index("ix_attendance_events_event_type", "event_type"),
+        Index(
+            "ix_attendance_events_gym_type_at",
+            "gym_id",
+            "event_type",
+            "event_at",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    gym_id: Mapped[UUID] = mapped_column(
+        ForeignKey("gym_locations.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=DISTRICT_1_GYM_ID,
+    )
     session_id: Mapped[UUID] = mapped_column(
         ForeignKey("attendance_sessions.id", ondelete="CASCADE"),
         nullable=False,

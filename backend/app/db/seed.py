@@ -13,6 +13,12 @@ from app.db.session import AsyncSessionLocal
 from app.models.attendance import AttendanceEvent, AttendanceSession, IoTDevice
 from app.models.billing import Invoice, Payment
 from app.models.classes import ClassBooking, ClassWaitlist, GymClass, PersonalTrainer
+from app.models.gym import (
+    DISTRICT_1_GYM_ID,
+    DISTRICT_11_GYM_ID,
+    GymLocation,
+    WorkforceGymAssignment,
+)
 from app.models.membership import MembershipPlan, UserMembership
 from app.models.operations import BroadcastAnnouncement, Notification, NotificationPreference
 from app.models.system_configuration import SystemConfiguration
@@ -87,6 +93,16 @@ DEMO_USERS = [
     ("member@ypgym.dev", "Maya Member", "+66000000005", "member", "vip"),
 ]
 
+LOCATION_USER_SEEDS = [
+    ("owner@ypgym.dev", "YPGym Gym Owner", "+66000000020", "admin", "vip", None),
+    ("managerdist1@ypgym.dev", "District 1 Manager", "+66000000021", "manager", "advance", "district-1"),
+    ("managerdist11@ypgym.dev", "District 11 Manager", "+66000000022", "manager", "advance", "district-11"),
+    ("staffdist1@ypgym.dev", "District 1 Staff", "+66000000023", "staff", "normal", "district-1"),
+    ("staffdist11@ypgym.dev", "District 11 Staff", "+66000000024", "staff", "normal", "district-11"),
+    ("memberdist1@ypgym.dev", "District 1 Member", "+66000000025", "member", "normal", "district-1"),
+    ("memberdist11@ypgym.dev", "District 11 Member", "+66000000026", "member", "normal", "district-11"),
+]
+
 DEMO_MEMBERS = [
     ("advance", "Advance Member", "advance", "active"),
     ("normal", "Normal Member", "normal", "active"),
@@ -137,6 +153,35 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
     ]
 
     async with AsyncSessionLocal() as session:
+        gym_seeds = [
+            {
+                "id": DISTRICT_1_GYM_ID,
+                "name": "YPGym District 1",
+                "slug": "district-1",
+                "district": "District 1",
+                "address": "District 1, Ho Chi Minh City",
+                "timezone": settings.GYM_TIMEZONE,
+                "capacity": settings.GYM_CAPACITY,
+            },
+            {
+                "id": DISTRICT_11_GYM_ID,
+                "name": "YPGym District 11",
+                "slug": "district-11",
+                "district": "District 11",
+                "address": "District 11, Ho Chi Minh City",
+                "timezone": settings.GYM_TIMEZONE,
+                "capacity": settings.GYM_CAPACITY,
+            },
+        ]
+        gyms: dict[str, GymLocation] = {}
+        for gym_data in gym_seeds:
+            gym = await session.get(GymLocation, gym_data["id"])
+            if not gym:
+                gym = GymLocation(**gym_data)
+                session.add(gym)
+            gyms[gym_data["slug"]] = gym
+        await session.flush()
+
         # `.local` is rejected by the API's strict EmailStr validation. Preserve
         # existing development rows and their history while migrating them to a
         # syntactically valid, non-production demo domain.
@@ -211,6 +256,98 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
             if not preferences:
                 session.add(NotificationPreference(user_id=user.id))
 
+        location_users: dict[str, User] = {}
+        for email, name, phone, role, tier, gym_slug in LOCATION_USER_SEEDS:
+            user = (await session.execute(select(User).where(User.email == email))).scalar_one_or_none()
+            if not user:
+                user = User(
+                    name=name,
+                    email=email,
+                    phone=phone,
+                    password_hash=hash_password(settings.DEVELOPMENT_SEED_PASSWORD),
+                    role=role,
+                    tier=tier,
+                    is_email_verified=True,
+                    email_verified_at=now,
+                )
+                session.add(user)
+                await session.flush()
+            location_users[email] = user
+            preferences = (
+                await session.execute(
+                    select(NotificationPreference).where(NotificationPreference.user_id == user.id),
+                )
+            ).scalar_one_or_none()
+            if not preferences:
+                session.add(NotificationPreference(user_id=user.id))
+            if gym_slug and role in {"manager", "staff", "pt"}:
+                assignment = (
+                    await session.execute(
+                        select(WorkforceGymAssignment).where(
+                            WorkforceGymAssignment.user_id == user.id,
+                            WorkforceGymAssignment.is_active.is_(True),
+                        )
+                    )
+                ).scalar_one_or_none()
+                if assignment:
+                    assignment.gym_id = gyms[gym_slug].id
+                    assignment.assigned_role = role
+                else:
+                    session.add(
+                        WorkforceGymAssignment(
+                            user_id=user.id,
+                            gym_id=gyms[gym_slug].id,
+                            assigned_role=role,
+                        )
+                    )
+
+        for role in ("manager", "staff", "pt"):
+            assignment = (
+                await session.execute(
+                    select(WorkforceGymAssignment).where(
+                        WorkforceGymAssignment.user_id == users[role].id,
+                        WorkforceGymAssignment.is_active.is_(True),
+                    )
+                )
+            ).scalar_one_or_none()
+            if not assignment:
+                session.add(
+                    WorkforceGymAssignment(
+                        user_id=users[role].id,
+                        gym_id=gyms["district-1"].id,
+                        assigned_role=role,
+                    )
+                )
+
+        for email, gym_slug in (
+            ("memberdist1@ypgym.dev", "district-1"),
+            ("memberdist11@ypgym.dev", "district-11"),
+        ):
+            branch_member = location_users[email]
+            branch_membership = (
+                await session.execute(
+                    select(UserMembership)
+                    .where(UserMembership.user_id == branch_member.id)
+                    .order_by(UserMembership.expiry_date.desc())
+                )
+            ).scalars().first()
+            if not branch_membership:
+                branch_membership = UserMembership(
+                    user_id=branch_member.id,
+                    plan_id=plans["1 Year"].id,
+                    home_gym_id=gyms[gym_slug].id,
+                    status="active",
+                    start_date=now.date() - timedelta(days=45),
+                    expiry_date=now.date() + timedelta(days=320),
+                )
+                session.add(branch_membership)
+            branch_membership.home_gym_id = gyms[gym_slug].id
+            branch_membership.status = "active"
+            branch_membership.expiry_date = max(
+                branch_membership.expiry_date,
+                now.date() + timedelta(days=320),
+            )
+
         member = users["member"]
         membership = (
             await session.execute(
@@ -223,12 +360,15 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
             membership = UserMembership(
                 user_id=member.id,
                 plan_id=plans["1 Year"].id,
+                home_gym_id=gyms["district-1"].id,
                 status="active",
                 start_date=now.date() - timedelta(days=45),
                 expiry_date=now.date() + timedelta(days=320),
             )
             session.add(membership)
             await session.flush()
+        else:
+            membership.home_gym_id = gyms["district-1"].id
 
         seeded_payment = (
             await session.execute(
@@ -313,12 +453,30 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
         ).scalar_one_or_none()
         if not device:
             device = IoTDevice(
+                gym_id=gyms["district-1"].id,
                 device_id="local-simulator-1",
                 display_name="Local scanner simulator",
                 api_key_hash=hash_token(settings.IOT_DEVICE_API_KEY),
                 is_active=True,
             )
             session.add(device)
+        else:
+            device.gym_id = gyms["district-1"].id
+
+        district_11_device = (
+            await session.execute(select(IoTDevice).where(IoTDevice.device_id == "local-simulator-dist11"))
+        ).scalar_one_or_none()
+        if not district_11_device:
+            district_11_device = IoTDevice(
+                gym_id=gyms["district-11"].id,
+                device_id="local-simulator-dist11",
+                display_name="District 11 scanner simulator",
+                api_key_hash=hash_token(settings.IOT_DEVICE_API_KEY),
+                is_active=True,
+            )
+            session.add(district_11_device)
+        else:
+            district_11_device.gym_id = gyms["district-11"].id
 
         trainer = (
             await session.execute(select(PersonalTrainer).where(PersonalTrainer.user_id == users["pt"].id))
@@ -344,17 +502,19 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
             )
         ).scalar_one_or_none()
         if not broadcast:
-            session.add(
-                BroadcastAnnouncement(
-                    audience="all",
-                    title="Welcome to the operations demo",
-                    message="QR attendance, notifications, CRM, billing exports and class scheduling are connected to live development data.",
-                    starts_at=now - timedelta(hours=1),
-                    ends_at=now + timedelta(days=30),
-                    is_active=True,
-                    creator_id=users["admin"].id,
-                ),
+            broadcast = BroadcastAnnouncement(
+                gym_id=gyms["district-1"].id,
+                audience="all",
+                title="Welcome to the operations demo",
+                message="QR attendance, notifications, CRM, billing exports and class scheduling are connected to live development data.",
+                starts_at=now - timedelta(hours=1),
+                ends_at=now + timedelta(days=30),
+                is_active=True,
+                creator_id=users["admin"].id,
             )
+            session.add(broadcast)
+        else:
+            broadcast.gym_id = gyms["district-1"].id
 
         attendance = (
             await session.execute(
@@ -367,6 +527,7 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
         if not attendance:
             check_in_at = now - timedelta(days=1, hours=2)
             attendance = AttendanceSession(
+                gym_id=gyms["district-1"].id,
                 user_id=member.id,
                 checked_in_at=check_in_at,
                 closed_at=check_in_at + timedelta(minutes=75),
@@ -379,6 +540,7 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
             session.add_all(
                 [
                     AttendanceEvent(
+                        gym_id=gyms["district-1"].id,
                         session_id=attendance.id,
                         user_id=member.id,
                         event_type="check_in",
@@ -387,6 +549,7 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
                         device_id=device.device_id,
                     ),
                     AttendanceEvent(
+                        gym_id=gyms["district-1"].id,
                         session_id=attendance.id,
                         user_id=member.id,
                         event_type="check_out",
@@ -396,6 +559,8 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
                     ),
                 ],
             )
+        else:
+            attendance.gym_id = gyms["district-1"].id
 
         gym_class = (
             await session.execute(select(GymClass).where(GymClass.title == "Strength Foundations Demo"))
@@ -403,6 +568,7 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
         if not gym_class:
             start_at = now + timedelta(days=2)
             gym_class = GymClass(
+                gym_id=gyms["district-1"].id,
                 title="Strength Foundations Demo",
                 class_type="Strength",
                 description="A seeded class for testing the Day 38 administration workflow.",
@@ -415,12 +581,41 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
                 location="Studio A",
             )
             session.add(gym_class)
-        elif gym_class.status == "scheduled" and gym_class.start_at <= now:
-            start_at = now + timedelta(days=2)
-            gym_class.start_at = start_at
-            gym_class.end_at = start_at + timedelta(minutes=60)
+        else:
+            gym_class.gym_id = gyms["district-1"].id
+            if gym_class.status == "scheduled" and gym_class.start_at <= now:
+                start_at = now + timedelta(days=2)
+                gym_class.start_at = start_at
+                gym_class.end_at = start_at + timedelta(minutes=60)
         if gym_class.price_vnd is None:
             gym_class.price_vnd = 180_000
+
+        district_11_class = (
+            await session.execute(select(GymClass).where(GymClass.title == "District 11 Mobility Demo"))
+        ).scalar_one_or_none()
+        if not district_11_class:
+            district_11_start = now + timedelta(days=3)
+            district_11_class = GymClass(
+                gym_id=gyms["district-11"].id,
+                title="District 11 Mobility Demo",
+                class_type="Mobility",
+                description="A seeded District 11 class for multi-location demonstrations.",
+                start_at=district_11_start,
+                end_at=district_11_start + timedelta(minutes=60),
+                capacity=14,
+                price_vnd=150_000,
+                status="scheduled",
+                trainer_id=None,
+                location="Studio B",
+            )
+            session.add(district_11_class)
+        else:
+            district_11_class.gym_id = gyms["district-11"].id
+            district_11_class.trainer_id = None
+            if district_11_class.status == "scheduled" and district_11_class.start_at <= now:
+                district_11_start = now + timedelta(days=3)
+                district_11_class.start_at = district_11_start
+                district_11_class.end_at = district_11_start + timedelta(minutes=60)
 
         for name, region, description, steps, safety, primary, secondary in ILLUSTRATIVE_EXERCISES:
             exercise_id = uuid5(NAMESPACE_URL, f"ypgym:illustrative-exercise:{name}")
@@ -430,13 +625,28 @@ async def seed_development_data(*, demo: bool = False, now: datetime | None = No
                 session.add_all([TrainingExerciseMuscle(exercise_id=exercise_id, muscle=muscle, role=role) for role, values in (("primary", primary), ("secondary", secondary)) for muscle in values])
 
         if demo:
-            await _seed_demo_scenarios(session, users, plans, trainer, membership, now)
+            await _seed_demo_scenarios(
+                session,
+                users,
+                location_users,
+                gyms,
+                plans,
+                trainer,
+                membership,
+                now,
+            )
         await session.commit()
 
 
 async def _seed_demo_scenarios(
-    session: AsyncSession, users: dict[str, User], plans: dict[str, MembershipPlan],
-    trainer: PersonalTrainer, membership: UserMembership, now: datetime,
+    session: AsyncSession,
+    users: dict[str, User],
+    location_users: dict[str, User],
+    gyms: dict[str, GymLocation],
+    plans: dict[str, MembershipPlan],
+    trainer: PersonalTrainer,
+    membership: UserMembership,
+    now: datetime,
 ) -> None:
     """Refresh only explicitly seeded fixtures in the isolated demonstration database."""
     today = now.date()
@@ -463,8 +673,14 @@ async def _seed_demo_scenarios(
             fixture_id = uuid5(NAMESPACE_URL, f"ypgym:demo:membership:{user.id}")
             fixture = await session.get(UserMembership, fixture_id)
             if not fixture:
-                fixture = UserMembership(id=fixture_id, user_id=user.id, plan_id=plans["1 Year"].id)
+                fixture = UserMembership(
+                    id=fixture_id,
+                    user_id=user.id,
+                    plan_id=plans["1 Year"].id,
+                    home_gym_id=gyms["district-1"].id,
+                )
                 session.add(fixture)
+            fixture.home_gym_id = gyms["district-1"].id
             fixture.status = status
             fixture.start_date = today - timedelta(days=45 if status != "expired" else 366)
             fixture.expiry_date = today + timedelta(days=320 if status != "expired" else -1)
@@ -486,9 +702,18 @@ async def _seed_demo_scenarios(
     for day, title, capacity in [(3, "Capacity One Demo", 1), (4, "Upcoming Mobility Demo", 12)]:
         fixture = (await session.execute(select(GymClass).where(GymClass.title == title))).scalar_one_or_none()
         if not fixture:
-            fixture = GymClass(title=title, class_type="Mobility", description="Synthetic release-demo booking scenario.",
-                               location="Studio A", trainer_id=trainer.id, capacity=capacity, price_vnd=150_000)
+            fixture = GymClass(
+                gym_id=gyms["district-1"].id,
+                title=title,
+                class_type="Mobility",
+                description="Synthetic release-demo booking scenario.",
+                location="Studio A",
+                trainer_id=trainer.id,
+                capacity=capacity,
+                price_vnd=150_000,
+            )
             session.add(fixture)
+        fixture.gym_id = gyms["district-1"].id
         fixture.start_at = now + timedelta(days=day)
         fixture.end_at = fixture.start_at + timedelta(hours=1)
         fixture.status = "scheduled"
@@ -528,8 +753,15 @@ async def _seed_demo_scenarios(
             fixture_id = uuid5(NAMESPACE_URL, f"ypgym:demo:attendance:{user.id}:{day}")
             fixture = await session.get(AttendanceSession, fixture_id)
             if not fixture:
-                fixture = AttendanceSession(id=fixture_id, user_id=user.id, source="release_demo", device_id="local-simulator-1")
+                fixture = AttendanceSession(
+                    id=fixture_id,
+                    gym_id=gyms["district-1"].id,
+                    user_id=user.id,
+                    source="release_demo",
+                    device_id="local-simulator-1",
+                )
                 session.add(fixture)
+            fixture.gym_id = gyms["district-1"].id
             fixture.checked_in_at = check_in
             fixture.closed_at = check_in + timedelta(minutes=60 + day)
             fixture.status = "checked_out"
@@ -538,10 +770,65 @@ async def _seed_demo_scenarios(
                 event_id = uuid5(NAMESPACE_URL, f"ypgym:demo:event:{fixture_id}:{event_type}")
                 event = await session.get(AttendanceEvent, event_id)
                 if not event:
-                    event = AttendanceEvent(id=event_id, session_id=fixture_id, user_id=user.id,
-                                            event_type=event_type, source="release_demo", device_id="local-simulator-1")
+                    event = AttendanceEvent(
+                        id=event_id,
+                        gym_id=gyms["district-1"].id,
+                        session_id=fixture_id,
+                        user_id=user.id,
+                        event_type=event_type,
+                        source="release_demo",
+                        device_id="local-simulator-1",
+                    )
                     session.add(event)
+                event.gym_id = gyms["district-1"].id
                 event.event_at = event_at
+
+    previous_month_end = today.replace(day=1) - timedelta(days=1)
+    previous_month_start = previous_month_end.replace(day=1)
+    for gym_slug, email, device_id, peak_hour in (
+        ("district-1", "memberdist1@ypgym.dev", "local-simulator-1", 18),
+        ("district-11", "memberdist11@ypgym.dev", "local-simulator-dist11", 8),
+    ):
+        branch_member = location_users[email]
+        for day_offset in range(min(14, previous_month_end.day)):
+            visit_day = previous_month_start + timedelta(days=day_offset)
+            check_in = datetime.combine(visit_day, datetime.min.time(), tzinfo=UTC).replace(
+                hour=peak_hour + (day_offset % 2),
+            )
+            fixture_id = uuid5(NAMESPACE_URL, f"ypgym:multigym-history:{gym_slug}:{day_offset}")
+            fixture = await session.get(AttendanceSession, fixture_id)
+            if not fixture:
+                fixture = AttendanceSession(
+                    id=fixture_id,
+                    gym_id=gyms[gym_slug].id,
+                    user_id=branch_member.id,
+                    source="multigym_demo",
+                    device_id=device_id,
+                )
+                session.add(fixture)
+            fixture.gym_id = gyms[gym_slug].id
+            fixture.checked_in_at = check_in
+            fixture.closed_at = check_in + timedelta(minutes=45 + (day_offset % 4) * 15)
+            fixture.status = "checked_out"
+            await session.flush()
+            for event_type, event_at in (("check_in", fixture.checked_in_at), ("check_out", fixture.closed_at)):
+                event_id = uuid5(NAMESPACE_URL, f"ypgym:multigym-history-event:{fixture_id}:{event_type}")
+                event = await session.get(AttendanceEvent, event_id)
+                if not event:
+                    event = AttendanceEvent(
+                        id=event_id,
+                        gym_id=gyms[gym_slug].id,
+                        session_id=fixture.id,
+                        user_id=branch_member.id,
+                        event_type=event_type,
+                        event_at=event_at,
+                        source="multigym_demo",
+                        device_id=device_id,
+                    )
+                    session.add(event)
+                else:
+                    event.gym_id = gyms[gym_slug].id
+                    event.event_at = event_at
     broadcast = (await session.execute(select(BroadcastAnnouncement).where(
         BroadcastAnnouncement.title == "Welcome to the operations demo",
     ))).scalar_one()

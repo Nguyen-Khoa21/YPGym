@@ -53,8 +53,8 @@ class StaffRepository:
             )
         ).scalar_one_or_none()
 
-    async def create_shift(self, *, user_id: UUID, clocked_in_at: datetime) -> StaffShift:
-        shift = StaffShift(user_id=user_id, clocked_in_at=clocked_in_at)
+    async def create_shift(self, *, user_id: UUID, gym_id: UUID, clocked_in_at: datetime) -> StaffShift:
+        shift = StaffShift(user_id=user_id, gym_id=gym_id, clocked_in_at=clocked_in_at)
         self.session.add(shift)
         await self.session.flush()
         return shift

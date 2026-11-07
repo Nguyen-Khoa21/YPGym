@@ -8,6 +8,7 @@ import pytest
 from sqlalchemy import func, select
 
 from app.models.classes import PersonalTrainer
+from app.models.gym import DISTRICT_1_GYM_ID, WorkforceGymAssignment
 from app.models.operations import AuditLog
 from app.models.staff import StaffShift
 from app.models.user import User
@@ -41,6 +42,14 @@ async def seed_roles(storage):
             is_email_verified=True,
         )
         session.add_all([manager, member])
+        await session.flush()
+        session.add(
+            WorkforceGymAssignment(
+                user_id=manager.id,
+                gym_id=DISTRICT_1_GYM_ID,
+                assigned_role="manager",
+            )
+        )
         await session.commit()
         return manager, member
 

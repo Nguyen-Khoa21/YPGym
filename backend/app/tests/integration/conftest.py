@@ -32,6 +32,34 @@ async def storage():
         async with engine.begin() as connection:
             tables = ", ".join(f'"{name}"' for name in Base.metadata.tables)
             await connection.execute(text(f"TRUNCATE {tables} CASCADE"))
+        from app.models.gym import (
+            DISTRICT_1_GYM_ID,
+            DISTRICT_11_GYM_ID,
+            GymLocation,
+        )
+
+        async with sessions() as session:
+            session.add_all(
+                [
+                    GymLocation(
+                        id=DISTRICT_1_GYM_ID,
+                        name="YPGym District 1",
+                        slug="district-1",
+                        district="District 1",
+                        address="District 1, Ho Chi Minh City",
+                        capacity=150,
+                    ),
+                    GymLocation(
+                        id=DISTRICT_11_GYM_ID,
+                        name="YPGym District 11",
+                        slug="district-11",
+                        district="District 11",
+                        address="District 11, Ho Chi Minh City",
+                        capacity=150,
+                    ),
+                ]
+            )
+            await session.commit()
         await redis.flushdb()
         yield sessions, redis
     finally:

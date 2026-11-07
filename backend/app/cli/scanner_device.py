@@ -6,10 +6,11 @@ from sqlalchemy import select
 
 from app.db.session import AsyncSessionLocal
 from app.models.attendance import IoTDevice
+from app.models.gym import GymLocation
 from app.utils.security import hash_token
 
 
-async def provision(device_id: str, display_name: str) -> None:
+async def provision(device_id: str, display_name: str, gym_slug: str) -> None:
     api_key = getpass("Device API key (input is hidden): ")
     confirmation = getpass("Confirm device API key: ")
     if len(api_key) < 24:
@@ -17,10 +18,21 @@ async def provision(device_id: str, display_name: str) -> None:
     if api_key != confirmation:
         raise SystemExit("The device API key confirmation did not match.")
     async with AsyncSessionLocal() as session:
+        gym = (
+            await session.execute(
+                select(GymLocation).where(
+                    GymLocation.slug == gym_slug,
+                    GymLocation.is_active.is_(True),
+                )
+            )
+        ).scalar_one_or_none()
+        if not gym:
+            raise SystemExit(f"Active gym location {gym_slug!r} was not found.")
         device = (
             await session.execute(select(IoTDevice).where(IoTDevice.device_id == device_id))
         ).scalar_one_or_none()
         if device:
+            device.gym_id = gym.id
             device.display_name = display_name
             device.api_key_hash = hash_token(api_key)
             device.is_active = True
@@ -28,6 +40,7 @@ async def provision(device_id: str, display_name: str) -> None:
         else:
             session.add(
                 IoTDevice(
+                    gym_id=gym.id,
                     device_id=device_id,
                     display_name=display_name,
                     api_key_hash=hash_token(api_key),
@@ -36,7 +49,10 @@ async def provision(device_id: str, display_name: str) -> None:
             )
             action = "provisioned"
         await session.commit()
-    print(f"Scanner device {device_id!r} was {action}. The API key was not printed or stored in plaintext.")
+    print(
+        f"Scanner device {device_id!r} was {action} for {gym.name}. "
+        "The API key was not printed or stored in plaintext."
+    )
 
 
 async def revoke(device_id: str) -> None:
@@ -57,11 +73,12 @@ def main() -> None:
     provision_parser = commands.add_parser("provision")
     provision_parser.add_argument("device_id")
     provision_parser.add_argument("display_name")
+    provision_parser.add_argument("gym_slug")
     revoke_parser = commands.add_parser("revoke")
     revoke_parser.add_argument("device_id")
     args = parser.parse_args()
     if args.command == "provision":
-        asyncio.run(provision(args.device_id, args.display_name))
+        asyncio.run(provision(args.device_id, args.display_name, args.gym_slug))
     else:
         asyncio.run(revoke(args.device_id))
 
