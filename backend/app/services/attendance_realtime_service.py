@@ -15,8 +15,12 @@ from app.schemas.attendance_schema import AttendanceRealtimeEvent, CrowdednessRe
 
 logger = logging.getLogger(__name__)
 
-ATTENDANCE_REALTIME_CHANNEL = "ypgym:attendance:events:v1"
+ATTENDANCE_REALTIME_CHANNEL_PATTERN = "ypgym:attendance:*:events:v1"
 OPERATIONS_ROLES = {"staff", "manager", "admin"}
+
+
+def attendance_realtime_channel(gym_id: UUID) -> str:
+    return f"ypgym:attendance:{gym_id}:events:v1"
 
 
 class AttendanceRealtimePublisher:
@@ -26,6 +30,7 @@ class AttendanceRealtimePublisher:
     async def publish_transition(
         self,
         *,
+        gym_id: UUID,
         action: str,
         user_id: UUID,
         session_id: UUID,
@@ -37,6 +42,7 @@ class AttendanceRealtimePublisher:
         events = [
             AttendanceRealtimeEvent(
                 event_id=uuid4(),
+                gym_id=gym_id,
                 kind="attendance_changed",
                 action=action,
                 user_id=user_id,
@@ -50,6 +56,7 @@ class AttendanceRealtimePublisher:
             events.append(
                 AttendanceRealtimeEvent(
                     event_id=uuid4(),
+                    gym_id=gym_id,
                     kind="occupancy_changed",
                     action=action,
                     occurred_at=occurred_at,
@@ -63,7 +70,7 @@ class AttendanceRealtimePublisher:
         for event in events:
             try:
                 await asyncio.wait_for(
-                    self.redis.publish(ATTENDANCE_REALTIME_CHANNEL, event.model_dump_json()),
+                    self.redis.publish(attendance_realtime_channel(event.gym_id), event.model_dump_json()),
                     timeout=1.0,
                 )
             except (RedisError, OSError, asyncio.TimeoutError):
@@ -82,6 +89,7 @@ class AttendanceRealtimeConnection:
     connection_id: UUID
     role: str
     user_id: UUID
+    gym_id: UUID | None
     queue: asyncio.Queue[dict[str, object]] = field(default_factory=lambda: asyncio.Queue(maxsize=20))
     last_pong_at: float = field(default_factory=monotonic)
 
@@ -110,8 +118,19 @@ class AttendanceRealtimeHub:
         async with self._lock:
             self._connections.clear()
 
-    async def register(self, *, role: str, user_id: UUID) -> AttendanceRealtimeConnection:
-        connection = AttendanceRealtimeConnection(connection_id=uuid4(), role=role, user_id=user_id)
+    async def register(
+        self,
+        *,
+        role: str,
+        user_id: UUID,
+        gym_id: UUID | None,
+    ) -> AttendanceRealtimeConnection:
+        connection = AttendanceRealtimeConnection(
+            connection_id=uuid4(),
+            role=role,
+            user_id=user_id,
+            gym_id=gym_id,
+        )
         async with self._lock:
             self._connections[connection.connection_id] = connection
         return connection
@@ -139,12 +158,15 @@ class AttendanceRealtimeHub:
         connection: AttendanceRealtimeConnection,
         event: AttendanceRealtimeEvent,
     ) -> dict[str, object] | None:
+        if connection.gym_id is not None and connection.gym_id != event.gym_id:
+            return None
         if connection.role == "member":
             if event.kind == "attendance_changed" and event.user_id != connection.user_id:
                 return None
             return {
                 "type": event.kind,
                 "event_id": str(event.event_id),
+                "gym_id": str(event.gym_id),
                 "action": event.action,
                 "session_id": str(event.session_id) if event.session_id and event.user_id == connection.user_id else None,
                 "occurred_at": event.occurred_at.isoformat(),
@@ -154,6 +176,7 @@ class AttendanceRealtimeHub:
             return {
                 "type": event.kind,
                 "event_id": str(event.event_id),
+                "gym_id": str(event.gym_id),
                 "action": event.action,
                 "session_id": str(event.session_id) if event.session_id else None,
                 "occurred_at": event.occurred_at.isoformat(),
@@ -178,7 +201,7 @@ class AttendanceRealtimeHub:
             client = Redis.from_url(get_settings().REDIS_URL, decode_responses=True)
             pubsub = client.pubsub()
             try:
-                await pubsub.subscribe(ATTENDANCE_REALTIME_CHANNEL)
+                await pubsub.psubscribe(ATTENDANCE_REALTIME_CHANNEL_PATTERN)
                 if reconnecting:
                     await self.request_resync()
                 reconnecting = False

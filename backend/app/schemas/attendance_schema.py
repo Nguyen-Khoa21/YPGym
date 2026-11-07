@@ -27,6 +27,8 @@ class ScannerDeviceRequest(BaseModel):
 class ScannerDeviceResponse(BaseModel):
     device_id: str
     display_name: str
+    gym_id: UUID
+    gym_name: str
     status: Literal["active"] = "active"
 
 
@@ -44,11 +46,14 @@ class ScannerResponse(BaseModel):
     attendance_status: Literal["active", "checked_out"]
     action: Literal["check_in", "check_out"]
     occurred_at: datetime
+    gym_id: UUID
+    gym_name: str
     occupancy: "CrowdednessResponse"
 
 
 class AttendanceRealtimeEvent(BaseModel):
     event_id: UUID
+    gym_id: UUID
     kind: Literal["attendance_changed", "occupancy_changed"]
     action: Literal["check_in", "check_out", "timeout", "manual_close"]
     user_id: UUID | None = None
@@ -59,6 +64,8 @@ class AttendanceRealtimeEvent(BaseModel):
 
 
 class CrowdednessResponse(BaseModel):
+    gym_id: UUID
+    gym_name: str
     active_count: int
     capacity: int
     percentage: float
@@ -68,6 +75,7 @@ class CrowdednessResponse(BaseModel):
 
 class AttendanceEventItem(BaseModel):
     id: UUID
+    gym_id: UUID
     event_type: str
     event_at: datetime
     source: str
@@ -76,6 +84,7 @@ class AttendanceEventItem(BaseModel):
 
 class AttendanceSessionItem(BaseModel):
     id: UUID
+    gym_id: UUID
     user_id: UUID
     member_name: str | None = None
     member_email: str | None = None

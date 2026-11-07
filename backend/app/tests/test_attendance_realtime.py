@@ -11,14 +11,20 @@ from starlette.websockets import WebSocketDisconnect
 from app.api.v1.endpoints import attendance_realtime
 from app.core.exceptions import AuthenticationError
 from app.db.session import get_db_session
+from app.models.gym import DISTRICT_1_GYM_ID, DISTRICT_11_GYM_ID
 from app.schemas.attendance_schema import AttendanceRealtimeEvent, CrowdednessResponse
 from app.services import attendance_realtime_service
-from app.services.attendance_realtime_service import AttendanceRealtimeHub, AttendanceRealtimePublisher
+from app.services.attendance_realtime_service import (
+    AttendanceRealtimeHub,
+    AttendanceRealtimePublisher,
+    attendance_realtime_channel,
+)
 
-def event(*, user_id=None, kind="attendance_changed") -> AttendanceRealtimeEvent:
+def event(*, user_id=None, kind="attendance_changed", gym_id=DISTRICT_1_GYM_ID) -> AttendanceRealtimeEvent:
     now = datetime.now(UTC)
     return AttendanceRealtimeEvent(
         event_id=uuid4(),
+        gym_id=gym_id,
         kind=kind,
         action="check_in",
         user_id=user_id,
@@ -34,8 +40,9 @@ async def test_member_stream_is_isolated_and_operations_receive_all_events():
     hub = AttendanceRealtimeHub()
     member_id = uuid4()
     other_member_id = uuid4()
-    member = await hub.register(role="member", user_id=member_id)
-    operations = await hub.register(role="staff", user_id=uuid4())
+    member = await hub.register(role="member", user_id=member_id, gym_id=DISTRICT_1_GYM_ID)
+    operations = await hub.register(role="staff", user_id=uuid4(), gym_id=DISTRICT_1_GYM_ID)
+    other_gym = await hub.register(role="manager", user_id=uuid4(), gym_id=DISTRICT_11_GYM_ID)
 
     await hub.dispatch(event(user_id=other_member_id))
 
@@ -43,6 +50,7 @@ async def test_member_stream_is_isolated_and_operations_receive_all_events():
     operations_payload = operations.queue.get_nowait()
     assert operations_payload["type"] == "attendance_changed"
     assert "user_id" not in operations_payload
+    assert other_gym.queue.empty()
 
     await hub.dispatch(event(user_id=member_id))
     member_payload = member.queue.get_nowait()
@@ -54,7 +62,7 @@ async def test_member_stream_is_isolated_and_operations_receive_all_events():
 @pytest.mark.asyncio
 async def test_occupancy_event_reaches_member_without_identity_and_overflow_requests_resync():
     hub = AttendanceRealtimeHub()
-    member = await hub.register(role="member", user_id=uuid4())
+    member = await hub.register(role="member", user_id=uuid4(), gym_id=DISTRICT_1_GYM_ID)
 
     await hub.dispatch(event(kind="occupancy_changed"))
     payload = member.queue.get_nowait()
@@ -78,11 +86,20 @@ async def test_publish_failure_is_best_effort_and_logs_no_sensitive_material(cap
     now = datetime.now(UTC)
     publisher = AttendanceRealtimePublisher(BrokenRedis())
     await publisher.publish_transition(
+        gym_id=DISTRICT_1_GYM_ID,
         action="check_in",
         user_id=uuid4(),
         session_id=uuid4(),
         occurred_at=now,
-        occupancy=CrowdednessResponse(active_count=1, capacity=10, percentage=10, status="Low", calculated_at=now),
+        occupancy=CrowdednessResponse(
+            gym_id=DISTRICT_1_GYM_ID,
+            gym_name="YPGym District 1",
+            active_count=1,
+            capacity=10,
+            percentage=10,
+            status="Low",
+            calculated_at=now,
+        ),
         request_id="request-safe",
     )
 
@@ -91,19 +108,52 @@ async def test_publish_failure_is_best_effort_and_logs_no_sensitive_material(cap
 
 
 @pytest.mark.asyncio
+async def test_publisher_uses_only_the_transition_gym_channel():
+    published = []
+
+    class RecordingRedis:
+        async def publish(self, channel, payload):
+            published.append((channel, payload))
+
+    now = datetime.now(UTC)
+    publisher = AttendanceRealtimePublisher(RecordingRedis())
+    await publisher.publish_transition(
+        gym_id=DISTRICT_11_GYM_ID,
+        action="check_in",
+        user_id=uuid4(),
+        session_id=uuid4(),
+        occurred_at=now,
+        occupancy=CrowdednessResponse(
+            gym_id=DISTRICT_11_GYM_ID,
+            gym_name="YPGym District 11",
+            active_count=1,
+            capacity=150,
+            percentage=0.7,
+            status="Low",
+            calculated_at=now,
+        ),
+        request_id="gym-channel-test",
+    )
+
+    assert len(published) == 2
+    assert {channel for channel, _ in published} == {attendance_realtime_channel(DISTRICT_11_GYM_ID)}
+    assert str(DISTRICT_1_GYM_ID) not in "".join(payload for _, payload in published)
+
+
+@pytest.mark.asyncio
 async def test_redis_listener_reconnect_requests_authoritative_resync(monkeypatch):
     hub = AttendanceRealtimeHub()
-    connection = await hub.register(role="member", user_id=uuid4())
+    connection = await hub.register(role="member", user_id=uuid4(), gym_id=DISTRICT_1_GYM_ID)
 
     class FailingPubSub:
-        async def subscribe(self, *_args):
+        async def psubscribe(self, *_args):
             raise RedisError("temporarily unavailable")
 
         async def aclose(self):
             return None
 
     class HealthyPubSub:
-        async def subscribe(self, *_args):
+        async def psubscribe(self, *_args):
             return None
 
         async def get_message(self, **_kwargs):
@@ -146,11 +196,17 @@ def test_realtime_authenticates_allowed_roles_and_reconnects_with_resync(monkeyp
         return user
 
     monkeypatch.setattr(attendance_realtime, "get_user_from_access_token", authenticated)
+    async def effective_gym_id(_service, *, user):
+        return DISTRICT_1_GYM_ID
+
+    monkeypatch.setattr(attendance_realtime.GymScopeService, "effective_gym_id", effective_gym_id)
     client = TestClient(realtime_test_app())
     for _ in range(2):
         with client.websocket_connect("/attendance/realtime") as websocket:
             websocket.send_json({"type": "authenticate", "access_token": "not-logged"})
-            assert websocket.receive_json()["type"] == "subscribed"
+            subscribed = websocket.receive_json()
+            assert subscribed["type"] == "subscribed"
+            assert subscribed["gym_id"] == (None if role == "admin" else str(DISTRICT_1_GYM_ID))
             assert websocket.receive_json() == {"type": "resync_required"}
 
 

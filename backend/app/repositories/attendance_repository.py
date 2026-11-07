@@ -6,6 +6,7 @@ from sqlalchemy import Date, Integer, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.attendance import AttendanceEvent, AttendanceSession, IoTDevice
+from app.models.gym import DISTRICT_1_GYM_ID
 from app.models.user import User
 
 
@@ -45,12 +46,14 @@ class AttendanceRepository:
     async def create_session(
         self,
         *,
+        gym_id: UUID,
         user_id: UUID,
         checked_in_at: datetime,
         source: str,
         device_id: str | None,
     ) -> AttendanceSession:
         session = AttendanceSession(
+            gym_id=gym_id,
             user_id=user_id,
             checked_in_at=checked_in_at,
             status="active",
@@ -72,6 +75,7 @@ class AttendanceRepository:
         metadata: dict[str, Any] | None = None,
     ) -> AttendanceEvent:
         event = AttendanceEvent(
+            gym_id=attendance_session.gym_id,
             session_id=attendance_session.id,
             user_id=attendance_session.user_id,
             event_type=event_type,
@@ -84,11 +88,14 @@ class AttendanceRepository:
         await self.session.flush()
         return event
 
-    async def active_count(self) -> int:
+    async def active_count(self, *, gym_id: UUID) -> int:
         return int(
             (
                 await self.session.execute(
-                    select(func.count(AttendanceSession.id)).where(AttendanceSession.status == "active"),
+                    select(func.count(AttendanceSession.id)).where(
+                        AttendanceSession.gym_id == gym_id,
+                        AttendanceSession.status == "active",
+                    ),
                 )
             ).scalar_one(),
         )
@@ -112,13 +119,17 @@ class AttendanceRepository:
         self,
         *,
         user_id: UUID,
+        gym_id: UUID,
         page: int,
         page_size: int,
     ) -> tuple[list[AttendanceSession], int, dict[UUID, list[AttendanceEvent]]]:
         total = int(
             (
                 await self.session.execute(
-                    select(func.count(AttendanceSession.id)).where(AttendanceSession.user_id == user_id),
+                    select(func.count(AttendanceSession.id)).where(
+                        AttendanceSession.user_id == user_id,
+                        AttendanceSession.gym_id == gym_id,
+                    ),
                 )
             ).scalar_one(),
         )
@@ -126,7 +137,10 @@ class AttendanceRepository:
             (
                 await self.session.execute(
                     select(AttendanceSession)
-                    .where(AttendanceSession.user_id == user_id)
+                    .where(
+                        AttendanceSession.user_id == user_id,
+                        AttendanceSession.gym_id == gym_id,
+                    )
                     .order_by(AttendanceSession.checked_in_at.desc())
                     .offset((page - 1) * page_size)
                     .limit(page_size),
@@ -135,13 +149,16 @@ class AttendanceRepository:
         )
         return sessions, total, await self.events_for_sessions([item.id for item in sessions])
 
-    async def distinct_member_visit_days(self, *, user_id: UUID, gym_timezone: str) -> list[date]:
+    async def distinct_member_visit_days(self, *, user_id: UUID, gym_id: UUID, gym_timezone: str) -> list[date]:
         local_day = cast(func.timezone(gym_timezone, AttendanceSession.checked_in_at), Date)
         return list(
             (
                 await self.session.execute(
                     select(local_day)
-                    .where(AttendanceSession.user_id == user_id)
+                    .where(
+                        AttendanceSession.user_id == user_id,
+                        AttendanceSession.gym_id == gym_id,
+                    )
                     .distinct()
                     .order_by(local_day.desc()),
                 )
@@ -179,6 +196,7 @@ class AttendanceRepository:
         date_to: datetime | None,
         status: str | None,
         member: str | None,
+        gym_id: UUID | None,
     ) -> tuple[list[tuple[AttendanceSession, User]], int, dict[UUID, list[AttendanceEvent]]]:
         conditions = []
         if date_from:
@@ -190,6 +208,8 @@ class AttendanceRepository:
         if member:
             term = f"%{member.strip()}%"
             conditions.append(or_(User.name.ilike(term), User.email.ilike(term)))
+        if gym_id:
+            conditions.append(AttendanceSession.gym_id == gym_id)
         base = AttendanceSession.__table__.join(User, User.id == AttendanceSession.user_id)
         total = int(
             (
@@ -228,7 +248,13 @@ class AttendanceRepository:
             grouped[event.session_id].append(event)
         return grouped
 
-    async def peak_hours(self, *, date_from: datetime, date_to: datetime) -> list[tuple[int, int, int]]:
+    async def peak_hours(
+        self,
+        *,
+        date_from: datetime,
+        date_to: datetime,
+        gym_id: UUID = DISTRICT_1_GYM_ID,
+    ) -> list[tuple[int, int, int]]:
         utc_event_at = func.timezone("UTC", AttendanceEvent.event_at)
         weekday = func.extract("dow", utc_event_at).cast(Integer)
         hour = func.extract("hour", utc_event_at).cast(Integer)
@@ -237,6 +263,7 @@ class AttendanceRepository:
                 select(weekday, hour, func.count(AttendanceEvent.id))
                 .where(
                     AttendanceEvent.event_type == "check_in",
+                    AttendanceEvent.gym_id == gym_id,
                     AttendanceEvent.event_at >= date_from,
                     AttendanceEvent.event_at <= date_to,
                 )
@@ -246,12 +273,19 @@ class AttendanceRepository:
         ).all()
         return [(int(row[0]), int(row[1]), int(row[2])) for row in rows]
 
-    async def visits_between(self, *, date_from: datetime, date_to: datetime) -> int:
+    async def visits_between(
+        self,
+        *,
+        date_from: datetime,
+        date_to: datetime,
+        gym_id: UUID = DISTRICT_1_GYM_ID,
+    ) -> int:
         return int(
             (
                 await self.session.execute(
                     select(func.count(AttendanceEvent.id)).where(
                         AttendanceEvent.event_type == "check_in",
+                        AttendanceEvent.gym_id == gym_id,
                         AttendanceEvent.event_at >= date_from,
                         AttendanceEvent.event_at <= date_to,
                     ),

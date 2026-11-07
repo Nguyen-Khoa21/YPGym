@@ -68,7 +68,11 @@ class DashboardService:
             member=DashboardMember(id=user.id, name=user.name, tier=user.tier),
             membership=membership_summary,
             qr_access=DashboardQrAccess(eligible=eligible, reason=reason),
-            crowdedness=await self.crowdedness.get(),
+            crowdedness=(
+                await self.crowdedness.get(gym_id=membership.home_gym_id)
+                if membership
+                else await self.crowdedness.get()
+            ),
             upcoming_bookings=upcoming,
             active_waitlists=waitlists,
             unread_notification_count=unread_notification_count,

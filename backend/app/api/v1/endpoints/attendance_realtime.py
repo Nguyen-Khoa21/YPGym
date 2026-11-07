@@ -2,6 +2,7 @@ import asyncio
 from contextlib import suppress
 from time import monotonic
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,7 @@ from app.services.attendance_realtime_service import (
     attendance_realtime_hub,
     heartbeat_payload,
 )
+from app.services.gym_service import GymScopeService
 
 router = APIRouter(prefix="/attendance", tags=["attendance realtime"])
 ALLOWED_ROLES = {"member", *OPERATIONS_ROLES}
@@ -51,9 +53,34 @@ async def attendance_realtime(
             await websocket.close(code=4403, reason="Attendance updates are not available for this account")
             return
 
-        connection = await attendance_realtime_hub.register(role=user.role, user_id=user.id)
+        requested_gym_id: UUID | None = None
+        if frame.get("gym_id") is not None:
+            try:
+                requested_gym_id = UUID(str(frame["gym_id"]))
+            except ValueError:
+                await websocket.close(code=4400, reason="Invalid gym identifier")
+                return
+        try:
+            gym_id = await GymScopeService(session).resolve_gym_id(
+                user=user,
+                requested_gym_id=requested_gym_id,
+                allow_admin_all=True,
+            )
+        except AppError:
+            await websocket.close(code=4403, reason="Gym scope is not available for this account")
+            return
+
+        connection = await attendance_realtime_hub.register(
+            role=user.role,
+            user_id=user.id,
+            gym_id=gym_id,
+        )
         connection.queue.put_nowait(
-            {"type": "subscribed", "scope": "member" if user.role == "member" else "operations"},
+            {
+                "type": "subscribed",
+                "scope": "all_gyms" if gym_id is None else "gym",
+                "gym_id": str(gym_id) if gym_id else None,
+            },
         )
         connection.queue.put_nowait({"type": "resync_required"})
         tasks = [

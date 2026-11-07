@@ -2,9 +2,11 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import require_roles
+from app.core.dependencies import get_current_user, require_roles
+from app.db.redis import get_redis_client
 from app.db.session import get_db_session
 from app.models.user import User
 from app.schemas.gym_schema import (
@@ -14,7 +16,9 @@ from app.schemas.gym_schema import (
     WorkforceAssignmentCreate,
     WorkforceAssignmentItem,
 )
-from app.services.gym_service import GymLocationService
+from app.schemas.attendance_schema import CrowdednessResponse
+from app.services.attendance_service import CrowdednessService
+from app.services.gym_service import GymLocationService, GymScopeService
 
 
 router = APIRouter(prefix="/gyms", tags=["gym locations"])
@@ -34,6 +38,17 @@ async def get_active_gym(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> GymLocationItem:
     return await GymLocationService(session).get_active(gym_id)
+
+
+@router.get("/{gym_id}/crowdedness", response_model=CrowdednessResponse)
+async def get_gym_crowdedness(
+    gym_id: UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> CrowdednessResponse:
+    gym = await GymScopeService(session).require_access(user=current_user, requested_gym_id=gym_id)
+    return await CrowdednessService(session, redis).get(gym_id=gym.id)
 
 
 @admin_router.get("", response_model=list[GymLocationItem])

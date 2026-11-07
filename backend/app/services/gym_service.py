@@ -181,3 +181,21 @@ class GymScopeService:
                 )
             return membership.home_gym_id
         raise AppError("GYM_SCOPE_REQUIRED", "Select a gym location for this operation.", 422)
+
+    async def resolve_gym_id(
+        self,
+        *,
+        user: User,
+        requested_gym_id: UUID | None,
+        allow_admin_all: bool = False,
+    ) -> UUID | None:
+        if user.role == "admin":
+            if requested_gym_id is None:
+                if allow_admin_all:
+                    return None
+                raise AppError("GYM_SCOPE_REQUIRED", "Select a gym location for this operation.", 422)
+            return (await self.require_access(user=user, requested_gym_id=requested_gym_id)).id
+        effective_gym_id = await self.effective_gym_id(user=user)
+        if requested_gym_id is not None:
+            await self.require_access(user=user, requested_gym_id=requested_gym_id)
+        return effective_gym_id

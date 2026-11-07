@@ -3,6 +3,7 @@ from decimal import Decimal
 import pytest
 
 from app.schemas.attendance_schema import CrowdednessResponse
+from app.models.gym import DISTRICT_1_GYM_ID
 from app.services.analytics_service import AnalyticsService
 
 
@@ -41,6 +42,8 @@ class FakeAttendanceRepository:
 class FakeCrowdedness:
     async def get(self):
         return CrowdednessResponse(
+            gym_id=DISTRICT_1_GYM_ID,
+            gym_name="YPGym District 1",
             active_count=3,
             capacity=100,
             percentage=3,

@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 
 from app.core.config import get_settings
 from app.models.attendance import AttendanceEvent, AttendanceSession, IoTDevice
+from app.models.gym import DISTRICT_1_GYM_ID, WorkforceGymAssignment
 from app.models.membership import UserMembership
 from app.models.user import User
 from app.services.attendance_service import CrowdednessService
@@ -45,7 +46,13 @@ async def test_rotating_qr_concurrent_scans_checkout_and_reconciliation(client, 
         json={"device_id": "door-0"},
     )
     assert verified.status_code == 200
-    assert verified.json() == {"device_id": "door-0", "display_name": "Door 0", "status": "active"}
+    assert verified.json() == {
+        "device_id": "door-0",
+        "display_name": "Door 0",
+        "gym_id": str(DISTRICT_1_GYM_ID),
+        "gym_name": "YPGym District 1",
+        "status": "active",
+    }
     obsolete = await client.post("/api/v1/attendance/check-in", headers=scanner_headers, json={"device_id": "door-0", "qr_token": previous})
     assert obsolete.status_code == 409 and obsolete.json()["error"]["code"] == "SUPERSEDED_TOKEN"
     # The actual QR issued by the API must not authorize account access.
@@ -61,6 +68,8 @@ async def test_rotating_qr_concurrent_scans_checkout_and_reconciliation(client, 
     assert accepted["member_id"] == str(users[0].id)
     assert accepted["occurred_at"]
     assert accepted["occupancy"]["active_count"] == 1
+    assert accepted["gym_id"] == str(DISTRICT_1_GYM_ID)
+    assert accepted["occupancy"]["gym_id"] == str(DISTRICT_1_GYM_ID)
     assert accepted["action"] == "check_in"
     assert accepted["attendance_status"] == "active"
     assert accepted["member"]["display_name"] == users[0].name
@@ -248,6 +257,14 @@ async def test_manual_close_commits_audit_and_publishes_invalidation(client, sto
     attendance_session = AttendanceSession(user_id=users[0].id, checked_in_at=now, status="active", source="iot_scanner")
     async with sessions() as session:
         session.add_all([staff, attendance_session])
+        await session.flush()
+        session.add(
+            WorkforceGymAssignment(
+                user_id=staff.id,
+                gym_id=DISTRICT_1_GYM_ID,
+                assigned_role="staff",
+            ),
+        )
         await session.commit()
     published = []
 

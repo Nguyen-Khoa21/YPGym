@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from app.core.exceptions import AppError, ConflictError
 from app.schemas.class_schema import TrainerCreate
 from app.schemas.attendance_schema import CrowdednessResponse
+from app.models.gym import DISTRICT_1_GYM_ID
 from app.schemas.class_schema import MemberBookings
 from app.repositories.operations_repository import NotificationRepository
 from app.services.class_service import BookingService, TrainerService, can_cancel_class_booking
@@ -292,6 +293,8 @@ async def test_dashboard_uses_authenticated_member_and_handles_missing_membershi
     class FakeCrowdedness:
         async def get(self) -> CrowdednessResponse:
             return CrowdednessResponse(
+                gym_id=DISTRICT_1_GYM_ID,
+                gym_name="YPGym District 1",
                 active_count=3,
                 capacity=100,
                 percentage=3,

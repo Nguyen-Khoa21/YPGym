@@ -13,6 +13,7 @@ from app.core.rate_limit import rate_limits
 from app.db.redis import get_redis_client
 from app.db.session import get_db_session
 from app.models.user import User
+from app.models.gym import DISTRICT_1_GYM_ID
 from app.schemas.attendance_schema import (
     AttendancePage,
     AttendanceSessionItem,
@@ -28,6 +29,7 @@ from app.schemas.attendance_schema import (
 from app.schemas.analytics_schema import AnalyticsSummaryResponse
 from app.services.analytics_service import AnalyticsService
 from app.services.attendance_service import AttendanceService, CrowdednessService, QrTokenService
+from app.services.gym_service import GymScopeService
 from app.utils.security import hash_token
 
 router = APIRouter(prefix="/attendance", tags=["attendance"])
@@ -112,8 +114,15 @@ async def crowdedness(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     redis: Annotated[Redis, Depends(get_redis_client)],
+    gym_id: UUID | None = None,
 ) -> CrowdednessResponse:
-    return await CrowdednessService(session, redis).get()
+    requested_gym_id = gym_id or (DISTRICT_1_GYM_ID if current_user.role == "admin" else None)
+    effective_gym_id = await GymScopeService(session).resolve_gym_id(
+        user=current_user,
+        requested_gym_id=requested_gym_id,
+    )
+    assert effective_gym_id is not None
+    return await CrowdednessService(session, redis).get(gym_id=effective_gym_id)
 
 
 @router.get("/me", response_model=AttendancePage)
@@ -142,7 +151,13 @@ async def admin_attendance(
     date_to: datetime | None = None,
     status: Literal["active", "checked_out", "timed_out", "manual_closed"] | None = None,
     member: str | None = Query(None, max_length=160),
+    gym_id: UUID | None = None,
 ) -> AttendancePage:
+    effective_gym_id = await GymScopeService(session).resolve_gym_id(
+        user=current_user,
+        requested_gym_id=gym_id,
+        allow_admin_all=True,
+    )
     return await AttendanceService(session, redis).admin_history(
         page=page,
         page_size=page_size,
@@ -150,6 +165,7 @@ async def admin_attendance(
         date_to=date_to,
         status=status,
         member=member,
+        gym_id=effective_gym_id,
     )
 
 
@@ -177,6 +193,7 @@ async def peak_hours(
     redis: Annotated[Redis, Depends(get_redis_client)],
     date_from: AwareDatetime | None = None,
     date_to: AwareDatetime | None = None,
+    gym_id: UUID | None = None,
 ) -> PeakHoursResponse:
     end = date_to or datetime.now(UTC)
     start = date_from or end - timedelta(days=30)
@@ -184,7 +201,17 @@ async def peak_hours(
         raise AppError("ANALYTICS_RANGE_INVALID", "The analytics end time must be after the start time.", 422)
     if end - start > timedelta(days=366):
         raise AppError("ANALYTICS_RANGE_TOO_LARGE", "Peak-hours analytics are limited to 366 days.", 422)
-    return await AttendanceService(session, redis).peak_hours(date_from=start, date_to=end)
+    requested_gym_id = gym_id or (DISTRICT_1_GYM_ID if current_user.role == "admin" else None)
+    effective_gym_id = await GymScopeService(session).resolve_gym_id(
+        user=current_user,
+        requested_gym_id=requested_gym_id,
+    )
+    assert effective_gym_id is not None
+    return await AttendanceService(session, redis).peak_hours(
+        gym_id=effective_gym_id,
+        date_from=start,
+        date_to=end,
+    )
 
 
 @analytics_router.get("/summary", response_model=AnalyticsSummaryResponse)

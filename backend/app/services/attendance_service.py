@@ -15,8 +15,10 @@ from app.core.exceptions import AppError, DependencyUnavailableError, ResourceNo
 from app.core.rate_limit import rate_limits
 from app.models.attendance import AttendanceEvent, AttendanceSession, IoTDevice
 from app.models.enums import AttendanceSessionStatus
+from app.models.gym import DISTRICT_1_GYM_ID, GymLocation
 from app.models.user import User
 from app.repositories.attendance_repository import AttendanceRepository
+from app.repositories.gym_repository import GymRepository
 from app.repositories.operations_repository import AuditRepository
 from app.schemas.attendance_schema import (
     AttendanceEventItem,
@@ -32,6 +34,7 @@ from app.schemas.attendance_schema import (
 )
 from app.schemas.operations_schema import PageInfo
 from app.services.configuration_service import ConfigurationService
+from app.services.gym_service import GymScopeService
 from app.services.lifecycle_service import MembershipLifecycleService
 from app.services.attendance_realtime_service import AttendanceRealtimePublisher, realtime_request_id
 from app.services.state_transitions import transition_attendance
@@ -49,27 +52,43 @@ def crowdedness_status(percentage: float) -> str:
 
 
 class CrowdednessService:
-    CACHE_KEY = "ypgym:attendance:occupancy"
+    CACHE_PREFIX = "ypgym:attendance:occupancy:"
+    CACHE_KEY = f"{CACHE_PREFIX}{DISTRICT_1_GYM_ID}"
 
     def __init__(self, session: AsyncSession, redis: Redis) -> None:
         self.session = session
         self.redis = redis
         self.attendance = AttendanceRepository(session)
-        self.configuration = ConfigurationService(session, redis)
+        self.gyms = GymRepository(session)
 
-    async def get(self, *, force_reconcile: bool = False) -> CrowdednessResponse:
+    @classmethod
+    def cache_key(cls, gym_id: UUID) -> str:
+        return f"{cls.CACHE_PREFIX}{gym_id}"
+
+    async def get(
+        self,
+        *,
+        gym_id: UUID = DISTRICT_1_GYM_ID,
+        force_reconcile: bool = False,
+    ) -> CrowdednessResponse:
+        cache_key = self.cache_key(gym_id)
         if not force_reconcile:
             try:
-                cached = await self.redis.get(self.CACHE_KEY)
+                cached = await self.redis.get(cache_key)
                 if cached:
                     parsed = json.loads(cached)
                     return CrowdednessResponse.model_validate(parsed)
             except (RedisError, json.JSONDecodeError, ValueError):
                 pass
-        active_count = await self.attendance.active_count()
-        capacity = await self.configuration.get_int("gym_capacity")
+        gym = await self.gyms.get_location(gym_id)
+        if not gym:
+            raise ResourceNotFoundError("The gym location could not be found.")
+        active_count = await self.attendance.active_count(gym_id=gym_id)
+        capacity = gym.capacity
         percentage = round((active_count / capacity) * 100, 1) if capacity > 0 else 0.0
         response = CrowdednessResponse(
+            gym_id=gym.id,
+            gym_name=gym.name,
             active_count=active_count,
             capacity=capacity,
             percentage=percentage,
@@ -77,7 +96,7 @@ class CrowdednessService:
             calculated_at=datetime.now(UTC),
         )
         try:
-            await self.redis.set(self.CACHE_KEY, response.model_dump_json(), ex=30)
+            await self.redis.set(cache_key, response.model_dump_json(), ex=30)
         except RedisError:
             pass
         return response
@@ -173,6 +192,7 @@ class AttendanceService:
         self.session = session
         self.redis = redis
         self.attendance = AttendanceRepository(session)
+        self.gyms = GymRepository(session)
         self.audit = AuditRepository(session)
         self.configuration = ConfigurationService(session, redis)
         self.qr = QrTokenService(session, redis)
@@ -181,8 +201,13 @@ class AttendanceService:
         self.settings = get_settings()
 
     async def verify_device(self, *, device_id: str, api_key: str) -> ScannerDeviceResponse:
-        device = await self._authenticate_device(device_id, api_key, for_update=False)
-        return ScannerDeviceResponse(device_id=device.device_id, display_name=device.display_name)
+        device, gym = await self._authenticate_device(device_id, api_key, for_update=False)
+        return ScannerDeviceResponse(
+            device_id=device.device_id,
+            display_name=device.display_name,
+            gym_id=gym.id,
+            gym_name=gym.name,
+        )
 
     async def check_in(
         self,
@@ -192,7 +217,7 @@ class AttendanceService:
         qr_token: str,
         request_id: str | None = None,
     ) -> ScannerResponse:
-        device = await self._authenticate_device(device_id, api_key)
+        device, gym = await self._authenticate_device(device_id, api_key)
         user_id, jti = await self.qr.validate(qr_token)
         user = await self.session.get(User, user_id)
         if not user:
@@ -203,6 +228,12 @@ class AttendanceService:
             if exc.code in {"MEMBERSHIP_INELIGIBLE", "MEMBERSHIP_REQUIRED"}:
                 raise AppError("INACTIVE_MEMBERSHIP", exc.message, 403, exc.details) from exc
             raise
+        if membership.home_gym_id != gym.id:
+            raise AppError(
+                "MEMBERSHIP_GYM_MISMATCH",
+                "This membership is not eligible for the scanner's gym location.",
+                403,
+            )
         duplicate_window = await self.configuration.get_int("duplicate_scan_window_seconds")
         duplicate_key = f"{self.DUPLICATE_PREFIX}{jti}"
         try:
@@ -219,6 +250,7 @@ class AttendanceService:
         now = datetime.now(UTC)
         try:
             attendance_session = await self.attendance.create_session(
+                gym_id=gym.id,
                 user_id=user_id,
                 checked_in_at=now,
                 source="iot_scanner",
@@ -244,8 +276,9 @@ class AttendanceService:
             except RedisError:
                 pass
             raise AppError("INTERNAL_SERVER_ERROR", "The attendance session could not be created.", 500) from exc
-        occupancy = await self.crowdedness.get(force_reconcile=True)
+        occupancy = await self.crowdedness.get(gym_id=gym.id, force_reconcile=True)
         await self.realtime.publish_transition(
+            gym_id=gym.id,
             action="check_in",
             user_id=user_id,
             session_id=attendance_session.id,
@@ -262,6 +295,8 @@ class AttendanceService:
             attendance_status="active",
             action="check_in",
             occurred_at=now,
+            gym_id=gym.id,
+            gym_name=gym.name,
             occupancy=occupancy,
         )
 
@@ -273,7 +308,7 @@ class AttendanceService:
         qr_token: str,
         request_id: str | None = None,
     ) -> ScannerResponse:
-        device = await self._authenticate_device(device_id, api_key)
+        device, gym = await self._authenticate_device(device_id, api_key)
         user_id, _ = await self.qr.validate(qr_token)
         user = await self.session.get(User, user_id)
         if not user:
@@ -282,6 +317,12 @@ class AttendanceService:
         attendance_session = await self.attendance.get_active_session(user_id, for_update=True)
         if not attendance_session:
             raise AppError("NO_ACTIVE_SESSION", "This member has no active attendance session.", 409)
+        if attendance_session.gym_id != gym.id:
+            raise AppError(
+                "ATTENDANCE_GYM_MISMATCH",
+                "This attendance session belongs to another gym location.",
+                403,
+            )
         now = datetime.now(UTC)
         transition_attendance(attendance_session, AttendanceSessionStatus.CHECKED_OUT)
         attendance_session.closed_at = now
@@ -294,8 +335,9 @@ class AttendanceService:
         )
         device.last_seen_at = now
         await self.session.commit()
-        occupancy = await self.crowdedness.get(force_reconcile=True)
+        occupancy = await self.crowdedness.get(gym_id=gym.id, force_reconcile=True)
         await self.realtime.publish_transition(
+            gym_id=gym.id,
             action="check_out",
             user_id=user_id,
             session_id=attendance_session.id,
@@ -312,6 +354,8 @@ class AttendanceService:
             attendance_status="checked_out",
             action="check_out",
             occurred_at=now,
+            gym_id=gym.id,
+            gym_name=gym.name,
             occupancy=occupancy,
         )
 
@@ -326,6 +370,10 @@ class AttendanceService:
         attendance_session = await self.attendance.get_session(session_id, for_update=True)
         if not attendance_session:
             raise ResourceNotFoundError("Attendance session was not found.")
+        await GymScopeService(self.session).require_access(
+            user=actor,
+            requested_gym_id=attendance_session.gym_id,
+        )
         events = await self.attendance.events_for_sessions([attendance_session.id])
         if attendance_session.status != AttendanceSessionStatus.ACTIVE.value:
             return self._session_item(attendance_session, events.get(attendance_session.id, []))
@@ -353,8 +401,9 @@ class AttendanceService:
             summary="An active attendance session was manually closed.",
         )
         await self.session.commit()
-        occupancy = await self.crowdedness.get(force_reconcile=True)
+        occupancy = await self.crowdedness.get(gym_id=attendance_session.gym_id, force_reconcile=True)
         await self.realtime.publish_transition(
+            gym_id=attendance_session.gym_id,
             action="manual_close",
             user_id=attendance_session.user_id,
             session_id=attendance_session.id,
@@ -384,23 +433,33 @@ class AttendanceService:
         await self.session.commit()
         closed = [item for item in candidates if item.status == AttendanceSessionStatus.TIMED_OUT.value]
         if closed:
-            occupancy = await self.crowdedness.get(force_reconcile=True)
+            by_gym: dict[UUID, list[AttendanceSession]] = {}
+            for attendance_session in closed:
+                by_gym.setdefault(attendance_session.gym_id, []).append(attendance_session)
             transition_request_id = realtime_request_id(request_id)
-            for index, attendance_session in enumerate(closed):
-                await self.realtime.publish_transition(
-                    action="timeout",
-                    user_id=attendance_session.user_id,
-                    session_id=attendance_session.id,
-                    occurred_at=now,
-                    occupancy=occupancy,
-                    request_id=transition_request_id,
-                    include_occupancy=index == len(closed) - 1,
-                )
+            for gym_id, gym_sessions in by_gym.items():
+                occupancy = await self.crowdedness.get(gym_id=gym_id, force_reconcile=True)
+                for index, attendance_session in enumerate(gym_sessions):
+                    await self.realtime.publish_transition(
+                        gym_id=gym_id,
+                        action="timeout",
+                        user_id=attendance_session.user_id,
+                        session_id=attendance_session.id,
+                        occurred_at=now,
+                        occupancy=occupancy,
+                        request_id=transition_request_id,
+                        include_occupancy=index == len(gym_sessions) - 1,
+                    )
         return len(closed)
 
     async def member_history(self, *, user: User, page: int, page_size: int) -> AttendancePage:
+        gym_id = await GymScopeService(self.session).effective_gym_id(user=user)
+        gym = await self.gyms.get_location(gym_id)
+        if not gym:
+            raise ResourceNotFoundError("The gym location could not be found.")
         sessions, total, events = await self.attendance.list_member_sessions(
             user_id=user.id,
+            gym_id=gym_id,
             page=page,
             page_size=page_size,
         )
@@ -409,9 +468,10 @@ class AttendanceService:
             page=PageInfo(page=page, page_size=page_size, total=total, pages=ceil(total / page_size) if total else 0),
             distinct_visit_days=await self.attendance.distinct_member_visit_days(
                 user_id=user.id,
-                gym_timezone=self.settings.GYM_TIMEZONE,
+                gym_id=gym_id,
+                gym_timezone=gym.timezone,
             ),
-            gym_timezone=self.settings.GYM_TIMEZONE,
+            gym_timezone=gym.timezone,
         )
 
     async def admin_history(self, **filters) -> AttendancePage:
@@ -429,8 +489,8 @@ class AttendanceService:
             ),
         )
 
-    async def peak_hours(self, *, date_from: datetime, date_to: datetime) -> PeakHoursResponse:
-        raw = await self.attendance.peak_hours(date_from=date_from, date_to=date_to)
+    async def peak_hours(self, *, gym_id: UUID, date_from: datetime, date_to: datetime) -> PeakHoursResponse:
+        raw = await self.attendance.peak_hours(gym_id=gym_id, date_from=date_from, date_to=date_to)
         counts = {(weekday, hour): visits for weekday, hour, visits in raw}
         labels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
         cells = [
@@ -441,19 +501,26 @@ class AttendanceService:
         busiest = max(raw, key=lambda row: row[2]) if raw else None
         today_start = datetime.combine(datetime.now(UTC).date(), time.min, tzinfo=UTC)
         visits_today = await self.attendance.visits_between(
+            gym_id=gym_id,
             date_from=today_start,
             date_to=today_start + timedelta(days=1),
         )
         return PeakHoursResponse(
             cells=cells,
-            occupancy=await self.crowdedness.get(),
+            occupancy=await self.crowdedness.get(gym_id=gym_id),
             visits_today=visits_today,
             busiest_hour=f"{labels[busiest[0]]} {busiest[1]:02d}:00" if busiest else None,
             date_from=date_from,
             date_to=date_to,
         )
 
-    async def _authenticate_device(self, device_id: str, api_key: str, *, for_update: bool = True) -> IoTDevice:
+    async def _authenticate_device(
+        self,
+        device_id: str,
+        api_key: str,
+        *,
+        for_update: bool = True,
+    ) -> tuple[IoTDevice, GymLocation]:
         if not api_key:
             raise AppError("INVALID_DEVICE", "Device credentials are required.", 401)
         device = (
@@ -463,10 +530,13 @@ class AttendanceService:
         )
         if not device or not device.is_active or not compare_digest(device.api_key_hash, hash_token(api_key)):
             raise AppError("INVALID_DEVICE", "Device credentials are invalid.", 401)
+        gym = await self.gyms.get_location(device.gym_id, active_only=True)
+        if not gym:
+            raise AppError("DEVICE_GYM_INACTIVE", "The scanner's gym location is not active.", 403)
         await rate_limits.enforce(
             self.redis, key=f"ypgym:rate:scanner:{hash_token(device.device_id)}", limit=60, window_seconds=60,
         )
-        return device
+        return device, gym
 
     @staticmethod
     def _session_item(
@@ -478,6 +548,7 @@ class AttendanceService:
     ) -> AttendanceSessionItem:
         return AttendanceSessionItem(
             id=attendance_session.id,
+            gym_id=attendance_session.gym_id,
             user_id=attendance_session.user_id,
             member_name=member_name,
             member_email=member_email,
@@ -490,6 +561,7 @@ class AttendanceService:
             events=[
                 AttendanceEventItem(
                     id=event.id,
+                    gym_id=event.gym_id,
                     event_type=event.event_type,
                     event_at=event.event_at,
                     source=event.source,

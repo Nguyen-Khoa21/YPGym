@@ -161,6 +161,8 @@ export type Broadcast = {
 };
 
 export type Crowdedness = {
+  gym_id: string;
+  gym_name: string;
   active_count: number;
   capacity: number;
   percentage: number;
@@ -168,10 +170,11 @@ export type Crowdedness = {
   calculated_at: string;
 };
 
-export type AttendanceEvent = { id: string; event_type: string; event_at: string; source: string; device_id: string | null };
+export type AttendanceEvent = { id: string; gym_id: string; event_type: string; event_at: string; source: string; device_id: string | null };
 
 export type AttendanceSession = {
   id: string;
+  gym_id: string;
   user_id: string;
   member_name: string | null;
   member_email: string | null;
