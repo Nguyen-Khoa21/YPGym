@@ -26,10 +26,11 @@ from app.schemas.attendance_schema import (
     ScannerRequest,
     ScannerResponse,
 )
-from app.schemas.analytics_schema import AnalyticsSummaryResponse
+from app.schemas.analytics_schema import AnalyticsSummaryResponse, TrafficSummaryResponse
 from app.services.analytics_service import AnalyticsService
 from app.services.attendance_service import AttendanceService, CrowdednessService, QrTokenService
 from app.services.gym_service import GymScopeService
+from app.services.traffic_analytics_service import TrafficAnalyticsService
 from app.utils.security import hash_token
 
 router = APIRouter(prefix="/attendance", tags=["attendance"])
@@ -125,6 +126,16 @@ async def crowdedness(
     return await CrowdednessService(session, redis).get(gym_id=effective_gym_id)
 
 
+@router.get("/traffic-summary", response_model=TrafficSummaryResponse)
+async def member_traffic_summary(
+    current_user: Annotated[User, Depends(require_roles("member"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> TrafficSummaryResponse:
+    gym_id = await GymScopeService(session).effective_gym_id(user=current_user)
+    return await TrafficAnalyticsService(session, redis).get(gym_id=gym_id)
+
+
 @router.get("/me", response_model=AttendancePage)
 async def my_attendance(
     current_user: Annotated[User, Depends(require_roles("member"))],
@@ -212,6 +223,22 @@ async def peak_hours(
         date_from=start,
         date_to=end,
     )
+
+
+@analytics_router.get("/traffic-summary", response_model=TrafficSummaryResponse)
+async def management_traffic_summary(
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+    gym_id: UUID | None = None,
+) -> TrafficSummaryResponse:
+    requested_gym_id = gym_id or (DISTRICT_1_GYM_ID if current_user.role == "admin" else None)
+    effective_gym_id = await GymScopeService(session).resolve_gym_id(
+        user=current_user,
+        requested_gym_id=requested_gym_id,
+    )
+    assert effective_gym_id is not None
+    return await TrafficAnalyticsService(session, redis).get(gym_id=effective_gym_id)
 
 
 @analytics_router.get("/summary", response_model=AnalyticsSummaryResponse)

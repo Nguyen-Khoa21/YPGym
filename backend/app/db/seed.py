@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from urllib.parse import urlsplit
 from uuid import NAMESPACE_URL, uuid5
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -783,18 +784,20 @@ async def _seed_demo_scenarios(
                 event.gym_id = gyms["district-1"].id
                 event.event_at = event_at
 
-    previous_month_end = today.replace(day=1) - timedelta(days=1)
-    previous_month_start = previous_month_end.replace(day=1)
     for gym_slug, email, device_id, peak_hour in (
         ("district-1", "memberdist1@ypgym.dev", "local-simulator-1", 18),
         ("district-11", "memberdist11@ypgym.dev", "local-simulator-dist11", 8),
     ):
+        gym_timezone = ZoneInfo(gyms[gym_slug].timezone)
+        local_today = now.astimezone(gym_timezone).date()
+        previous_month_end = local_today.replace(day=1) - timedelta(days=1)
+        previous_month_start = previous_month_end.replace(day=1)
         branch_member = location_users[email]
         for day_offset in range(min(14, previous_month_end.day)):
             visit_day = previous_month_start + timedelta(days=day_offset)
-            check_in = datetime.combine(visit_day, datetime.min.time(), tzinfo=UTC).replace(
+            check_in = datetime.combine(visit_day, datetime.min.time(), tzinfo=gym_timezone).replace(
                 hour=peak_hour + (day_offset % 2),
-            )
+            ).astimezone(UTC)
             fixture_id = uuid5(NAMESPACE_URL, f"ypgym:multigym-history:{gym_slug}:{day_offset}")
             fixture = await session.get(AttendanceSession, fixture_id)
             if not fixture:

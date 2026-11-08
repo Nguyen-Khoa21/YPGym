@@ -772,6 +772,8 @@
 .heatmap-wrap { overflow-x: auto; }
 .attendance-heatmap { min-width: 920px; padding: 1rem; }
 .heatmap-row { display: grid; grid-template-columns: 3.8rem repeat(24, minmax(1.55rem, 1fr)); gap: 0.2rem; margin-top: 0.2rem; }
+.attendance-heatmap--traffic { min-width: 760px; }
+.attendance-heatmap--traffic .heatmap-row { grid-template-columns: 3.8rem repeat(12, minmax(3rem, 1fr)); }
 .heatmap-row > strong,
 .heatmap-row--header > span { display: grid; place-items: center; min-height: 1.55rem; color: hsl(var(--muted-foreground)); font-size: 0.52rem; font-weight: 800; text-transform: uppercase; }
 .attendance-heatmap .heatmap-cell { display: grid; min-height: 1.55rem; place-items: center; aspect-ratio: auto; color: hsl(var(--foreground)); font-size: 0.5rem; font-weight: 800; }

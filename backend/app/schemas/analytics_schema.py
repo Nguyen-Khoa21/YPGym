@@ -1,5 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -51,3 +53,52 @@ class AnalyticsSummaryResponse(BaseModel):
     class_popularity: list[ClassPopularityPoint]
     attendance: AttendanceAnalyticsSummary
     revenue: RevenueAnalyticsSummary
+
+
+class TrafficWindowPoint(BaseModel):
+    start_hour: int = Field(ge=0, le=22)
+    end_hour: int = Field(ge=2, le=24)
+    label: str
+    average_headcount: float = Field(ge=0)
+    average_capacity_percentage: float = Field(ge=0)
+    sample_count: int = Field(ge=0)
+
+
+class WeekdayTrafficWindow(TrafficWindowPoint):
+    weekday: int = Field(ge=0, le=6)
+    weekday_label: str
+
+
+class TrafficMethodology(BaseModel):
+    sample_interval_minutes: Literal[15] = 15
+    bucket_minutes: Literal[120] = 120
+    minimum_sessions: int = Field(ge=1)
+    session_end_rule: str
+
+
+class TrafficSummaryResponse(BaseModel):
+    gym_id: UUID
+    gym_name: str
+    gym_slug: str
+    district: str
+    capacity: int = Field(gt=0)
+    timezone: str
+    period_start: datetime
+    period_end: datetime
+    generated_at: datetime
+    cache_hit: bool = False
+    data_sufficient: bool
+    insufficiency_reason: str | None = None
+    contains_demo_data: bool = False
+    overlapping_sessions: int = Field(ge=0)
+    visits: int = Field(ge=0)
+    unique_members: int = Field(ge=0)
+    average_visit_minutes: float | None = Field(default=None, ge=0)
+    sample_count: int = Field(ge=0)
+    average_headcount: float = Field(ge=0)
+    average_capacity_percentage: float = Field(ge=0)
+    busiest_window: TrafficWindowPoint | None = None
+    quietest_window: TrafficWindowPoint | None = None
+    buckets: list[TrafficWindowPoint]
+    weekday_buckets: list[WeekdayTrafficWindow]
+    methodology: TrafficMethodology

@@ -66,7 +66,8 @@ Booking, waitlist join/leave, cancellation, and promotion lock the affected `cla
 
 | Method and path | Roles | Purpose |
 |---|---|---|
-| `GET /admin/analytics/peak-hours` | Manager, admin | 168 weekday/hour check-in cells, visits today, busiest slot, and current occupancy. |
+| `GET /admin/analytics/traffic-summary` | Manager, admin | Previous completed local month, 15-minute concurrent-occupancy samples, two-hour busiest/quietest windows, and 7×12 management heatmap. |
+| `GET /admin/analytics/peak-hours` | Manager, admin | Legacy compatibility endpoint containing check-in counts; it is not a crowdedness estimate. |
 | `GET /admin/analytics/summary` | Manager, admin | Bounded (maximum 366 days) persisted membership trends, top class types and utilization, attendance patterns, successful payment totals, current occupancy, generation timestamp, and cache freshness metadata. |
 
 The summary is cached in Redis for 60 seconds by normalized date range. PostgreSQL remains the source of truth; a cache miss, expiry, or Redis read failure recomputes the aggregate. Staff and member roles receive `403 PERMISSION_DENIED`.
@@ -77,3 +78,5 @@ Metrics use timezone-aware bounds, normalized to UTC; naive timestamps, reversed
 - Popularity counts currently confirmed bookings for non-cancelled classes starting in the range. Members are distinct across every included class of the same type. Capacity is summed once per class, including classes without bookings. Utilization is confirmed bookings divided by this capacity. The ten types with most bookings are returned, ordered by type to break ties.
 - Attendance counts check-in events in the range and distinct members; average duration includes only closed visits linked to those check-ins. Peak weekday/hour buckets and today's boundary use UTC. This is attendance frequency, not simultaneous occupancy.
 - `revenue.gross_amount` is the existing API field name for the sum of successful **mock payment amounts after discounts**, in VND; it is not pre-discount list-price revenue. Failed payments are excluded. `discounts` is the separate sum of discounts on the same successful payments. No live settlement is implied.
+
+Concurrent crowdedness methodology, timezone boundaries, data sufficiency, and member-safe routes are documented in [traffic-analytics.md](traffic-analytics.md).

@@ -1,6 +1,7 @@
 from datetime import datetime
+from uuid import UUID
 
-from sqlalchemy import Date, cast, distinct, extract, func, select
+from sqlalchemy import Date, cast, distinct, extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.attendance import AttendanceEvent, AttendanceSession
@@ -105,3 +106,24 @@ class AnalyticsRepository:
             ),
         )
         return result.one()
+
+    async def attendance_sessions_overlapping(
+        self,
+        *,
+        gym_id: UUID,
+        period_start: datetime,
+        period_end: datetime,
+    ) -> list[AttendanceSession]:
+        result = await self.session.execute(
+            select(AttendanceSession)
+            .where(
+                AttendanceSession.gym_id == gym_id,
+                AttendanceSession.checked_in_at < period_end,
+                or_(
+                    AttendanceSession.closed_at.is_(None),
+                    AttendanceSession.closed_at > period_start,
+                ),
+            )
+            .order_by(AttendanceSession.checked_in_at, AttendanceSession.id),
+        )
+        return list(result.scalars().all())

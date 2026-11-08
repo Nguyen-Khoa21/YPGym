@@ -200,6 +200,48 @@ export type PeakHours = {
   date_to: string;
 };
 
+export type TrafficWindow = {
+  start_hour: number;
+  end_hour: number;
+  label: string;
+  average_headcount: number;
+  average_capacity_percentage: number;
+  sample_count: number;
+};
+
+export type TrafficSummary = {
+  gym_id: string;
+  gym_name: string;
+  gym_slug: string;
+  district: string;
+  capacity: number;
+  timezone: string;
+  period_start: string;
+  period_end: string;
+  generated_at: string;
+  cache_hit: boolean;
+  data_sufficient: boolean;
+  insufficiency_reason: string | null;
+  contains_demo_data: boolean;
+  overlapping_sessions: number;
+  visits: number;
+  unique_members: number;
+  average_visit_minutes: number | null;
+  sample_count: number;
+  average_headcount: number;
+  average_capacity_percentage: number;
+  busiest_window: TrafficWindow | null;
+  quietest_window: TrafficWindow | null;
+  buckets: TrafficWindow[];
+  weekday_buckets: (TrafficWindow & { weekday: number; weekday_label: string })[];
+  methodology: {
+    sample_interval_minutes: 15;
+    bucket_minutes: 120;
+    minimum_sessions: number;
+    session_end_rule: string;
+  };
+};
+
 export type AnalyticsSummary = {
   date_from: string;
   date_to: string;
