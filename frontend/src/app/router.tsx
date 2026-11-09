@@ -36,6 +36,7 @@ import { MembershipRequestsPage } from "@/features/member/pages/MembershipReques
 import { NotificationPreferencesPage } from "@/features/member/pages/NotificationPreferencesPage";
 import { NotificationsPage } from "@/features/member/pages/NotificationsPage";
 import { ProfileSettingsPage } from "@/features/member/pages/ProfileSettingsPage";
+import { OnboardingPage } from "@/features/onboarding/OnboardingPage";
 import { AccountSecurityPage } from "@/features/member/pages/AccountSecurityPage";
 import { AdminEmailDeliveriesPage } from "@/features/admin/pages/AdminEmailDeliveriesPage";
 import { PtDashboardPage } from "@/features/member/pages/PtDashboardPage";
@@ -99,6 +100,10 @@ export const router = createBrowserRouter([
   {
     path: routePaths.memberProfile,
     element: <ProtectedRoute><ProfileSettingsPage /></ProtectedRoute>,
+  },
+  {
+    path: routePaths.memberOnboarding,
+    element: <ProtectedRoute roles={[...clientRoleGroups.member]}><OnboardingPage /></ProtectedRoute>,
   },
   {
     path: routePaths.memberSecurity,

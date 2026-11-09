@@ -15,6 +15,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { apiRequest } from "@/lib/apiClient";
 import { applyApiFieldErrors, toUiError, type UiError } from "@/lib/apiErrors";
 import { queryClient } from "@/lib/queryClient";
+import { OnboardingForm } from "@/features/onboarding/OnboardingForm";
 import type { User } from "@/types/api";
 
 const schema = z.object({
@@ -28,7 +29,7 @@ type ProfileForm = z.infer<typeof schema>;
 const profileRows = [
   { label: "Personal information", detail: "Name, phone and protected email", icon: CircleUserRound, connected: true, href: "#personal-information" },
   { label: "Account security", detail: "Passwords and linked providers", icon: LockKeyhole, connected: true, href: "/app/security" },
-  { label: "Personalization profile", detail: "Planned after Day 20", icon: Palette, connected: false },
+  { label: "Training preferences", detail: "Questions that tune quiet hours and gym suggestions", icon: Palette, connected: true, href: "#training-preferences" },
   { label: "Notification preferences", detail: "Email, in-app, reminders, and broadcasts", icon: Bell, connected: true, href: "/app/notifications/preferences" },
 ];
 
@@ -78,6 +79,7 @@ export function ProfileSettingsPage() {
         </aside>
         <section id="personal-information" className="surface-card p-6 sm:p-8"><div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-xl bg-secondary text-foreground"><ShieldCheck className="size-5" aria-hidden /></span><div><h2 className="font-['Barlow_Condensed'] text-3xl font-bold uppercase leading-none">Personal information</h2><p className="mt-1 text-sm text-muted-foreground">Update your details and, if needed, set a new password.</p></div></div>{error ? <ErrorState className="mt-6" title={error.title} message={error.message} /> : null}<form className="mt-7 grid gap-5 sm:grid-cols-2" onSubmit={form.handleSubmit(onSubmit)}><Field><Label htmlFor="name">Full name</Label><Input id="name" autoComplete="name" {...form.register("name")} /><FieldError message={form.formState.errors.name?.message} /></Field><Field><Label htmlFor="phone">Phone number</Label><Input id="phone" autoComplete="tel" {...form.register("phone")} /><FieldError message={form.formState.errors.phone?.message} /></Field><Field className="sm:col-span-2"><Label htmlFor="email">Email address</Label><Input id="email" value={profile.data.email} disabled readOnly /><p className="text-xs leading-5 text-muted-foreground">Email edits are blocked until the re-verification workflow is implemented.</p></Field><div id="account-security" className="sm:col-span-2"><div className="mb-3 flex items-center gap-2 border-t border-border pt-6"><KeyRound className="size-4 text-primary" aria-hidden /><h3 className="text-xl font-bold">Password change</h3></div><p className="mb-4 text-xs leading-5 text-muted-foreground">Leave both fields empty to keep your current password.</p><div className="grid gap-5 sm:grid-cols-2"><Field><Label htmlFor="current_password">Current password</Label><Input id="current_password" type="password" autoComplete="current-password" {...form.register("current_password")} /><FieldError message={form.formState.errors.current_password?.message} /></Field><Field><Label htmlFor="new_password">New password</Label><Input id="new_password" type="password" autoComplete="new-password" {...form.register("new_password")} /><FieldError message={form.formState.errors.new_password?.message} /></Field></div></div><Button type="submit" className="rounded-full sm:w-fit" disabled={updateProfile.isPending}>{updateProfile.isPending ? "Saving changes..." : "Save profile"}</Button></form></section>
       </div> : null}
+      {profile.data?.role === "member" ? <section id="training-preferences" className="surface-card mt-6 p-6 sm:p-8"><h2 className="font-['Barlow_Condensed'] text-3xl font-bold uppercase leading-none">Training preferences</h2><div className="mt-5"><OnboardingForm /></div></section> : null}
     </div>
   </MemberShell>;
 }

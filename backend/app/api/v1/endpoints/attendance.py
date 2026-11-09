@@ -27,6 +27,8 @@ from app.schemas.attendance_schema import (
     ScannerResponse,
 )
 from app.schemas.analytics_schema import AnalyticsSummaryResponse, TrafficSummaryResponse
+from app.schemas.onboarding_schema import OnboardingInsightsResponse
+from app.services.onboarding_service import OnboardingService
 from app.services.analytics_service import AnalyticsService
 from app.services.attendance_service import AttendanceService, CrowdednessService, QrTokenService
 from app.services.gym_service import GymScopeService
@@ -247,6 +249,15 @@ async def management_traffic_summary(
     )
     assert effective_gym_id is not None
     return await TrafficAnalyticsService(session, redis).get(gym_id=effective_gym_id)
+
+
+@analytics_router.get("/onboarding-insights", response_model=OnboardingInsightsResponse)
+async def onboarding_insights(
+    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    gym_id: UUID | None = None,
+) -> OnboardingInsightsResponse:
+    return await OnboardingService(session).insights(user=current_user, gym_id=gym_id)
 
 
 @analytics_router.get("/summary", response_model=AnalyticsSummaryResponse)

@@ -14,6 +14,7 @@ export const routePaths = {
   membershipPurchase: "/memberships/buy/:planId",
   memberDashboard: "/app/dashboard",
   memberProfile: "/app/profile",
+  memberOnboarding: "/app/onboarding",
   memberSecurity: "/app/security",
   memberBilling: "/app/billing",
   paymentResult: "/app/payments/result",

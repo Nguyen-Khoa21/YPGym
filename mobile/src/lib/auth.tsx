@@ -24,7 +24,7 @@ async function deleteToken() {
   window.localStorage.removeItem(TOKEN_KEY);
 }
 
-type Options = { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal };
+type Options = { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal };
 type Session = {
   ready: boolean; token: string | null; user: User | null; restoreError: string | null;
   login: (email: string, password: string) => Promise<void>;

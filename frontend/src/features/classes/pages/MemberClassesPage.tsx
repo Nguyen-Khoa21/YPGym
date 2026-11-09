@@ -11,6 +11,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { PTCard } from "@/features/classes/components/PTCard";
 import { apiRequest } from "@/lib/apiClient";
 import { toUiError } from "@/lib/apiErrors";
+import { useRecommendations } from "@/features/onboarding/onboardingApi";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
 import type { ClassCheckoutResponse, ClassWaitlist, GymLocation, MemberClass, MemberClassList } from "@/types/operations";
@@ -24,6 +25,7 @@ export function MemberClassesPage() {
   const gyms = useQuery({ queryKey: ["gyms", "active"], queryFn: ({ signal }) => apiRequest<GymLocation[]>("/gyms", { signal }) });
   const classes = useQuery({ queryKey: ["classes", "upcoming", gymId], queryFn: ({ signal }) => apiRequest<MemberClassList>(`/classes/upcoming${gymId ? `?gym_id=${gymId}` : ""}`, { token, signal }) });
   const selectedGymId = gymId || classes.data?.gym_id || "";
+  const recommendedGymId = useRecommendations().data?.recommended_gym?.id ?? "";
   const gymNames = new Map(gyms.data?.map((gym) => [gym.id, gym.name]));
   const book = useMutation({
     mutationFn: (classId: string) => apiRequest<ClassCheckoutResponse>(`/classes/${classId}/checkout`, { method: "POST", token, body: { idempotency_key: crypto.randomUUID(), client_platform: "web" } }),
@@ -47,7 +49,7 @@ export function MemberClassesPage() {
 
   return <MemberShell><div className="mx-auto max-w-6xl">
     <div><p className="page-kicker">Class booking</p><h1 className="page-title">Find your next session.</h1><p className="page-description">Live capacity, trainer profiles, and your current booking state come directly from the class service.</p></div>
-    <div className="mt-7 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-[1fr_auto_auto]"><label className="flex h-11 items-center gap-2 rounded-md border border-input px-3"><Search className="size-4 text-muted-foreground" aria-hidden /><span className="sr-only">Search classes or trainers</span><input className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Search classes or trainers" value={search} onChange={(event) => setSearch(event.target.value)} /></label><select aria-label="Filter classes by gym" className="h-11 rounded-md border border-input bg-card px-3 text-sm" value={selectedGymId} onChange={(event) => setGymId(event.target.value)}><option value="">Choose a gym</option>{gyms.data?.map((gym) => <option value={gym.id} key={gym.id}>{gym.name}</option>)}</select><select aria-label="Filter classes by day" className="h-11 rounded-md border border-input bg-card px-3 text-sm" value={day} onChange={(event) => setDay(event.target.value)}><option value="all">All upcoming</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option></select></div>
+    <div className="mt-7 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-[1fr_auto_auto]"><label className="flex h-11 items-center gap-2 rounded-md border border-input px-3"><Search className="size-4 text-muted-foreground" aria-hidden /><span className="sr-only">Search classes or trainers</span><input className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Search classes or trainers" value={search} onChange={(event) => setSearch(event.target.value)} /></label><select aria-label="Filter classes by gym" className="h-11 rounded-md border border-input bg-card px-3 text-sm" value={selectedGymId} onChange={(event) => setGymId(event.target.value)}><option value="">Choose a gym</option>{gyms.data?.map((gym) => <option value={gym.id} key={gym.id}>{gym.name}{recommendedGymId === gym.id ? " · Recommended for you" : ""}</option>)}</select><select aria-label="Filter classes by day" className="h-11 rounded-md border border-input bg-card px-3 text-sm" value={day} onChange={(event) => setDay(event.target.value)}><option value="all">All upcoming</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option></select></div>
     {classes.isLoading ? <LoadingState className="mt-5" title="Loading upcoming classes" /> : null}
     {classes.isError ? <ErrorState className="mt-5" title={toUiError(classes.error).title} message={toUiError(classes.error).message} action={<Button variant="outline" onClick={() => classes.refetch()}>Retry</Button>} /> : null}
     {classes.data && !classes.data.booking_eligible ? <PermissionState className="mt-5" title="Booking unavailable" message={classes.data.eligibility_reason ?? "Verify your email to purchase a class."} /> : null}
