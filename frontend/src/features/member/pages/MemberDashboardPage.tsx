@@ -1,22 +1,28 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Bell, CalendarDays, CircleUserRound, Dumbbell, Megaphone, RefreshCw } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ArrowRight, CalendarDays, CircleUserRound, Clock3, Dumbbell, MapPin, RefreshCw } from "lucide-react";
+import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import { EmptyState, ErrorState } from "@/components/common/FeedbackState";
 import { MemberShell } from "@/components/layout/MemberShell";
 import { StatusBadge } from "@/components/operations/OperationsUi";
 import { Button } from "@/components/ui/Button";
+import { routePaths } from "@/app/routes";
 import { useAuth } from "@/features/auth/AuthContext";
+import { useOnboarding, useRecommendations } from "@/features/onboarding/onboardingApi";
 import { apiRequest } from "@/lib/apiClient";
 import { toUiError } from "@/lib/apiErrors";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import type { MemberDashboardPayload } from "@/types/operations";
 import { EmbeddedQr } from "../components/EmbeddedQr";
+import { DashboardTabs } from "../components/DashboardTabs";
+import { ExpiredMembershipPanel } from "../components/ExpiredMembershipPanel";
 import { OccupancyCard } from "../components/OccupancyCard";
 import { TrafficHistory } from "../components/TrafficHistory";
-import { dedupeNotifications, visibleQuickActions } from "../memberDashboardLogic";
+import { gymDisplayName, visibleQuickActions } from "../memberDashboardLogic";
 import { useTrafficSummary } from "../useMemberQueries";
 
+const ONBOARDING_PROMPTED_KEY = "ypgym:onboarding:prompted";
 const actionIcons = { membership: RefreshCw, classes: CalendarDays, profile: CircleUserRound };
 
 export function MemberDashboardPage() {
@@ -24,29 +30,43 @@ export function MemberDashboardPage() {
   const query = useQuery({ queryKey: ["dashboard", "me"], queryFn: ({ signal }) => apiRequest<MemberDashboardPayload>("/dashboard/me", { token, signal }), refetchInterval: 30_000 });
   const hasMembership = Boolean(query.data?.membership);
   const traffic = useTrafficSummary(hasMembership);
+  const navigate = useNavigate();
+  const onboarding = useOnboarding();
+  const recommendations = useRecommendations();
+  const onboardingStatus = onboarding.data?.status;
+  useEffect(() => {
+    // Ask the questionnaire once, right after the first login. Skipping or answering stores the status server-side.
+    if (onboardingStatus !== "not_started") return;
+    try {
+      if (window.sessionStorage.getItem(ONBOARDING_PROMPTED_KEY)) return;
+      window.sessionStorage.setItem(ONBOARDING_PROMPTED_KEY, "1");
+    } catch { /* storage unavailable: still ask once per page load */ }
+    navigate(routePaths.memberOnboarding, { replace: true });
+  }, [navigate, onboardingStatus]);
   if (query.isLoading) return <MemberShell><DashboardSkeleton /></MemberShell>;
   if (query.isError) return <MemberShell><div className="mx-auto max-w-6xl"><ErrorState title={toUiError(query.error).title} message={toUiError(query.error).message} action={<Button variant="outline" onClick={() => query.refetch()}>Retry dashboard</Button>} /></div></MemberShell>;
   if (!query.data) return null;
   const data = query.data;
   const next = data.upcoming_bookings[0];
-  const notifications = dedupeNotifications(data.recent_notifications, data.active_broadcasts);
   return <MemberShell><div className="mx-auto grid max-w-6xl gap-5">
     <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
       <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Member dashboard</p><h1 className="mt-1 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none sm:text-5xl">Hi, {data.member.name.split(" ")[0]}</h1></div>
-      <p className="text-sm font-semibold">{data.membership ? `Your gym: ${data.membership.home_gym_name}` : "No gym selected yet"}</p>
+      {data.membership ? <p className="inline-flex items-center gap-2 font-['Barlow_Condensed'] text-3xl font-bold uppercase leading-none text-primary sm:text-4xl" data-testid="member-gym"><MapPin className="size-6" aria-hidden />{gymDisplayName(data.membership.home_gym_name)}</p> : <p className="text-sm font-semibold">No gym selected yet</p>}
       {next ? <p className="w-full text-sm text-muted-foreground">Your next class is {next.gym_class.title} at {formatDateTime(next.gym_class.start_at)}.</p> : null}
     </header>
-    {data.active_broadcasts.length ? <section className="grid gap-3" aria-label="Announcements">{data.active_broadcasts.map((item) => <article className="rounded-2xl border border-secondary/60 bg-secondary/15 p-4" key={item.id}><div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-secondary"><Megaphone className="size-4" aria-hidden /></span><div className="min-w-0"><h2 className="text-base font-bold">{item.title}</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.message}</p></div></div></article>)}</section> : null}
+    <ExpiredMembershipPanel membership={data.membership} />
+    {recommendations.data?.quiet_hours ? <section className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4" aria-label="Quiet time for you"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-foreground"><Clock3 className="size-4" aria-hidden /></span><p className="text-sm"><strong>Quiet time for you: {recommendations.data.quiet_hours.label}</strong> at {recommendations.data.quiet_hours.gym_name}<span className="block text-xs text-muted-foreground">Based on last month's attendance at that gym.</span></p></section> : recommendations.data?.quiet_hours_reason ? <section className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4" aria-label="Quiet time for you"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground"><Clock3 className="size-4" aria-hidden /></span><p className="text-sm">Not enough attendance data yet to suggest a quiet time.</p></section> : null}
     {data.membership ? <>
       <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
-        {data.crowdedness ? <OccupancyCard data={data.crowdedness} /> : null}
+        <div className="grid content-start gap-5">
+          {data.crowdedness ? <OccupancyCard data={data.crowdedness} /> : null}
+          <DashboardTabs broadcasts={data.active_broadcasts} notifications={data.recent_notifications} unreadCount={data.unread_notification_count} membership={data.membership} />
+        </div>
         <EmbeddedQr eligible={data.qr_access.eligible} reason={data.qr_access.reason} />
       </div>
-      <TrafficHistory query={traffic} />
-    </> : <section className="rounded-2xl border border-border bg-card p-6"><h2 className="text-xl font-bold">Choose your gym</h2><p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Buy a membership and pick a location to see live occupancy, quiet times and your check-in code.</p><Link className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground" to="/memberships">Buy membership <ArrowRight className="size-4" aria-hidden /></Link></section>}
-    {data.membership ? <section className="rounded-2xl border border-border bg-card p-5" aria-labelledby="membership-heading"><div className="flex flex-wrap items-center justify-between gap-3"><h2 id="membership-heading" className="text-lg font-bold">Membership</h2><StatusBadge value={data.membership.status} /></div><p className="mt-3 text-sm"><strong>{data.membership.plan_name}</strong> · {data.membership.days_remaining} days remaining · expires {formatDate(data.membership.expiry_date)}</p><p className="mt-1 text-xs text-muted-foreground">{data.membership.message}</p><Link className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-primary" to="/memberships">Renew membership<ArrowRight className="size-4" aria-hidden /></Link></section> : null}
-    <section className="grid gap-5 lg:grid-cols-2"><article className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between"><div><h2 className="text-lg font-bold">Upcoming bookings</h2><p className="mt-1 text-xs text-muted-foreground">Your next three confirmed classes.</p></div><Link className="text-sm font-bold text-primary" to="/app/bookings">View all</Link></div>{data.upcoming_bookings.length ? <ul className="mt-4 grid gap-3">{data.upcoming_bookings.map((booking) => <li className="rounded-xl bg-muted/50 p-4" key={booking.id}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><strong>{booking.gym_class.title}</strong><p className="mt-1 text-xs text-muted-foreground">{formatDateTime(booking.gym_class.start_at)} / {booking.gym_class.location}</p></div><StatusBadge value={booking.status} /></div></li>)}</ul> : <EmptyState className="mt-4" title="No upcoming bookings" message="Book a class to see it here." />}{data.active_waitlists.length ? <div className="mt-5 border-t border-border pt-4"><p className="text-xs font-black uppercase tracking-wider text-muted-foreground">Active waitlists</p>{data.active_waitlists.map((entry) => <p className="mt-2 text-sm" key={entry.id}>{entry.gym_class.title} / position {entry.position}</p>)}</div> : null}</article>
-      <article className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between"><div><h2 className="text-lg font-bold">Notifications</h2><p className="mt-1 text-xs text-muted-foreground">{data.unread_notification_count} unread</p></div><Bell className="size-5 text-primary" aria-hidden /></div>{notifications.length ? <ul className="mt-4 grid gap-3">{notifications.map((item) => <li className="rounded-xl border border-border p-4" key={item.id}><strong className="text-sm">{item.title}</strong><p className="mt-1 text-xs leading-5 text-muted-foreground">{item.message}</p></li>)}</ul> : <EmptyState className="mt-4" title="No notifications" message="Booking and membership updates will appear here." />}<Link className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-primary" to="/app/notifications">Open inbox <ArrowRight className="size-4" aria-hidden /></Link></article>
+      <TrafficHistory query={traffic} gymName={data.membership.home_gym_name} />
+    </> : <><section className="rounded-2xl border border-border bg-card p-6"><h2 className="text-xl font-bold">Choose your gym</h2><p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Buy a membership and pick a location to see live occupancy, quiet times and your check-in code.</p><Link className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground" to="/memberships">Buy membership <ArrowRight className="size-4" aria-hidden /></Link></section><DashboardTabs broadcasts={data.active_broadcasts} notifications={data.recent_notifications} unreadCount={data.unread_notification_count} membership={data.membership} /></>}
+    <section className="grid gap-5"><article className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between"><div><h2 className="text-lg font-bold">Upcoming bookings</h2><p className="mt-1 text-xs text-muted-foreground">Your next three confirmed classes.</p></div><Link className="text-sm font-bold text-primary" to="/app/bookings">View all</Link></div>{data.upcoming_bookings.length ? <ul className="mt-4 grid gap-3">{data.upcoming_bookings.map((booking) => <li className="rounded-xl bg-muted/50 p-4" key={booking.id}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><strong>{booking.gym_class.title}</strong><p className="mt-1 text-xs text-muted-foreground">{formatDateTime(booking.gym_class.start_at)} / {booking.gym_class.location}</p></div><StatusBadge value={booking.status} /></div></li>)}</ul> : <EmptyState className="mt-4" title="No upcoming bookings" message="Book a class to see it here." />}{data.active_waitlists.length ? <div className="mt-5 border-t border-border pt-4"><p className="text-xs font-black uppercase tracking-wider text-muted-foreground">Active waitlists</p>{data.active_waitlists.map((entry) => <p className="mt-2 text-sm" key={entry.id}>{entry.gym_class.title} / position {entry.position}</p>)}</div> : null}</article>
     </section>
     <section className="rounded-2xl border border-border bg-card p-5"><h2 className="text-lg font-bold">Quick actions</h2><div className="mt-4 grid gap-3 sm:grid-cols-3">{visibleQuickActions(data.quick_actions).map((action) => { const Icon = actionIcons[action.key as keyof typeof actionIcons] ?? Dumbbell; return action.enabled ? <Link className="rounded-xl border border-border p-4 transition hover:-translate-y-0.5 hover:bg-muted" to={action.target} key={action.key}><Icon className="size-5 text-primary" aria-hidden /><strong className="mt-3 block text-sm">{action.label}</strong></Link> : <div className="rounded-xl border border-border bg-muted/40 p-4 text-muted-foreground" aria-disabled="true" title={action.reason ?? undefined} key={action.key}><Icon className="size-5" aria-hidden /><strong className="mt-3 block text-sm">{action.label}</strong><span className="mt-1 block text-xs">Unavailable</span></div>; })}</div></section>
   </div></MemberShell>;

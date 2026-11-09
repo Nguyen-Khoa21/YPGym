@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/Button";
 import { toUiError } from "@/lib/apiErrors";
 import { formatDate } from "@/lib/format";
 import type { TrafficSummary, TrafficWindow } from "@/types/operations";
-import { buildHistoryView, formatPercentage, INSUFFICIENT_DATA_TITLE } from "../memberDashboardLogic";
+import { buildHistoryView, formatPercentage, INSUFFICIENT_DATA_TITLE, occupancyHeading } from "../memberDashboardLogic";
 
 /** Last month's busiest and quietest windows plus the two-hour pattern for the member's gym. */
-export function TrafficHistory({ query }: { query: UseQueryResult<TrafficSummary> }) {
+export function TrafficHistory({ query, gymName }: { query: UseQueryResult<TrafficSummary>; gymName?: string | null }) {
   return <section className="rounded-2xl border border-border bg-card p-5 sm:p-6" aria-labelledby="history-heading">
-    <h2 id="history-heading" className="text-lg font-bold">When is it quiet?</h2>
+    <h2 id="history-heading" className="text-lg font-bold">{occupancyHeading(query.data?.gym_name ?? gymName)}</h2>
     <Body query={query} />
   </section>;
 }

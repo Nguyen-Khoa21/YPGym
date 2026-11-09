@@ -16,14 +16,16 @@ async function noHorizontalScroll(page: Page) {
 }
 
 for (const [email, gym] of [["memberdist1@ypgym.dev", "District 1"], ["memberdist11@ypgym.dev", "District 11"]] as const) {
-  for (const [label, viewport] of [["375px", { width: 375, height: 800 }], ["1280px", { width: 1280, height: 900 }]] as const) {
+  for (const [label, viewport] of [["390px", { width: 390, height: 844 }], ["1280px", { width: 1280, height: 900 }]] as const) {
     test(`dashboard for ${gym} at ${label}`, async ({ page }) => {
       const urls: string[] = [];
       page.on("request", (request) => urls.push(request.url()));
       await page.setViewportSize(viewport);
       await login(page, email);
-      await expect(page.getByText(`Your gym: YPGym ${gym}`)).toBeVisible();
-      await expect(page.getByRole("heading", { name: /Live occupancy/ })).toContainText(gym);
+      await expect(page.getByTestId("member-gym")).toHaveText(`YPGym ${gym}`);
+      await expect(page.getByRole("heading", { name: "Live occupancy" })).toBeVisible();
+      await expect(page.getByRole("tab", { name: /Important/ })).toBeVisible();
+      await expect(page.getByRole("heading", { name: `YPGym ${gym}'s Occupancy` })).toBeVisible();
       await expect(page.getByLabel("Rotating YPGym attendance QR code")).toBeVisible();
       await expect(page.getByText(/Refreshes in/)).toBeVisible();
       await expect(page.getByRole("link", { name: "Open full QR page" })).toBeVisible();
@@ -38,12 +40,28 @@ for (const [email, gym] of [["memberdist1@ypgym.dev", "District 1"], ["memberdis
       await page.getByRole("link", { name: "Open full QR page" }).click();
       await expect(page).toHaveURL(/\/app\/qr/);
       await expect(page.getByText(`Your gym: YPGym ${gym}`)).toBeVisible();
-      await expect(page.getByRole("heading", { name: "When is it quiet?" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: `YPGym ${gym}'s Occupancy` })).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: `test-results/qr-${gym.replace(" ", "")}-${label}.png`, fullPage: true });
     });
   }
 }
+
+test("dashboard tabs switch by mouse and keyboard", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await login(page, "memberdist1@ypgym.dev");
+  const important = page.getByRole("tab", { name: /Important/ });
+  const membership = page.getByRole("tab", { name: "Membership" });
+  await membership.click();
+  await expect(membership).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel", { name: "Membership" })).toBeVisible();
+  await membership.press("ArrowLeft");
+  await expect(important).toHaveAttribute("aria-selected", "true");
+  await expect(important).toBeFocused();
+  await important.press("ArrowRight");
+  await expect(membership).toHaveAttribute("aria-selected", "true");
+  await noHorizontalScroll(page);
+});
 
 test("the QR code changes when the token rotates", async ({ page }) => {
   let issued = 0;

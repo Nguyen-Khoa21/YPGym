@@ -51,3 +51,49 @@ export function dedupeNotifications(notifications: NotificationItem[], broadcast
 export function formatPercentage(value: number): string {
   return `${Math.round(value)}%`;
 }
+
+/** "District 1" and "YPGym District 1" both read as "YPGym District 1"; the prefix is never doubled. */
+export function gymDisplayName(name: string | null | undefined): string | null {
+  const trimmed = name?.trim();
+  if (!trimmed) return null;
+  return /^ypgym\b/i.test(trimmed) ? trimmed : `YPGym ${trimmed}`;
+}
+
+/** Heading of the occupancy history. Falls back to a plain word while no gym name is known. */
+export function occupancyHeading(name: string | null | undefined): string {
+  const display = gymDisplayName(name);
+  return display ? `${display}'s Occupancy` : "Occupancy";
+}
+
+export type DashboardTab = "important" | "membership";
+export type ImportantItem = { kind: "broadcast" | "notification"; id: string; title: string; message: string };
+
+/** Active broadcasts first, then unread notifications, each message once, at most `limit` items. */
+export function importantItems(broadcasts: Broadcast[], notifications: NotificationItem[], limit = 5): ImportantItem[] {
+  const unread = dedupeNotifications(notifications, broadcasts).filter((item) => item.read_at === null);
+  return [
+    ...broadcasts.map((item) => ({ kind: "broadcast" as const, id: item.id, title: item.title, message: item.message })),
+    ...unread.map((item) => ({ kind: "notification" as const, id: item.id, title: item.title, message: item.message })),
+  ].slice(0, limit);
+}
+
+/** Open on Important when there is something to read, otherwise on Membership. */
+export function defaultDashboardTab(unreadCount: number, broadcastCount: number): DashboardTab {
+  return unreadCount > 0 || broadcastCount > 0 ? "important" : "membership";
+}
+
+/** Unread badge text: nothing at 0 and "99+" above 99. */
+export function formatBadgeCount(count: number): string {
+  if (count <= 0) return "";
+  return count > 99 ? "99+" : String(count);
+}
+
+/** Arrow-key navigation across tabs. Returns the index to focus, or null when the key is not a tab key. */
+export function nextTabIndex(current: number, key: string, count: number): number | null {
+  if (count <= 0) return null;
+  if (key === "ArrowRight") return (current + 1) % count;
+  if (key === "ArrowLeft") return (current - 1 + count) % count;
+  if (key === "Home") return 0;
+  if (key === "End") return count - 1;
+  return null;
+}

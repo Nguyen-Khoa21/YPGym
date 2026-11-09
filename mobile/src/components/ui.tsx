@@ -44,9 +44,10 @@ export function Brand({ right }: { right?: ReactNode }) {
   </View>;
 }
 
-export function IconButton({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
+export function IconButton({ icon, label, onPress, badge }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void; badge?: string }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={6} onPress={onPress} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
     <Ionicons name={icon} size={23} color={colors.primary} />
+    {badge ? <View style={styles.badge} accessible={false} importantForAccessibility="no-hide-descendants"><Text style={styles.badgeText}>{badge}</Text></View> : null}
   </Pressable>;
 }
 
@@ -122,6 +123,8 @@ const styles = StyleSheet.create({
   brandName: { color: colors.primary, fontSize: 23, fontWeight: '900', letterSpacing: 1.2 },
   brandRight: { minWidth: 48, alignItems: 'flex-end' },
   iconButton: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySurface },
+  badge: { position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.danger, borderWidth: 2, borderColor: colors.white },
+  badgeText: { color: colors.white, fontSize: 11, lineHeight: 14, fontWeight: '900' },
   headingBlock: { gap: 6, marginBottom: spacing.lg },
   pageTop: { minHeight: 68, flexDirection: 'row', alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, marginBottom: spacing.lg },
   back: { width: 48, height: 48, marginLeft: -8, marginRight: 4, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },

@@ -26,7 +26,7 @@ Member only. Admin, manager, staff and PT never see these pages. The backend, no
 
 | ID | Requirement |
 |---|---|
-| FR-DASH-001 | The dashboard header is compact: a short greeting and the text "Your gym: {home_gym_name}" near the top. The current large hero is removed or reduced to this header. |
+| FR-DASH-001 | *Replaced by FR-UIX-001 (Package 14).* The header shows the member's gym as a prominent map-pin label (for example "YPGym District 1") next to the greeting; the small "Your gym: ..." text is removed. |
 | FR-DASH-002 | The most prominent block shows live occupancy of the home gym: `active_count` of `capacity`, `percentage`, and the `status` label, with the gym name. |
 | FR-DASH-003 | A "Busiest time last month" card and a "Quietest time last month" card show the `label` and `average_capacity_percentage` of `busiest_window` and `quietest_window` from the traffic summary. |
 | FR-DASH-004 | A Recharts chart shows average capacity percentage by two-hour window from `buckets`, in window order. It has a visible legend or axis labels, an accessible tooltip, and a text fallback listing each window and its percentage. |
@@ -36,8 +36,8 @@ Member only. Admin, manager, staff and PT never see these pages. The backend, no
 | FR-DASH-008 | A button under the embedded QR opens the full QR page (`/app/qr`). |
 | FR-DASH-009 | The QR item is removed from Quick actions. The backend no longer returns a `qr` quick action, and the page does not render one. |
 | FR-DASH-010 | When `qr_access.eligible` is false, the QR area shows `qr_access.reason` and a link to the membership page. No token request is made. |
-| FR-DASH-011 | Notifications and upcoming bookings use the space recovered from the smaller header. The list of recent notifications and active broadcasts is shown once, without duplicating the same item in both. |
-| FR-DASH-012 | Membership information (plan, status, expiry, days remaining) stays visible in a compact card below the live facility status. |
+| FR-DASH-011 | *Replaced by FR-UIX-003 (Package 14).* Broadcasts and unread notifications live in the "Important" tab of one card under the compact occupancy card, each item once. Upcoming bookings keep their own card. |
+| FR-DASH-012 | *Replaced by FR-UIX-003 (Package 14).* Membership information (plan, status, expiry, days remaining) is the "Membership" tab of the same card. |
 | FR-DASH-013 | The full QR page shows the home gym name and district, that gym's live capacity, and the same historical summary. It keeps the existing token refresh, countdown, error states and recent attendance list. |
 | FR-DASH-014 | Every data block has loading, error (with retry), empty and, where relevant, expired or unauthorized states. A failure in the traffic summary does not hide the QR or the membership card. |
 | FR-DASH-015 | The layout works from phone width (no horizontal page scroll, 16 px gutters) up to desktop. |

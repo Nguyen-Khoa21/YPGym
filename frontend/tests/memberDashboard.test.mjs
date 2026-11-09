@@ -50,3 +50,49 @@ test("window labels read as clock times", () => {
   assert.equal(shortHourLabel(12), "12 PM");
   assert.equal(shortHourLabel(18), "6 PM");
 });
+
+const { defaultDashboardTab, formatBadgeCount, gymDisplayName, importantItems, nextTabIndex, occupancyHeading } = await import("../src/features/member/memberDashboardLogic.ts");
+
+test("the occupancy heading never doubles the YPGym prefix", () => {
+  assert.equal(occupancyHeading("YPGym District 11"), "YPGym District 11's Occupancy");
+  assert.equal(occupancyHeading("District 1"), "YPGym District 1's Occupancy");
+  assert.equal(occupancyHeading("ypgym District 1"), "ypgym District 1's Occupancy");
+  assert.equal(occupancyHeading(null), "Occupancy");
+  assert.equal(occupancyHeading("  "), "Occupancy");
+  assert.equal(gymDisplayName("YPGym District 1"), "YPGym District 1");
+});
+
+test("important items list broadcasts first, then unread notifications, each once and at most five", () => {
+  const broadcasts = [{ id: "b1", title: "Closed Friday", message: "Holiday" }];
+  const notifications = [
+    { id: "n1", title: "Closed Friday", message: "Holiday", read_at: null },
+    { id: "n2", title: "Booked", message: "Yoga", read_at: null },
+    { id: "n3", title: "Old", message: "Read already", read_at: "2026-01-01T00:00:00Z" },
+  ];
+  assert.deepEqual(importantItems(broadcasts, notifications).map((item) => item.id), ["b1", "n2"]);
+  const many = Array.from({ length: 9 }, (_, index) => ({ id: `n${index}`, title: `T${index}`, message: "m", read_at: null }));
+  assert.equal(importantItems(broadcasts, many).length, 5);
+  assert.deepEqual(importantItems([], []), []);
+});
+
+test("the default tab is Important only when there is something to read", () => {
+  assert.equal(defaultDashboardTab(0, 0), "membership");
+  assert.equal(defaultDashboardTab(2, 0), "important");
+  assert.equal(defaultDashboardTab(0, 1), "important");
+});
+
+test("badge counts hide at zero and cap at 99+", () => {
+  assert.equal(formatBadgeCount(0), "");
+  assert.equal(formatBadgeCount(3), "3");
+  assert.equal(formatBadgeCount(99), "99");
+  assert.equal(formatBadgeCount(120), "99+");
+});
+
+test("arrow keys move between tabs and wrap", () => {
+  assert.equal(nextTabIndex(0, "ArrowRight", 2), 1);
+  assert.equal(nextTabIndex(1, "ArrowRight", 2), 0);
+  assert.equal(nextTabIndex(0, "ArrowLeft", 2), 1);
+  assert.equal(nextTabIndex(1, "Home", 2), 0);
+  assert.equal(nextTabIndex(0, "End", 2), 1);
+  assert.equal(nextTabIndex(0, "a", 2), null);
+});

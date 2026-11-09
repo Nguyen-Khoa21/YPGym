@@ -43,6 +43,6 @@ export function MemberQrPage() {
         <Panel title="Recent attendance" detail="Your five latest persisted sessions.">{attendance.isLoading ? <LoadingState className="m-4" title="Loading recent visits" /> : null}{attendance.isError ? <ErrorState className="m-4" title={toUiError(attendance.error).title} message={toUiError(attendance.error).message} /> : null}{attendance.data?.items.length === 0 ? <EmptyState className="m-4" title="No visits yet" message="Your first successful scanner check-in will appear here." /> : null}<div className="grid gap-2 p-4">{attendance.data?.items.map((item) => <article className="flex items-center gap-3 rounded-xl border border-border p-3" key={item.id}><span className="grid size-9 place-items-center rounded-xl bg-secondary"><QrCode className="size-4" /></span><div className="min-w-0 flex-1"><strong className="block text-sm">{formatDateTime(item.checked_in_at)}</strong><small className="text-xs text-muted-foreground">{item.device_id ?? item.source}</small></div><StatusBadge value={item.status} /></article>)}</div></Panel>
       </div>
     </div> : null}
-    <div className="mt-5"><TrafficHistory query={traffic} /></div>
+    <div className="mt-5"><TrafficHistory query={traffic} gymName={crowdedness.data?.gym_name ?? dashboard.data?.membership?.home_gym_name} /></div>
   </div></MemberShell>;
 }
