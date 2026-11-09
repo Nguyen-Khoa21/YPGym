@@ -2,13 +2,22 @@ from datetime import date
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import require_roles
+from app.core.rate_limit import rate_limits
+from app.db.redis import get_redis_client
 from app.db.session import get_db_session
 from app.models.user import User
+from app.schemas.membership_schema import PurchaseMembershipResponse
+from app.schemas.payment_schema import PayOSCreateResponse
 from app.schemas.staff_schema import (
+    InPersonMemberRegister,
+    InPersonMemberRegistered,
+    StaffMembershipPaymentRequest,
+    StaffPaymentStatus,
     MyStaffShifts,
     StaffAccountCreate,
     StaffAccountCreated,
@@ -16,7 +25,9 @@ from app.schemas.staff_schema import (
     StaffShiftItem,
     StaffShiftPage,
 )
+from app.services.in_person_service import InPersonMemberService
 from app.services.staff_service import StaffOperationsService
+from app.utils.security import hash_token
 
 router = APIRouter(prefix="/staff", tags=["staff time clock"])
 admin_router = APIRouter(prefix="/admin", tags=["staff administration"])
@@ -44,6 +55,65 @@ async def clock_out(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> StaffShiftItem:
     return await StaffOperationsService(session).clock_out(user=current_user)
+
+
+async def _limit_in_person(redis: Redis, actor: User, action: str, limit: int) -> None:
+    await rate_limits.enforce(
+        redis,
+        key=f"ypgym:rate:in-person-{action}:{hash_token(str(actor.id))}",
+        limit=limit,
+        window_seconds=3600,
+    )
+
+
+@router.post("/members", response_model=InPersonMemberRegistered, status_code=201)
+async def register_in_person_member(
+    payload: InPersonMemberRegister,
+    response: Response,
+    current_user: Annotated[User, Depends(require_roles("staff", "manager", "admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> InPersonMemberRegistered:
+    await _limit_in_person(redis, current_user, "register", 30)
+    response.headers["Cache-Control"] = "no-store"
+    return await InPersonMemberService(session).register(actor=current_user, payload=payload)
+
+
+@router.post("/members/{user_id}/membership-checkout", response_model=PayOSCreateResponse, status_code=201)
+async def create_member_qr_checkout(
+    user_id: UUID,
+    payload: StaffMembershipPaymentRequest,
+    response: Response,
+    current_user: Annotated[User, Depends(require_roles("staff", "manager", "admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> PayOSCreateResponse:
+    await _limit_in_person(redis, current_user, "checkout", 60)
+    response.headers["Cache-Control"] = "no-store"
+    return await InPersonMemberService(session).create_qr_checkout(actor=current_user, user_id=user_id, payload=payload)
+
+
+@router.post("/members/{user_id}/membership-cash", response_model=PurchaseMembershipResponse)
+async def record_member_cash_payment(
+    user_id: UUID,
+    payload: StaffMembershipPaymentRequest,
+    current_user: Annotated[User, Depends(require_roles("staff", "manager", "admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> PurchaseMembershipResponse:
+    await _limit_in_person(redis, current_user, "cash", 60)
+    return await InPersonMemberService(session).record_cash(actor=current_user, user_id=user_id, payload=payload)
+
+
+@router.get("/payments/{payment_id}", response_model=StaffPaymentStatus)
+async def staff_payment_status(
+    payment_id: UUID,
+    response: Response,
+    current_user: Annotated[User, Depends(require_roles("staff", "manager", "admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> StaffPaymentStatus:
+    response.headers["Cache-Control"] = "no-store"
+    return await InPersonMemberService(session).payment_status(actor=current_user, payment_id=payment_id)
 
 
 @admin_router.get("/staff-accounts", response_model=StaffAccountPage)

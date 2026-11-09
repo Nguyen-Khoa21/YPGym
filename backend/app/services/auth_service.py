@@ -48,10 +48,8 @@ class AuthService:
         self.notifications = NotificationRepository(session)
         self.settings = get_settings()
 
-    async def register(self, payload: RegisterRequest) -> RegisterResponse:
-        email = payload.email.lower()
-        phone = payload.phone.strip()
-
+    async def ensure_identity_available(self, *, email: str, phone: str) -> None:
+        """Shared by online and in-person registration so both return identical duplicate errors."""
         if await self.users.get_by_email(email):
             raise AppError(
                 code="EMAIL_ALREADY_EXISTS",
@@ -65,6 +63,11 @@ class AuthService:
                 message="An account with this phone number already exists.",
                 status_code=409,
             )
+
+    async def register(self, payload: RegisterRequest) -> RegisterResponse:
+        email = payload.email.lower()
+        phone = payload.phone.strip()
+        await self.ensure_identity_available(email=email, phone=phone)
 
         try:
             user = await self.users.create(

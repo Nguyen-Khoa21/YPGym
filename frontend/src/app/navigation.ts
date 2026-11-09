@@ -90,7 +90,7 @@ export function navigationForRole<T extends { roles: readonly UserRole[] }>(item
 }
 
 const staffNavigation = [
-  { to: routePaths.staffTimeClock, label: "Time clock" },
+  { to: routePaths.staffTimeClock, label: "Workspace" },
   { to: routePaths.adminAttendance, label: "Attendance operations" },
   { to: routePaths.memberProfile, label: "Account" },
 ] satisfies readonly NavigationItem[];

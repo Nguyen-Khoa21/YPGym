@@ -6,6 +6,7 @@ import { Text, View } from 'react-native';
 import { Action, Brand, Card, Field, Heading, Message, Screen, textStyles } from '@/components/ui';
 import { apiRequest, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { mustChangePassword } from '@/lib/forcedPassword';
 import { colors } from '@/lib/theme';
 import { SocialLoginActions } from '@/components/SocialLoginActions';
 
@@ -17,13 +18,13 @@ export default function Login() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const health = useQuery({ queryKey: ['health'], queryFn: () => apiRequest<{ status: string }>('/health'), retry: false });
-  if (token && user) return <Redirect href="/(member)/(tabs)/dashboard" />;
+  if (token && user) return <Redirect href={mustChangePassword(user) ? '/change-password' as Href : '/(member)/(tabs)/dashboard'} />;
   async function submit() {
     const nextErrors = { ...(!email.trim() ? { email: 'Enter your email address.' } : {}), ...(!password ? { password: 'Enter your password.' } : {}) };
     setFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
     setBusy(true); setError('');
-    try { await login(email.trim(), password); router.replace('/(member)/(tabs)/dashboard'); }
+    try { await login(email.trim(), password); }
     catch (caught) { setError(errorMessage(caught)); }
     finally { setBusy(false); }
   }

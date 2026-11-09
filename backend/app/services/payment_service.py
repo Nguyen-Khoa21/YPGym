@@ -57,7 +57,7 @@ class PayOSPaymentService:
     def _description(order_code: int) -> str:
         return f"YPG{order_code % 1_000_000:06d}"
 
-    async def _attach_payment_link(self, payment) -> None:
+    async def _attach_payment_link(self, payment) -> str | None:
         response = await self._client().create_payment_link(
             order_code=payment.payos_order_code,
             amount=payment.amount_vnd,
@@ -68,9 +68,37 @@ class PayOSPaymentService:
             raise AppError("PAYOS_RESPONSE_MISMATCH", "The payment provider returned inconsistent checkout data.", 502)
         payment.payment_link_id = response.payment_link_id
         payment.checkout_url = response.checkout_url
+        return getattr(response, "qr_code", None)
 
-    async def create_payment(self, *, user: User, payload: PayOSCreateRequest) -> PayOSCreateResponse:
+    async def create_payment(
+        self,
+        *,
+        user: User,
+        payload: PayOSCreateRequest,
+        actor: User | None = None,
+        idempotency_key: str | None = None,
+    ) -> PayOSCreateResponse:
+        """Create a pending payOS checkout. With `actor`, staff create it on behalf of `user` at the actor's gym."""
         self._client()
+        stored_key = f"staff-qr:{idempotency_key}" if actor and idempotency_key else None
+        if stored_key:
+            existing = await self.payments.get_by_idempotency_key(user_id=user.id, idempotency_key=stored_key)
+            if existing:
+                if existing.plan_id != payload.membership_plan_id:
+                    raise AppError(
+                        "IDEMPOTENCY_KEY_REUSED",
+                        "Use a new payment key when changing the membership plan.",
+                        409,
+                    )
+                return PayOSCreateResponse(
+                    transaction_id=existing.id,
+                    order_code=existing.payos_order_code,
+                    checkout_url=existing.checkout_url,
+                    amount_vnd=existing.amount_vnd,
+                    expires_at=existing.expires_at,
+                    gym_id=existing.gym_id,
+                    gym_name=existing.gym.name,
+                )
         await self.memberships.validate_self_service_eligibility(user)
         plan = await self.plans.get_by_id(payload.membership_plan_id)
         if not plan or not plan.is_active:
@@ -78,6 +106,7 @@ class PayOSPaymentService:
         gym = await self.memberships.resolve_purchase_gym(
             user=user,
             requested_gym_id=payload.gym_id,
+            actor=actor,
         )
         current_membership = await self.memberships.memberships.get_current_for_user(user.id)
         quote = await self.memberships.attendance_benefit_quote(
@@ -106,7 +135,7 @@ class PayOSPaymentService:
                 membership_id=current_membership.id if quote.pricing.transaction_kind == "renewal" else None,
                 plan_id=plan.id,
                 product_type="membership",
-                idempotency_key=f"payos:{order_code}",
+                idempotency_key=stored_key or f"payos:{order_code}",
                 amount=final_amount,
                 amount_vnd=int(integral_amount),
                 discount_amount=discount_amount,
@@ -129,7 +158,7 @@ class PayOSPaymentService:
                     409,
                 ) from exc
             raise
-        await self._attach_payment_link(payment)
+        qr_code = await self._attach_payment_link(payment)
         await self._commit_payment()
         return PayOSCreateResponse(
             transaction_id=payment.id,
@@ -139,6 +168,7 @@ class PayOSPaymentService:
             expires_at=payment.expires_at,
             gym_id=gym.id,
             gym_name=gym.name,
+            qr_code=qr_code,
         )
 
     async def create_class_payment(

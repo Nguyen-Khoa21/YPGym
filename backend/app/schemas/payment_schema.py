@@ -23,6 +23,7 @@ class PayOSCreateResponse(BaseModel):
     expires_at: datetime
     gym_id: UUID
     gym_name: str
+    qr_code: str | None = None
 
 
 class PaymentStatusResponse(BaseModel):

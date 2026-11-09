@@ -500,3 +500,17 @@ export type WorkforceGymAssignment = {
   is_active: boolean;
   created_at: string;
 };
+
+export type InPersonMemberRegistered = {
+  member: { id: string; name: string; email: string; phone: string | null; gym_id: string; gym_name: string };
+  temporary_password: string;
+  message: string;
+};
+
+export type StaffPaymentStatus = {
+  id: string;
+  status: string;
+  member_name: string;
+  plan_name: string | null;
+  gym_name: string;
+};

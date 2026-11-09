@@ -85,6 +85,7 @@ export type PayOSCreateResponse = {
   expires_at: string;
   gym_id: string;
   gym_name: string;
+  qr_code?: string | null;
 };
 
 export type PaymentStatus = {

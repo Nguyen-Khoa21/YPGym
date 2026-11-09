@@ -194,9 +194,12 @@ class MembershipService:
         payload: PurchaseMembershipRequest,
         actor: User | None = None,
         manual_reason: str | None = None,
+        cash: bool = False,
     ) -> PurchaseMembershipResponse:
         operator = actor or current_user
         manual = operator.id != current_user.id
+        if cash and not manual:
+            raise AppError("CASH_REQUIRES_STAFF", "Cash payments are recorded by staff only.", 403)
         if not manual:
             await self.validate_self_service_eligibility(current_user)
         gym = await self.resolve_purchase_gym(
@@ -279,7 +282,10 @@ class MembershipService:
             )
 
         transaction_date = datetime.now(UTC)
-        payment_reference = f"STAFF-{uuid4().hex[:12].upper()}" if manual else f"MOCK-{uuid4().hex[:12].upper()}"
+        if cash:
+            payment_reference = f"CASH-{uuid4().hex[:12].upper()}"
+        else:
+            payment_reference = f"STAFF-{uuid4().hex[:12].upper()}" if manual else f"MOCK-{uuid4().hex[:12].upper()}"
         try:
             payment = await self.payments.create(
                 gym_id=gym.id,
@@ -291,6 +297,7 @@ class MembershipService:
                 discount_amount=discount_amount,
                 status=PaymentStatus.SUCCEEDED.value,
                 mock_reference=payment_reference,
+                provider="cash" if cash else "mock",
                 attendance_benefit_period_start=quote.period_start if quote and quote.available else None,
                 discount_details=quote.model_dump(mode="json") if quote else None,
             )
@@ -357,12 +364,16 @@ class MembershipService:
             await AuditRepository(self.session).create(
                 actor_user_id=operator.id,
                 target_user_id=current_user.id,
-                action="membership.manual_enrollment.created",
+                action="membership.cash_payment.recorded" if cash else "membership.manual_enrollment.created",
                 entity_type="membership",
                 entity_id=str(membership.id),
                 reason=manual_reason,
                 outcome=f"{plan.name} · {final_amount}",
-                summary=f"Staff manually enrolled a member at {gym.name} and issued a membership invoice.",
+                summary=(
+                    f"Staff recorded a cash payment at {gym.name} and issued a membership invoice."
+                    if cash
+                    else f"Staff manually enrolled a member at {gym.name} and issued a membership invoice."
+                ),
             )
 
         try:
@@ -380,7 +391,11 @@ class MembershipService:
         await self.session.refresh(invoice)
 
         return self._purchase_response(
-            message="Membership manually enrolled successfully." if manual else "Membership purchase successful.",
+            message=(
+                "Cash payment recorded and membership activated."
+                if cash
+                else "Membership manually enrolled successfully." if manual else "Membership purchase successful."
+            ),
             membership=membership,
             payment=payment,
             invoice=invoice,

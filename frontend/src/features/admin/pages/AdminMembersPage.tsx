@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Download, Search, UserRoundPlus } from "lucide-react";
+import { Download, Search, UserPlus, UserRoundPlus } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -12,6 +12,8 @@ import { DataTable } from "@/components/operations/DataTable";
 import { MetricCard, OperationsHeader, Pagination, Panel, StatusBadge } from "@/components/operations/OperationsUi";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthContext";
+import { useOperationsScope } from "@/features/operations/useOperationsScope";
+import { InPersonRegistrationDialog } from "@/features/staff/components/InPersonRegistrationDialog";
 import { apiRequest, downloadApiFile } from "@/lib/apiClient";
 import { toUiError } from "@/lib/apiErrors";
 import { formatDate } from "@/lib/format";
@@ -30,6 +32,8 @@ export function AdminMembersPage() {
   const { token, user } = useAuth();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get("search") ?? "");
+  const [registering, setRegistering] = useState(false);
+  const scope = useOperationsScope();
   const page = Number(params.get("page") ?? "1");
   const queryString = params.toString();
   const members = useQuery({
@@ -58,7 +62,7 @@ export function AdminMembersPage() {
   }
 
   return <AdminShell><div className="mx-auto max-w-7xl">
-    <OperationsHeader kicker="Member CRM" title="Know every member." description="Search and filter live profiles, membership state and expiry data without exposing account secrets." actions={user?.role === "admin" ? <Button variant="outline" onClick={exportCsv}><Download className="size-4" /> Export filtered CSV</Button> : undefined} />
+    <OperationsHeader kicker="Member CRM" title="Know every member." description="Search and filter live profiles, membership state and expiry data without exposing account secrets." actions={<><Button disabled={!scope.ready} onClick={() => setRegistering(true)}><UserPlus className="size-4" /> Register new member</Button>{user?.role === "admin" ? <Button variant="outline" onClick={exportCsv}><Download className="size-4" /> Export filtered CSV</Button> : null}</>} />
     {members.data ? <div className="ops-metrics"><MetricCard label="Visible records" value={members.data.summary.total} detail="Current filter set" /><MetricCard label="Active" value={members.data.summary.active} tone="forest" /><MetricCard label="Expiring soon" value={members.data.summary.expiring_soon} tone="lime" /><MetricCard label="Needs attention" value={members.data.summary.expired_or_inactive + members.data.summary.frozen} tone="coral" /></div> : null}
     <Panel title="Member directory" detail="Filters are encoded in the URL and applied by PostgreSQL.">
       <form className="ops-toolbar" onSubmit={(event) => { event.preventDefault(); updateParam("search", search); }}>
@@ -76,5 +80,6 @@ export function AdminMembersPage() {
       {members.data?.items.length ? <><DataTable columns={columns} data={members.data.items} getRowId={(row) => row.id} label="Member CRM results" /><Pagination page={page} pages={members.data.page.pages} total={members.data.page.total} onPage={(nextPage) => { const next = new URLSearchParams(params); next.set("page", String(nextPage)); setParams(next); }} /></> : null}
     </Panel>
     <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><UserRoundPlus className="size-4" /> New accounts enter this directory through the real registration and seed flows.</p>
+    {registering ? <InPersonRegistrationDialog scope={scope} onClose={() => { setRegistering(false); void members.refetch(); }} /> : null}
   </div></AdminShell>;
 }

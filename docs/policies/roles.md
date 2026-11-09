@@ -60,6 +60,9 @@ Cross-gym access by a non-owner returns `403`. A workforce account with no activ
 | Membership requests list and freeze or cancellation decisions | No | Own gym; deciding another gym's request is `403` | Any gym |
 | Staff account list (`/admin/staff-accounts`) | No | Own gym; each account shows its gym | Any gym, or one chosen with `gym_id` |
 | Create staff or PT account | No | Forced to the own gym; naming another is `403` | Must choose a gym |
+| Register a walk-in member (`POST /staff/members`) | Own gym, on shift | Own gym | Must send `gym_id` (`422` otherwise) |
+| QR checkout or cash payment for a walk-in member | Own gym, on shift, only members registered in person whose membership (if any) is at the own gym | Same as staff | Any member |
+| Poll a staff-created QR payment (`GET /staff/payments/{id}`) | Own gym, on shift | Own gym | Any gym |
 
 Package 13 closed gaps where the CRM list and detail, membership requests, staff accounts and staff shifts were not yet limited to the manager's gym. Known remaining gap: the audit log (`/admin/audit-logs`) has no gym column and is still readable by managers across gyms; it needs a gym field on audit rows to be scoped.
 

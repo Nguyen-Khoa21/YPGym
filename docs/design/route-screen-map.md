@@ -45,7 +45,7 @@ Aliases `/member`, `/profile`, and `/billing` redirect to their canonical `/app/
 | PT profiles | `/admin/pt-assignments` | Manager/admin | `/admin/trainers`, `/admin/classes/trainers` | Connected create/edit/deactivate, active/inactive filters, assigned-class deactivation guard, confirmation, and audit |
 | YPTrain catalogue | `/admin/exercises` | Manager/admin | `/admin/training/exercises`, image upload | Shared record create/edit/archive/restore, search/filter, validated image replacement and audit |
 | Workforce accounts and shift report | `/admin/staff` | Manager/admin | `/admin/staff-accounts`, `/admin/staff-shifts` | Connected one-time credential provisioning, PT linkage, search/role/status/local-date filters and pagination |
-| Staff time clock | `/staff/time-clock` | Staff/PT | `/staff/shifts/me`, clock-in/out | Connected server UTC timestamps, one-open-shift constraint, audit and gym-timezone presentation |
+| Staff workspace (was time clock) | `/staff/time-clock` | Staff/PT (staff also see attendance, live capacity and **Register new member**) | `/staff/shifts/me`, clock-in/out, `/attendance/admin`, `/attendance/crowdedness`, `/staff/members`, `/staff/members/{id}/membership-checkout`, `/staff/members/{id}/membership-cash`, `/staff/payments/{id}` | Connected server UTC timestamps, one-open-shift constraint, audit and gym-timezone presentation |
 | PT dashboard | `/pt/dashboard` | PT | `/trainers/me`, `/trainers/me/classes`, `/trainers/me/classes/{class_id}/complete` | Connected trainer profile/upcoming assignments plus assigned-class confirmation after start; classes also complete automatically after their end time. Payroll/client-programming scope is not fabricated. |
 
 ## Attendance field mapping

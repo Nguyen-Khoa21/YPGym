@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, Index, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -14,6 +14,7 @@ class User(TimestampMixin, Base):
     __table_args__ = (
         UniqueConstraint("email", name="uq_users_email"),
         UniqueConstraint("phone", name="uq_users_phone"),
+        CheckConstraint("registration_channel IN ('online', 'in_person')", name="ck_users_registration_channel"),
         Index("ix_users_email", "email"),
         Index("ix_users_phone", "phone"),
     )
@@ -44,6 +45,16 @@ class User(TimestampMixin, Base):
         default=False,
         server_default="false",
         nullable=False,
+    )
+    registration_channel: Mapped[str] = mapped_column(
+        String(16),
+        default="online",
+        server_default="online",
+        nullable=False,
+    )
+    registered_by_user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_users_registered_by_user_id_users"),
+        nullable=True,
     )
     email_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
