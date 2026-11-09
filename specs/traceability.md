@@ -20,15 +20,15 @@ Completed packages use the Master Prompt section as their requirement reference,
 | Goal | Requirement | Package | Implementation | Test | Status |
 |---|---|---|---|---|---|
 | G1 | Live occupancy per gym (Master Prompt, attendance and occupancy section) | 2 | `CrowdednessService`, `/attendance/crowdedness`, `/gyms/{id}/crowdedness` | `test_attendance_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |
-| G1 | Prominent live occupancy on the member dashboard, FR-DASH-002 | 5 | `MemberDashboardPage.tsx` shows occupancy only inside a small card; QR page shows capacity | AC-DASH-001, 002 | `PARTIALLY_IMPLEMENTED` |
+| G1 | Prominent live occupancy on the member dashboard, FR-DASH-002 | 5 | `OccupancyCard`, `MemberDashboardPage.tsx` (commit `04b676f`) | AC-DASH-001, 002; Playwright `member-dashboard.spec.ts` | `IMPLEMENTED_VERIFIED` |
 | G1 | Occupancy updates in real time for the right gym, FR-OPS-016, FR-OPS-017 | 6 | Socket accepts a gym; web client does not send one and refreshes all gyms | AC-OPS-014 | `PARTIALLY_IMPLEMENTED` |
 | G2 | Previous-month busiest and quietest two-hour windows | 3 | `/attendance/traffic-summary`, `TrafficAnalyticsService` | `test_traffic_analytics.py`, `test_traffic_analytics_storage.py` | `IMPLEMENTED_VERIFIED` |
-| G2 | Show busiest, quietest and the two-hour chart to members, FR-DASH-003 to 006 | 5 | No web page calls the endpoint; Recharts is installed but unused | AC-DASH-007, 008, 009 | `NOT_FOUND` in the web app |
+| G2 | Show busiest, quietest and the two-hour chart to members, FR-DASH-003 to 006 | 5 | `TrafficHistory`, `memberDashboardLogic.ts` | `memberDashboard.test.mjs`; AC-DASH-007, 008 | `IMPLEMENTED_VERIFIED` |
 | G3 | Choose a gym when buying or renewing; gym applied only after verified payment | 4 | `MembershipService.resolve_purchase_gym`, `PayOSPaymentService`, `payments.gym_id` | `test_payos_payment.py`, `test_account_journey.py` | `IMPLEMENTED_VERIFIED` |
-| G3 | Inactive gym at webhook time moves payment to `paid_review`; idempotency conflict returns 409 | 4 | `payment_service.py`, `membership_service.py` | none (finding G-05) | `IMPLEMENTED_UNTESTED` |
+| G3 | Inactive gym at webhook time moves payment to `paid_review`; idempotency conflict returns 409 | 4 | `payment_service.py`, `membership_service.py` | `test_payos_payment.py` (commit `a0f6e51`) | `IMPLEMENTED_VERIFIED` |
 | G3 | Classes, overlap, listings and checkout are gym-aware | 4 | `ClassService`, `BookingService`, `ClassRepository` | `test_member_service_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |
 | G3 | Broadcasts are chain-wide or per gym; managers forced to their gym | 4 | `NotificationService` | `test_member_service_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |
-| G3 | Dashboard shows the member's home gym, FR-DASH-001, FR-DASH-013 | 5 | Payload carries `home_gym_name`; page does not display it | AC-DASH-001, 002, 012 | `PARTIALLY_IMPLEMENTED` |
+| G3 | Dashboard shows the member's home gym, FR-DASH-001, FR-DASH-013 | 5 | Dashboard header and QR page show the home gym | Playwright | `IMPLEMENTED_VERIFIED` |
 | G4 | Manager attendance and manual close limited to the assigned gym | 2 | `GymScopeService`, `AttendanceService.manual_close` | `test_attendance_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |
 | G4 | Manager traffic summary limited to the assigned gym | 3 | `/admin/analytics/traffic-summary` | `test_traffic_analytics_storage.py` | `IMPLEMENTED_VERIFIED` |
 | G4 | Staff use attendance only while clocked in, FR-OPS-001 to 008 | 6 | No shift check exists (finding G-01) | AC-OPS-001 to 009 | `NOT_FOUND` |
@@ -39,7 +39,7 @@ Completed packages use the Master Prompt section as their requirement reference,
 | G5 | Gym and workforce management in the web app, FR-OPS-015 | 6 | No page found | AC-OPS-015 | `NOT_FOUND` |
 | G5 | Owner branch selector and per-branch comparison cards, FR-OPS-012, FR-OPS-013 | 6 | Per-gym endpoints exist; no owner UI | AC-OPS-011, 012 | `NOT_FOUND` |
 | G6 | Scanner bound to a gym; member membership checked against that gym; occupancy and cache per gym | 2 | Scanner service, `AttendanceService` | `test_attendance_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |
-| G6 | Rotating QR visible on the dashboard with refresh and countdown, FR-DASH-007 to 010 | 5 | Exists on `/app/qr` only | AC-DASH-003, 004, 006 | `PARTIALLY_IMPLEMENTED` |
+| G6 | Rotating QR visible on the dashboard with refresh and countdown, FR-DASH-007 to 010 | 5 | `EmbeddedQr`, `useRotatingQr` | Playwright rotation test | `IMPLEMENTED_VERIFIED` |
 | G6 | Cross-gym manual close denied | 2 | `GymScopeService.require_access` | `test_attendance_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |
 | All | Role matrix, ERD, API reference, demo flow, verification record, FR-DOC-001 to 011 | 8 | `roles.md` has no gym scope (finding G-07) | AC-DOC-001 to 006 | `PLANNED` |
 

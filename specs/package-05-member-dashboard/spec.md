@@ -1,6 +1,8 @@
 # Package 5: member web dashboard and QR page
 
-**Status:** `PLANNED`. Depends on Packages 1 to 3, which are committed. Web only: nothing under `mobile/` or `scanner-mobile/` changes.
+**Status:** `IMPLEMENTED_VERIFIED` (commit `04b676f`, 2026-11-09). Depends on Packages 1 to 3. Web only: nothing under `mobile/` or `scanner-mobile/` changes.
+
+**Verification record.** Backend suite 211 passed, `alembic check` clean, web lint 0 errors, type-check and build clean, 31 web tests pass, and a Playwright run against a seeded stack (District 1 and District 11 members at 375 px and 1280 px, QR rotation) passed. Not verified: a physical phone, and a District 11 history chart with real data (the seeded District 11 history is all zeros). The member traffic query key is `["attendance","traffic-summary","me"]`, not the shorter key in T5-04.
 
 ## Purpose
 
