@@ -367,3 +367,85 @@ async def test_expired_payment_and_late_webhook_require_review(client, storage):
     status = (await client.get(f"/api/v1/payments/{checkout['transaction_id']}", headers=auth(member))).json()
     assert status["status"] == "paid_review"
     assert status["membership_status"] is None
+
+
+async def test_membership_goes_to_review_when_gym_becomes_inactive_before_webhook(client, storage):
+    plan, member, _ = await create_member_and_plan(storage)
+    sessions, _ = storage
+    checkout = (await start_payment(client, plan, member, gym_id=DISTRICT_11_GYM_ID)).json()
+    async with sessions() as session:
+        gym = await session.get(GymLocation, DISTRICT_11_GYM_ID)
+        gym.is_active = False
+        await session.commit()
+    try:
+        settled = await client.post(
+            "/api/v1/payments/payos/webhook",
+            json=webhook(checkout["order_code"], checkout["amount_vnd"]),
+        )
+        assert settled.status_code == 200
+        async with sessions() as session:
+            payment = await session.get(Payment, checkout["transaction_id"])
+            assert payment.status == "paid_review"
+            assert await session.scalar(
+                select(func.count()).select_from(UserMembership).where(UserMembership.user_id == member.id)
+            ) == 0
+            assert await session.scalar(
+                select(func.count()).select_from(Invoice).where(Invoice.payment_id == payment.id)
+            ) == 0
+            audit = await session.scalar(
+                select(func.count()).select_from(AuditLog).where(
+                    AuditLog.action == "payment.payos.membership_resolution_required",
+                    AuditLog.entity_id == str(payment.id),
+                )
+            )
+            assert audit == 1
+    finally:
+        async with sessions() as session:
+            gym = await session.get(GymLocation, DISTRICT_11_GYM_ID)
+            gym.is_active = True
+            await session.commit()
+
+
+async def test_purchase_key_cannot_be_reused_for_a_different_plan_or_gym(client, storage):
+    plan, member, _ = await create_member_and_plan(storage)
+    sessions, _ = storage
+    async with sessions() as session:
+        other_plan = MembershipPlan(
+            name=f"payOS other plan {uuid4().hex[:8]}",
+            duration_months=1,
+            duration_days=30,
+            base_price=Decimal("500000"),
+        )
+        session.add(other_plan)
+        await session.commit()
+        await session.refresh(other_plan)
+
+    headers = auth(member)
+    payload = {
+        "plan_id": str(plan.id),
+        "gym_id": str(DISTRICT_1_GYM_ID),
+        "idempotency_key": "reuse-key-0001",
+        "mock_payment_confirmed": True,
+    }
+    first = await client.post("/api/v1/memberships/purchase", json=payload, headers=headers)
+    assert first.status_code == 200, first.text
+
+    other_gym = await client.post(
+        "/api/v1/memberships/purchase", json={**payload, "gym_id": str(DISTRICT_11_GYM_ID)}, headers=headers
+    )
+    assert other_gym.status_code == 409
+    assert other_gym.json()["error"]["code"] == "IDEMPOTENCY_KEY_REUSED"
+
+    other = await client.post(
+        "/api/v1/memberships/purchase", json={**payload, "plan_id": str(other_plan.id)}, headers=headers
+    )
+    assert other.status_code == 409
+    assert other.json()["error"]["code"] == "IDEMPOTENCY_KEY_REUSED"
+
+    same = await client.post("/api/v1/memberships/purchase", json=payload, headers=headers)
+    assert same.status_code == 200
+    assert same.json()["payment"]["id"] == first.json()["payment"]["id"]
+    async with sessions() as session:
+        assert await session.scalar(
+            select(func.count()).select_from(Payment).where(Payment.user_id == member.id)
+        ) == 1
