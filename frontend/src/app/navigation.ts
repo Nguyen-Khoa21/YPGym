@@ -1,5 +1,6 @@
 import {
   Bell,
+  Building2,
   CalendarDays,
   CircleUserRound,
   ClipboardCheck,
@@ -69,6 +70,7 @@ export const memberMobileNavigation = memberNavigation.filter((item) => item.mob
 export const operationsNavigation = [
   { to: routePaths.operationsHome, label: "Overview", icon: LayoutDashboard, roles: clientRoleGroups.operations },
   { to: routePaths.adminMembers, label: "Members", icon: UsersRound, roles: clientRoleGroups.management, dashboard: { title: "Member CRM", detail: "Search, filter, review complete member records, and manage memberships." } },
+  { to: routePaths.adminBranches, label: "Branches", icon: Building2, roles: clientRoleGroups.admin, dashboard: { title: "Branches", detail: "Compare every gym, manage locations and move workforce between gyms." } },
   { to: routePaths.adminBilling, label: "Billing", icon: CreditCard, roles: clientRoleGroups.admin, dashboard: { title: "Billing ledger", detail: "Filtered payments, invoices, audited exports, and totals." } },
   { to: routePaths.adminEmailDeliveries, label: "Email delivery", icon: MailCheck, roles: clientRoleGroups.management },
   { to: routePaths.adminAttendance, label: "Attendance", icon: ClipboardList, roles: clientRoleGroups.operations, dashboard: { title: "Attendance ops", detail: "Live capacity, session controls, event sources, and peak-hours analytics." } },

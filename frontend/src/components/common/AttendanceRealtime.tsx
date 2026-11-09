@@ -1,11 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 import { useAuth } from "@/features/auth/AuthContext";
-import { attendanceCloseDisposition, attendanceRealtimeUrl, attendanceReconnectDelay, closeAttendanceSocket, invalidateAttendanceQueries, isAttendanceRefreshMessage } from "@/lib/attendanceRealtime";
+import { attendanceAuthFrame, attendanceCloseDisposition, attendanceEventGymId, attendanceRealtimeUrl, attendanceReconnectDelay, closeAttendanceSocket, invalidateAttendanceQueries, isAttendanceRefreshMessage } from "@/lib/attendanceRealtime";
+import { realtimeGymStore } from "@/features/operations/gymScope";
 import { queryClient } from "@/lib/queryClient";
 
 export function AttendanceRealtime() {
   const { token, user } = useAuth();
+  const scopedGymId = useSyncExternalStore(realtimeGymStore.subscribe, realtimeGymStore.get);
 
   useEffect(() => {
     if (!token || !user || !["member", "staff", "manager", "admin"].includes(user.role)) return;
@@ -23,7 +25,7 @@ export function AttendanceRealtime() {
       socket = new WebSocket(attendanceRealtimeUrl());
       socket.addEventListener("open", () => {
         attempts = 0;
-        socket?.send(JSON.stringify({ type: "authenticate", access_token: token }));
+        socket?.send(JSON.stringify(attendanceAuthFrame(token, scopedGymId)));
       });
       socket.addEventListener("message", (message) => {
         let payload: unknown;
@@ -32,7 +34,8 @@ export function AttendanceRealtime() {
           socket?.send(JSON.stringify({ type: "pong" }));
         } else if (isAttendanceRefreshMessage(payload)) {
           if (refreshTimer) window.clearTimeout(refreshTimer);
-          refreshTimer = window.setTimeout(() => void invalidateAttendanceQueries(queryClient), 50);
+          const eventGymId = attendanceEventGymId(payload);
+          refreshTimer = window.setTimeout(() => void invalidateAttendanceQueries(queryClient, eventGymId), 50);
         }
       });
       socket.addEventListener("close", (event) => {
@@ -60,7 +63,7 @@ export function AttendanceRealtime() {
       document.removeEventListener("visibilitychange", onVisibility);
       closeAttendanceSocket(socket, "Client closed");
     };
-  }, [token, user]);
+  }, [token, user, scopedGymId]);
 
   return null;
 }

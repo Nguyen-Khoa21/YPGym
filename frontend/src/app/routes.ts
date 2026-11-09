@@ -42,6 +42,7 @@ export const routePaths = {
   adminPtAssignments: "/admin/pt-assignments",
   adminExercises: "/admin/exercises",
   adminStaff: "/admin/staff",
+  adminBranches: "/admin/branches",
   staffTimeClock: "/staff/time-clock",
   ptDashboard: "/pt/dashboard",
   permissionDenied: "/permission-denied",

@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+import { matchesEventGym } from "../features/operations/gymScope.ts";
 import { API_BASE_URL } from "./apiClient.ts";
 
 const attendanceRoots = new Set([
@@ -16,9 +17,10 @@ export function attendanceRealtimeUrl(apiBaseUrl = API_BASE_URL) {
   return url.toString();
 }
 
-export function invalidateAttendanceQueries(client: QueryClient) {
+/** Refresh attendance queries. With an event gym, queries marked for another gym are left alone. */
+export function invalidateAttendanceQueries(client: QueryClient, eventGymId?: string | null) {
   return client.invalidateQueries({
-    predicate: (query) => isAttendanceQueryKey(query.queryKey),
+    predicate: (query) => isAttendanceQueryKey(query.queryKey) && matchesEventGym(query.queryKey, eventGymId),
     refetchType: "active",
   });
 }
@@ -31,6 +33,16 @@ export function isAttendanceRefreshMessage(value: unknown) {
   if (!value || typeof value !== "object") return false;
   const type = (value as { type?: unknown }).type;
   return type === "attendance_changed" || type === "occupancy_changed" || type === "resync_required";
+}
+
+export function attendanceEventGymId(value: unknown): string | null {
+  const gymId = (value as { gym_id?: unknown } | null)?.gym_id;
+  return typeof gymId === "string" ? gymId : null;
+}
+
+/** First frame sent after the socket opens. The owner may scope it to one gym; the server enforces everyone else's. */
+export function attendanceAuthFrame(accessToken: string, gymId?: string | null) {
+  return { type: "authenticate", access_token: accessToken, ...(gymId ? { gym_id: gymId } : {}) };
 }
 
 export function attendanceReconnectDelay(attempt: number, random = Math.random) {

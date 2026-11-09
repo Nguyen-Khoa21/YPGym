@@ -7,6 +7,7 @@ const appSource = readFileSync(new URL('../src/app/App.tsx', import.meta.url), '
 
 const lazyRoutes = [
   ['AdminAttendancePage', 'adminAttendance', '[...clientRoleGroups.operations]'],
+  ['AdminBranchesPage', 'adminBranches', '[...clientRoleGroups.admin]'],
   ['AdminTrainingPage', 'adminExercises', '[...clientRoleGroups.management]'],
   ['AdminBillingPage', 'adminBilling', '[...clientRoleGroups.admin]'],
   ['AdminAuditPage', 'adminAudit', '[...clientRoleGroups.management]'],

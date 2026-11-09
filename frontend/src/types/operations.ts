@@ -279,9 +279,10 @@ export type AnalyticsSummary = {
     unique_members: number;
     average_visit_minutes: number | null;
     busiest_slot: string | null;
-    current_occupancy: Crowdedness;
+    current_occupancy: Crowdedness | null;
   };
-  revenue: { successful_payments: number; gross_amount: string; discounts: string };
+  revenue: { successful_payments: number; gross_amount: string; discounts: string } | null;
+  gym_id: string | null;
 };
 
 export type TrainerClassSummary = {

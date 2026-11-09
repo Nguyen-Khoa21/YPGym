@@ -44,6 +44,11 @@ import { MembershipPlansPage } from "@/features/memberships/pages/MembershipPlan
 import { AdminStaffPage } from "@/features/admin/pages/AdminStaffPage";
 import { StaffTimeClockPage } from "@/features/staff/pages/StaffTimeClockPage";
 
+const AdminBranchesPage = lazy(() =>
+  import("@/features/operations/pages/AdminBranchesPage").then((module) => ({
+    default: module.AdminBranchesPage,
+  })),
+);
 const AdminAttendancePage = lazy(() =>
   import("@/features/attendance/pages/AdminAttendancePage").then((module) => ({
     default: module.AdminAttendancePage,
@@ -202,6 +207,10 @@ export const router = createBrowserRouter([
   {
     path: routePaths.adminExercises,
     element: <ProtectedRoute roles={[...clientRoleGroups.management]}><AdminTrainingPage /></ProtectedRoute>,
+  },
+  {
+    path: routePaths.adminBranches,
+    element: <ProtectedRoute roles={[...clientRoleGroups.admin]}><AdminBranchesPage /></ProtectedRoute>,
   },
   {
     path: routePaths.adminStaff,

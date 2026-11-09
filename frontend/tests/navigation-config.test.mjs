@@ -53,6 +53,8 @@ test('operations navigation mirrors current client role visibility without grant
   assert.ok(manager.some((item) => item.to === routePaths.adminMembers && item.dashboard));
   assert.ok(!manager.some((item) => item.to === routePaths.adminBilling));
   assert.ok(!manager.some((item) => item.to === routePaths.adminClasses));
+  assert.ok(!manager.some((item) => item.to === routePaths.adminBranches));
+  assert.ok(admin.some((item) => item.to === routePaths.adminBranches));
   assert.ok(admin.some((item) => item.to === routePaths.adminBilling));
   assert.ok(admin.some((item) => item.to === routePaths.adminClasses));
   assert.deepEqual(

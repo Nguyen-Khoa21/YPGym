@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { apiRequest } from "@/lib/apiClient";
+import { resetGymScope } from "@/features/operations/gymScope";
 import { queryClient } from "@/lib/queryClient";
 import type { LoginResponse, User } from "@/types/api";
 
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const clearAuth = useCallback(() => {
     queryClient.clear();
+    resetGymScope();
     window.localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
