@@ -174,6 +174,7 @@ async def manually_enroll_membership(
         manual_reason=payload.reason,
         payload=PurchaseMembershipRequest(
             plan_id=payload.plan_id,
+            gym_id=payload.gym_id,
             idempotency_key=payload.idempotency_key,
             mock_payment_confirmed=True,
         ),
@@ -355,7 +356,7 @@ async def list_broadcasts(
     current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> list[BroadcastItem]:
-    return await NotificationService(session).list_admin_broadcasts()
+    return await NotificationService(session).list_admin_broadcasts(current_user)
 
 
 @router.post("/broadcasts", response_model=BroadcastItem)

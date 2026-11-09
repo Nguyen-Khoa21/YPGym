@@ -15,6 +15,7 @@ from sqlalchemy import select
 from app.core.config import get_settings
 from app.models.attendance import AttendanceSession
 from app.models.billing import Invoice, Payment
+from app.models.gym import DISTRICT_1_GYM_ID
 from app.models.membership import MembershipPlan, UserMembership
 from app.models.user import User
 from app.services.membership_service import MembershipService
@@ -145,7 +146,7 @@ async def test_threshold_better_of_reservation_failure_release_and_consumption(c
     other_quote = (await client.get(
         "/api/v1/memberships/attendance-benefit/me",
         headers=other_headers,
-        params={"plan_id": str(plan.id)},
+        params={"plan_id": str(plan.id), "gym_id": str(DISTRICT_1_GYM_ID)},
     )).json()
     assert other_quote["attended_days"] == 1
     assert other_quote["status"] == "not_qualified"

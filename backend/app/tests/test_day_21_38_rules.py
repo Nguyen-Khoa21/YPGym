@@ -7,6 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.core.exceptions import AppError, ConflictError, ResourceNotFoundError
+from app.models.gym import DISTRICT_1_GYM_ID
 from app.schemas.class_schema import ClassCreate
 from app.schemas.notification_schema import BroadcastCreate
 from app.schemas.operations_schema import FreezeRequestCreate, RequestDecision
@@ -159,6 +160,7 @@ def test_class_create_rejects_end_before_start() -> None:
     start = datetime.now(UTC) + timedelta(days=1)
     with pytest.raises(ValidationError):
         ClassCreate(
+            gym_id=DISTRICT_1_GYM_ID,
             title="Morning strength",
             class_type="Strength",
             start_at=start,
@@ -191,6 +193,7 @@ async def test_class_overlap_returns_conflict_context() -> None:
     service.classes.find_overlap = find_overlap
     with pytest.raises(ConflictError) as exc_info:
         await service._ensure_no_overlap(
+            gym_id=DISTRICT_1_GYM_ID,
             start_at=datetime.now(UTC) + timedelta(days=1),
             end_at=datetime.now(UTC) + timedelta(days=1, hours=1),
             location="Studio A",

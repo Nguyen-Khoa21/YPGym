@@ -49,6 +49,8 @@ class AttendanceBenefitQuote(BaseModel):
 
 class MembershipSummary(BaseModel):
     id: UUID
+    home_gym_id: UUID
+    home_gym_name: str
     plan_id: UUID
     plan_name: str
     status: str
@@ -58,12 +60,14 @@ class MembershipSummary(BaseModel):
 
 class PurchaseMembershipRequest(BaseModel):
     plan_id: UUID
+    gym_id: UUID | None = None
     idempotency_key: str = Field(min_length=8, max_length=120)
     mock_payment_confirmed: bool
 
 
 class AdminMembershipEnrollmentRequest(BaseModel):
     plan_id: UUID
+    gym_id: UUID | None = None
     idempotency_key: str = Field(min_length=8, max_length=120)
     reason: str = Field(min_length=10, max_length=500)
 

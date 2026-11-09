@@ -16,6 +16,8 @@ class DashboardMember(BaseModel):
 
 class DashboardMembership(BaseModel):
     id: UUID
+    home_gym_id: UUID
+    home_gym_name: str
     plan_name: str
     status: str
     start_date: date

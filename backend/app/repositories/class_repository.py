@@ -101,6 +101,7 @@ class ClassRepository:
     async def list_classes(
         self,
         *,
+        gym_id: UUID,
         page: int,
         page_size: int,
         date_from: datetime | None,
@@ -109,7 +110,7 @@ class ClassRepository:
         trainer_id: UUID | None,
         search: str | None,
     ) -> tuple[list[tuple[GymClass, str | None]], int, int, int]:
-        conditions = []
+        conditions = [GymClass.gym_id == gym_id]
         if date_from:
             conditions.append(GymClass.start_at >= date_from)
         if date_to:
@@ -148,13 +149,14 @@ class ClassRepository:
     async def find_overlap(
         self,
         *,
+        gym_id: UUID,
         start_at: datetime,
         end_at: datetime,
         location: str,
         trainer_id: UUID | None,
         exclude_id: UUID | None = None,
     ) -> GymClass | None:
-        resource_conflict = GymClass.location == location
+        resource_conflict = and_(GymClass.gym_id == gym_id, GymClass.location == location)
         if trainer_id:
             resource_conflict = or_(resource_conflict, GymClass.trainer_id == trainer_id)
         conditions = [
@@ -181,6 +183,7 @@ class ClassRepository:
         self,
         *,
         user_id: UUID,
+        gym_id: UUID | None = None,
         class_id: UUID | None = None,
         class_ids: list[UUID] | None = None,
         upcoming_only: bool = True,
@@ -221,6 +224,8 @@ class ClassRepository:
         )
         if class_id:
             query = query.where(GymClass.id == class_id)
+        if gym_id is not None:
+            query = query.where(GymClass.gym_id == gym_id)
         if class_ids is not None:
             if not class_ids:
                 return []

@@ -10,6 +10,7 @@ from app.core.dependencies import require_roles
 from app.db.redis import get_redis_client
 from app.db.session import get_db_session
 from app.models.user import User
+from app.models.gym import DISTRICT_1_GYM_ID
 from app.schemas.class_schema import (
     ClassCancel,
     ClassCheckoutRequest,
@@ -46,8 +47,9 @@ async def upcoming_classes(
     current_user: Annotated[User, Depends(require_roles("member"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     redis: Annotated[Redis, Depends(get_redis_client)],
+    gym_id: UUID | None = None,
 ) -> MemberClassList:
-    return await BookingService(session, redis).list_upcoming(current_user)
+    return await BookingService(session, redis).list_upcoming(current_user, gym_id=gym_id)
 
 
 @member_class_router.get("/{class_id}", response_model=MemberClassItem)
@@ -224,7 +226,7 @@ async def deactivate_trainer(
 
 @router.get("", response_model=ClassPage)
 async def list_classes(
-    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
+    current_user: Annotated[User, Depends(require_roles("admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
@@ -233,8 +235,10 @@ async def list_classes(
     status: Literal["scheduled", "cancelled", "completed"] | None = None,
     trainer_id: UUID | None = None,
     search: str | None = Query(None, max_length=160),
+    gym_id: UUID | None = None,
 ) -> ClassPage:
     return await ClassService(session).list_classes(
+        gym_id=gym_id or DISTRICT_1_GYM_ID,
         page=page,
         page_size=page_size,
         date_from=date_from,
@@ -247,7 +251,7 @@ async def list_classes(
 
 @router.get("/trainers", response_model=list[TrainerItem])
 async def list_trainers(
-    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
+    current_user: Annotated[User, Depends(require_roles("admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> list[TrainerItem]:
     return await ClassService(session).list_trainers()
@@ -256,7 +260,7 @@ async def list_trainers(
 @router.post("", response_model=ClassItem)
 async def create_class(
     payload: ClassCreate,
-    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
+    current_user: Annotated[User, Depends(require_roles("admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ClassItem:
     return await ClassService(session).create(actor=current_user, payload=payload)
@@ -266,7 +270,7 @@ async def create_class(
 async def update_class(
     class_id: UUID,
     payload: ClassUpdate,
-    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
+    current_user: Annotated[User, Depends(require_roles("admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ClassItem:
     return await ClassService(session).update(class_id=class_id, actor=current_user, payload=payload)
@@ -276,7 +280,7 @@ async def update_class(
 async def cancel_class(
     class_id: UUID,
     payload: ClassCancel,
-    current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
+    current_user: Annotated[User, Depends(require_roles("admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ClassItem:
     return await ClassService(session).cancel(class_id=class_id, actor=current_user, payload=payload)

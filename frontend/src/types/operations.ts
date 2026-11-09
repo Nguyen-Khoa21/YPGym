@@ -2,6 +2,8 @@ export type PageInfo = { page: number; page_size: number; total: number; pages: 
 
 export type MembershipRecord = {
   id: string;
+  home_gym_id: string;
+  home_gym_name: string;
   plan_id: string;
   plan_name: string;
   status: string;
@@ -80,6 +82,8 @@ export type AdminMemberDetail = {
 
 export type BillingPayment = {
   payment_id: string;
+  gym_id: string;
+  gym_name: string;
   user_id: string;
   member_name: string;
   member_email: string;
@@ -106,6 +110,8 @@ export type BillingPayment = {
 
 export type BillingInvoice = {
   invoice_id: string;
+  gym_id: string;
+  gym_name: string;
   user_id: string;
   member_name: string;
   member_email: string;
@@ -149,6 +155,7 @@ export type NotificationPage = { items: NotificationItem[]; page: PageInfo; unre
 
 export type Broadcast = {
   id: string;
+  gym_id: string | null;
   audience: string;
   title: string;
   message: string;
@@ -301,6 +308,7 @@ export type Trainer = {
 
 export type GymClass = {
   id: string;
+  gym_id: string;
   title: string;
   class_type: string;
   description: string | null;
@@ -321,6 +329,7 @@ export type ClassPage = { items: GymClass[]; page: PageInfo; scheduled_count: nu
 
 export type MemberClass = {
   id: string;
+  gym_id: string;
   title: string;
   class_type: string;
   description: string | null;
@@ -341,6 +350,7 @@ export type MemberClass = {
 };
 
 export type MemberClassList = {
+  gym_id: string;
   items: MemberClass[];
   booking_eligible: boolean;
   eligibility_status: string;
@@ -397,6 +407,8 @@ export type MemberDashboardPayload = {
   member: { id: string; name: string; tier: string };
   membership: {
     id: string;
+    home_gym_id: string;
+    home_gym_name: string;
     plan_name: string;
     status: string;
     start_date: string;

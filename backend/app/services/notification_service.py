@@ -7,9 +7,11 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.exceptions import AppError, ResourceNotFoundError
+from app.core.exceptions import AppError, PermissionDeniedError, ResourceNotFoundError
 from app.models.user import User
 from app.repositories.operations_repository import AuditRepository, NotificationRepository
+from app.repositories.gym_repository import GymRepository
+from app.repositories.membership_repository import UserMembershipRepository
 from app.schemas.notification_schema import (
     BroadcastCreate,
     BroadcastItem,
@@ -20,6 +22,7 @@ from app.schemas.notification_schema import (
     NotificationPreferenceUpdate,
 )
 from app.schemas.operations_schema import OperationMessage, PageInfo
+from app.services.gym_service import GymScopeService
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +31,9 @@ class NotificationService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.notifications = NotificationRepository(session)
+        self.gyms = GymRepository(session)
+        self.memberships = UserMembershipRepository(session)
+        self.gym_scope = GymScopeService(session)
         self.audit = AuditRepository(session)
         self.settings = get_settings()
 
@@ -83,8 +89,10 @@ class NotificationService:
         return OperationMessage(message=f"Marked {count} notifications as read.", code="NOTIFICATIONS_READ")
 
     async def create_broadcast(self, *, actor: User, payload: BroadcastCreate) -> BroadcastItem:
+        gym_id = await self._broadcast_gym_id(actor=actor, requested_gym_id=payload.gym_id)
         broadcast = await self.notifications.create_broadcast(
-            **payload.model_dump(),
+            **payload.model_dump(exclude={"gym_id"}),
+            gym_id=gym_id,
             creator_id=actor.id,
             is_active=True,
         )
@@ -96,6 +104,7 @@ class NotificationService:
             reason="Member communication",
             outcome="active",
             summary=f"Broadcast '{broadcast.title}' was created for {broadcast.audience}.",
+            after_data={"gym_id": str(gym_id) if gym_id else None},
         )
         await self.session.commit()
         await self.session.refresh(broadcast)
@@ -111,6 +120,10 @@ class NotificationService:
         broadcast = await self.notifications.get_broadcast(broadcast_id)
         if not broadcast:
             raise ResourceNotFoundError("Broadcast was not found.")
+        if actor.role != "admin":
+            effective_gym_id = await self.gym_scope.effective_gym_id(user=actor)
+            if broadcast.gym_id != effective_gym_id:
+                raise PermissionDeniedError("You cannot update another location's broadcast.")
         before = {
             "audience": broadcast.audience,
             "title": broadcast.title,
@@ -144,17 +157,39 @@ class NotificationService:
         await self.session.refresh(broadcast)
         return BroadcastItem.model_validate(broadcast)
 
-    async def list_admin_broadcasts(self) -> list[BroadcastItem]:
-        return [BroadcastItem.model_validate(item) for item in await self.notifications.list_broadcasts()]
+    async def list_admin_broadcasts(self, actor: User) -> list[BroadcastItem]:
+        gym_id = None if actor.role == "admin" else await self.gym_scope.effective_gym_id(user=actor)
+        return [
+            BroadcastItem.model_validate(item)
+            for item in await self.notifications.list_broadcasts(gym_id=gym_id)
+        ]
 
     async def list_active_broadcasts(self, user: User) -> list[BroadcastItem]:
         preferences = await self.notifications.get_or_create_preferences(user.id)
         if not preferences.broadcasts_enabled or not preferences.in_app_enabled:
             await self.session.commit()
             return []
-        items = await self.notifications.list_active_broadcasts(now=datetime.now(UTC), tier=user.tier)
+        membership = await self.memberships.get_latest_for_user(user.id) if user.role == "member" else None
+        items = await self.notifications.list_active_broadcasts(
+            now=datetime.now(UTC),
+            tier=user.tier,
+            gym_id=membership.home_gym_id if membership else None,
+        )
         await self.session.commit()
         return [BroadcastItem.model_validate(item) for item in items]
+
+    async def _broadcast_gym_id(self, *, actor: User, requested_gym_id: UUID | None) -> UUID | None:
+        if actor.role == "admin":
+            if requested_gym_id is None:
+                return None
+            gym = await self.gyms.get_location(requested_gym_id, active_only=True)
+            if not gym:
+                raise ResourceNotFoundError("The selected gym location was not found or is inactive.")
+            return gym.id
+        return await self.gym_scope.resolve_gym_id(
+            user=actor,
+            requested_gym_id=requested_gym_id,
+        )
 
     async def send_expiry_reminders(self, *, today: date | None = None) -> int:
         today = today or date.today()

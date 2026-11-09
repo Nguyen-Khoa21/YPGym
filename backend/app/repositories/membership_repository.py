@@ -93,6 +93,7 @@ class UserMembershipRepository:
     async def create(
         self,
         *,
+        home_gym_id: UUID,
         user_id: UUID,
         plan_id: UUID,
         status: str,
@@ -100,6 +101,7 @@ class UserMembershipRepository:
         expiry_date,
     ) -> UserMembership:
         membership = UserMembership(
+            home_gym_id=home_gym_id,
             user_id=user_id,
             plan_id=plan_id,
             status=status,

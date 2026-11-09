@@ -4,6 +4,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
+from app.repositories.gym_repository import GymRepository
 from app.schemas.dashboard_schema import (
     DashboardMember,
     DashboardMembership,
@@ -19,6 +20,7 @@ from app.services.notification_service import NotificationService
 
 class DashboardService:
     def __init__(self, session: AsyncSession, redis: Redis) -> None:
+        self.gyms = GymRepository(session)
         self.lifecycle = MembershipLifecycleService(session)
         self.bookings = BookingService(session, redis)
         self.notifications = NotificationService(session)
@@ -54,8 +56,11 @@ class DashboardService:
         days_remaining = max((membership.expiry_date - date.today()).days, 0) if membership else 0
         membership_summary = None
         if membership:
+            home_gym = await self.gyms.get_location(membership.home_gym_id, active_only=False)
             membership_summary = DashboardMembership(
                 id=membership.id,
+                home_gym_id=membership.home_gym_id,
+                home_gym_name=home_gym.name,
                 plan_name=membership.plan.name,
                 status=status,
                 start_date=membership.start_date,

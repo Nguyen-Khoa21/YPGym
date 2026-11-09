@@ -81,6 +81,7 @@ def test_member_class_state_is_derived_from_server_records(
         price_vnd=150_000,
         status=class_status,
         location="Studio A",
+        gym_id=DISTRICT_1_GYM_ID,
     )
     item = BookingService._member_class(
         (gym_class, None, confirmed, uuid4() if booking_status else None, booking_status, waitlist_status, None),

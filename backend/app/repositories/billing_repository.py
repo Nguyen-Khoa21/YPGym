@@ -26,6 +26,7 @@ class PaymentRepository:
         result = await self.session.execute(
             select(Payment)
             .options(
+                selectinload(Payment.gym),
                 selectinload(Payment.plan),
                 selectinload(Payment.membership),
                 selectinload(Payment.class_booking).selectinload(ClassBooking.gym_class),
@@ -40,6 +41,7 @@ class PaymentRepository:
     async def create(
         self,
         *,
+        gym_id: UUID,
         user_id: UUID,
         membership_id: UUID | None,
         plan_id: UUID | None,
@@ -61,6 +63,7 @@ class PaymentRepository:
         payos_order_code: int | None = None,
     ) -> Payment:
         payment = Payment(
+            gym_id=gym_id,
             user_id=user_id,
             membership_id=membership_id,
             plan_id=plan_id,
@@ -108,6 +111,7 @@ class PaymentRepository:
         query = (
             select(Payment)
             .options(
+                selectinload(Payment.gym),
                 selectinload(Payment.plan),
                 selectinload(Payment.membership),
                 selectinload(Payment.invoice),
@@ -123,6 +127,7 @@ class PaymentRepository:
         query = (
             select(Payment)
             .options(
+                selectinload(Payment.gym),
                 selectinload(Payment.plan),
                 selectinload(Payment.membership),
                 selectinload(Payment.invoice),
@@ -138,6 +143,7 @@ class PaymentRepository:
         query = (
             select(Payment)
             .options(
+                selectinload(Payment.gym),
                 selectinload(Payment.plan),
                 selectinload(Payment.membership),
                 selectinload(Payment.invoice),
@@ -167,7 +173,12 @@ class PaymentRepository:
     async def list_for_user(self, user_id: UUID) -> list[Payment]:
         result = await self.session.execute(
             select(Payment)
-            .options(selectinload(Payment.plan), selectinload(Payment.class_booking).selectinload(ClassBooking.gym_class), selectinload(Payment.invoice))
+            .options(
+                selectinload(Payment.gym),
+                selectinload(Payment.plan),
+                selectinload(Payment.class_booking).selectinload(ClassBooking.gym_class),
+                selectinload(Payment.invoice),
+            )
             .where(Payment.user_id == user_id)
             .order_by(Payment.created_at.desc()),
         )
@@ -177,6 +188,7 @@ class PaymentRepository:
         query = (
             select(Payment)
             .options(
+                selectinload(Payment.gym),
                 selectinload(Payment.plan),
                 selectinload(Payment.user),
                 selectinload(Payment.class_booking).selectinload(ClassBooking.gym_class),
@@ -194,6 +206,7 @@ class PaymentRepository:
         query = (
             select(Payment)
             .options(
+                selectinload(Payment.gym),
                 selectinload(Payment.plan),
                 selectinload(Payment.class_booking).selectinload(ClassBooking.gym_class),
                 selectinload(Payment.invoice),
@@ -260,7 +273,10 @@ class InvoiceRepository:
     async def get_for_user(self, *, user_id: UUID, invoice_id: UUID) -> Invoice | None:
         result = await self.session.execute(
             select(Invoice)
-            .options(selectinload(Invoice.user))
+            .options(
+                selectinload(Invoice.user),
+                selectinload(Invoice.payment).selectinload(Payment.gym),
+            )
             .where(Invoice.user_id == user_id, Invoice.id == invoice_id),
         )
         return result.scalar_one_or_none()
@@ -268,6 +284,7 @@ class InvoiceRepository:
     async def list_for_user(self, user_id: UUID) -> list[Invoice]:
         result = await self.session.execute(
             select(Invoice)
+            .options(selectinload(Invoice.payment).selectinload(Payment.gym))
             .where(Invoice.user_id == user_id)
             .order_by(Invoice.transaction_date.desc()),
         )

@@ -169,6 +169,7 @@ class AttendanceRepository:
         self,
         *,
         user_id: UUID,
+        gym_id: UUID,
         gym_timezone: str,
         date_from: datetime,
         date_to: datetime,
@@ -179,6 +180,7 @@ class AttendanceRepository:
                 await self.session.execute(
                     select(func.count(func.distinct(local_day))).where(
                         AttendanceSession.user_id == user_id,
+                        AttendanceSession.gym_id == gym_id,
                         AttendanceSession.source == "iot_scanner",
                         AttendanceSession.checked_in_at >= date_from,
                         AttendanceSession.checked_in_at < date_to,

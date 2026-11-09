@@ -14,6 +14,7 @@ from app.models.user import User
 from app.repositories.billing_repository import InvoiceRepository, PaymentRepository
 from app.repositories.attendance_repository import AttendanceRepository
 from app.repositories.email_delivery_repository import EmailDeliveryRepository
+from app.repositories.gym_repository import GymRepository
 from app.repositories.membership_repository import (
     MembershipPlanRepository,
     UserMembershipRepository,
@@ -29,6 +30,7 @@ from app.schemas.membership_schema import (
     PurchaseMembershipResponse,
 )
 from app.services.invoice_service import InvoicePdfService
+from app.services.gym_service import GymScopeService
 from app.services.state_transitions import transition_membership
 
 
@@ -41,6 +43,8 @@ class MembershipService:
         self.settings = settings or get_settings()
         self.plans = MembershipPlanRepository(session)
         self.memberships = UserMembershipRepository(session)
+        self.gyms = GymRepository(session)
+        self.gym_scope = GymScopeService(session)
         self.payments = PaymentRepository(session)
         self.attendance = AttendanceRepository(session)
         self.invoices = InvoiceRepository(session)
@@ -61,17 +65,28 @@ class MembershipService:
         user: User,
         plan,
         current_membership=None,
+        gym=None,
         now: datetime | None = None,
     ) -> AttendanceBenefitQuote:
         now = now or datetime.now(UTC)
-        timezone = ZoneInfo(self.settings.GYM_TIMEZONE)
+        if current_membership is None:
+            current_membership = await self.memberships.get_current_for_user(user.id)
+        benefit_gym = (
+            await self.gyms.get_location(current_membership.home_gym_id, active_only=False)
+            if current_membership
+            else gym
+        )
+        if not benefit_gym:
+            raise AppError("GYM_SELECTION_REQUIRED", "Select an active gym location.", 422)
+        timezone = ZoneInfo(benefit_gym.timezone)
         local_today = now.astimezone(timezone).date()
         period_start, period_end, next_month = self.previous_complete_month(local_today)
         period_start_utc = datetime.combine(period_start, time.min, timezone).astimezone(UTC)
         next_month_utc = datetime.combine(next_month, time.min, timezone).astimezone(UTC)
         attended_days = await self.attendance.count_distinct_qr_visit_days(
             user_id=user.id,
-            gym_timezone=self.settings.GYM_TIMEZONE,
+            gym_id=benefit_gym.id,
+            gym_timezone=benefit_gym.timezone,
             date_from=period_start_utc,
             date_to=next_month_utc,
         )
@@ -80,8 +95,6 @@ class MembershipService:
             Decimal(attended_days) * Decimal("100") / Decimal(period_days)
         ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         attendance_qualified = attendance_percentage >= self.ATTENDANCE_THRESHOLD_PERCENT
-        if current_membership is None:
-            current_membership = await self.memberships.get_current_for_user(user.id)
         is_renewal = bool(current_membership and current_membership.expiry_date >= local_today)
         usage = await self.payments.get_active_attendance_benefit_payment(
             user_id=user.id,
@@ -102,7 +115,7 @@ class MembershipService:
         applied_discount = max(Decimal(plan.discount_percent), attendance_discount)
         discount_amount, final_amount = self.calculate_amounts(plan.base_price, applied_discount)
         return AttendanceBenefitQuote(
-            gym_timezone=self.settings.GYM_TIMEZONE,
+            gym_timezone=benefit_gym.timezone,
             period_start=period_start,
             period_end=period_end,
             attended_days=attended_days,
@@ -144,6 +157,36 @@ class MembershipService:
                 403,
             )
 
+    async def resolve_purchase_gym(
+        self,
+        *,
+        user: User,
+        requested_gym_id,
+        actor: User | None = None,
+    ):
+        if actor and actor.id != user.id:
+            gym_id = await self.gym_scope.resolve_gym_id(
+                user=actor,
+                requested_gym_id=requested_gym_id,
+            )
+            return await self._active_gym(gym_id)
+        if requested_gym_id is not None:
+            return await self._active_gym(requested_gym_id)
+        previous = await self.memberships.get_latest_for_user(user.id)
+        if not previous:
+            raise AppError(
+                "GYM_SELECTION_REQUIRED",
+                "Select an active gym location before starting checkout.",
+                422,
+            )
+        return await self._active_gym(previous.home_gym_id)
+
+    async def _active_gym(self, gym_id):
+        gym = await self.gyms.get_location(gym_id, active_only=True)
+        if not gym:
+            raise ResourceNotFoundError("The selected gym location was not found or is inactive.")
+        return gym
+
     async def purchase(
         self,
         *,
@@ -156,6 +199,11 @@ class MembershipService:
         manual = operator.id != current_user.id
         if not manual:
             await self.validate_self_service_eligibility(current_user)
+        gym = await self.resolve_purchase_gym(
+            user=current_user,
+            requested_gym_id=payload.gym_id,
+            actor=operator if manual else None,
+        )
 
         if not manual and not payload.mock_payment_confirmed:
             raise AppError(
@@ -169,6 +217,12 @@ class MembershipService:
             idempotency_key=payload.idempotency_key,
         )
         if existing_payment:
+            if existing_payment.plan_id != payload.plan_id or existing_payment.gym_id != gym.id:
+                raise AppError(
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "Use a new payment key when changing the membership plan or gym location.",
+                    409,
+                )
             existing_invoice = await self.invoices.get_by_payment_id(existing_payment.id)
             return self._purchase_response(
                 message="Duplicate submission ignored. Returning the original purchase.",
@@ -181,13 +235,14 @@ class MembershipService:
         if not plan or not plan.is_active:
             raise ResourceNotFoundError("Membership plan was not found.")
 
-        timezone = ZoneInfo(self.settings.GYM_TIMEZONE)
+        timezone = ZoneInfo(gym.timezone)
         today = datetime.now(UTC).astimezone(timezone).date()
         current_membership = await self.memberships.get_current_for_user_for_update(current_user.id)
         quote = None if manual else await self.attendance_benefit_quote(
             user=current_user,
             plan=plan,
             current_membership=current_membership,
+            gym=gym,
         )
         if quote and quote.status == "pending":
             raise AppError(
@@ -207,6 +262,7 @@ class MembershipService:
             transaction_kind = "renewal"
             coverage_start_date = current_membership.expiry_date + timedelta(days=1)
             current_membership.plan_id = plan.id
+            current_membership.home_gym_id = gym.id
             current_membership.expiry_date = current_membership.expiry_date + timedelta(
                 days=plan.duration_days,
             )
@@ -214,6 +270,7 @@ class MembershipService:
             membership = current_membership
         else:
             membership = await self.memberships.create(
+                home_gym_id=gym.id,
                 user_id=current_user.id,
                 plan_id=plan.id,
                 status=MembershipStatus.ACTIVE.value,
@@ -225,6 +282,7 @@ class MembershipService:
         payment_reference = f"STAFF-{uuid4().hex[:12].upper()}" if manual else f"MOCK-{uuid4().hex[:12].upper()}"
         try:
             payment = await self.payments.create(
+                gym_id=gym.id,
                 user_id=current_user.id,
                 membership_id=membership.id,
                 plan_id=plan.id,
@@ -255,6 +313,7 @@ class MembershipService:
             member_name=current_user.name,
             member_email=current_user.email,
             plan_name=plan.name,
+            product_name=f"{plan.name} · {gym.name}",
             amount=final_amount,
             discount_amount=discount_amount,
             transaction_date=transaction_date,
@@ -267,6 +326,7 @@ class MembershipService:
             user_id=current_user.id,
             payment_id=payment.id,
             plan_name=plan.name,
+            product_name=f"{plan.name} · {gym.name}",
             amount=final_amount,
             discount_amount=discount_amount,
             transaction_date=transaction_date,
@@ -302,7 +362,7 @@ class MembershipService:
                 entity_id=str(membership.id),
                 reason=manual_reason,
                 outcome=f"{plan.name} · {final_amount}",
-                summary="Staff manually enrolled a member and issued a membership invoice.",
+                summary=f"Staff manually enrolled a member at {gym.name} and issued a membership invoice.",
             )
 
         try:
@@ -325,6 +385,7 @@ class MembershipService:
             payment=payment,
             invoice=invoice,
             plan_name=plan.name,
+            gym_name=gym.name,
         )
 
     @staticmethod
@@ -357,11 +418,13 @@ class MembershipService:
             transaction_kind = "renewal"
             coverage_start_date = current_membership.expiry_date + timedelta(days=1)
             current_membership.plan_id = plan.id
+            current_membership.home_gym_id = payment.gym_id
             current_membership.expiry_date += timedelta(days=plan.duration_days)
             transition_membership(current_membership, MembershipStatus.ACTIVE, idempotent=True)
             membership = current_membership
         else:
             membership = await self.memberships.create(
+                home_gym_id=payment.gym_id,
                 user_id=user.id,
                 plan_id=plan.id,
                 status=MembershipStatus.ACTIVE.value,
@@ -376,6 +439,7 @@ class MembershipService:
             member_name=user.name,
             member_email=user.email,
             plan_name=plan.name,
+            product_name=f"{plan.name} · {payment.gym.name}",
             amount=payment.amount,
             discount_amount=payment.discount_amount,
             transaction_date=transaction_date,
@@ -388,6 +452,7 @@ class MembershipService:
             user_id=user.id,
             payment_id=payment.id,
             plan_name=plan.name,
+            product_name=f"{plan.name} · {payment.gym.name}",
             amount=payment.amount,
             discount_amount=payment.discount_amount,
             transaction_date=transaction_date,
@@ -416,7 +481,10 @@ class MembershipService:
             category="billing",
             notification_type="membership_payment_confirmed",
             title="Membership payment confirmed",
-            message=f"Your {plan.name} {transaction_kind} was confirmed and invoice {invoice_number} is ready.",
+            message=(
+                f"Your {plan.name} {transaction_kind} at {payment.gym.name} was confirmed "
+                f"and invoice {invoice_number} is ready."
+            ),
             channel="in_app",
             delivery_state="delivered",
             delivered_at=transaction_date,
@@ -436,6 +504,7 @@ class MembershipService:
                 "transaction_kind": transaction_kind,
                 "membership_id": str(membership.id),
                 "invoice_id": str(invoice.id),
+                "gym_id": str(payment.gym_id),
                 "discount_details": payment.discount_details,
             },
         )
@@ -449,6 +518,7 @@ class MembershipService:
         payment,
         invoice,
         plan_name: str | None = None,
+        gym_name: str | None = None,
     ) -> PurchaseMembershipResponse:
         if invoice is None:
             raise AppError(
@@ -461,6 +531,8 @@ class MembershipService:
             message=message,
             membership=MembershipSummary(
                 id=membership.id,
+                home_gym_id=membership.home_gym_id,
+                home_gym_name=gym_name or payment.gym.name,
                 plan_id=membership.plan_id,
                 plan_name=plan_name or payment.plan.name,
                 status=membership.status,

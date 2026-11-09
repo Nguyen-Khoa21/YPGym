@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.enums import PaymentStatus
+from app.models.gym import DISTRICT_1_GYM_ID
 from app.models.mixins import TimestampMixin
 
 
@@ -36,6 +37,7 @@ class Payment(TimestampMixin, Base):
         Index("ix_payments_class_booking_id", "class_booking_id"),
         Index("ix_payments_product_type", "product_type"),
         Index("ix_payments_created_at", "created_at"),
+        Index("ix_payments_gym_created_at", "gym_id", "created_at"),
         Index("ix_payments_status_expires", "status", "expires_at"),
         Index(
             "uq_payments_provider_transaction_no",
@@ -70,6 +72,11 @@ class Payment(TimestampMixin, Base):
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    gym_id: Mapped[UUID] = mapped_column(
+        ForeignKey("gym_locations.id", ondelete="RESTRICT"),
+        nullable=False,
+        default=DISTRICT_1_GYM_ID,
+    )
     user_id: Mapped[UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
@@ -119,6 +126,7 @@ class Payment(TimestampMixin, Base):
     plan = relationship("MembershipPlan", back_populates="payments")
     invoice = relationship("Invoice", back_populates="payment", uselist=False)
     class_booking = relationship("ClassBooking", foreign_keys=[class_booking_id])
+    gym = relationship("GymLocation")
 
 
 class Invoice(Base):

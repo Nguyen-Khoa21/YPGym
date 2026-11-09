@@ -49,6 +49,7 @@ class TrainerAdminItem(TrainerItem):
 
 
 class ClassCreate(BaseModel):
+    gym_id: UUID
     title: str = Field(min_length=3, max_length=160)
     class_type: str = Field(min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=3000)
@@ -67,6 +68,7 @@ class ClassCreate(BaseModel):
 
 
 class ClassUpdate(BaseModel):
+    gym_id: UUID | None = None
     title: str | None = Field(default=None, min_length=3, max_length=160)
     class_type: str | None = Field(default=None, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=3000)
@@ -84,6 +86,7 @@ class ClassCancel(BaseModel):
 
 class ClassItem(BaseModel):
     id: UUID
+    gym_id: UUID
     title: str
     class_type: str
     description: str | None
@@ -109,6 +112,7 @@ class ClassPage(BaseModel):
 
 class MemberClassItem(BaseModel):
     id: UUID
+    gym_id: UUID
     title: str
     class_type: str
     description: str | None
@@ -129,6 +133,7 @@ class MemberClassItem(BaseModel):
 
 
 class MemberClassList(BaseModel):
+    gym_id: UUID
     items: list[MemberClassItem]
     booking_eligible: bool
     eligibility_status: str

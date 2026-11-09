@@ -14,6 +14,7 @@ from app.core.exceptions import DependencyUnavailableError
 from app.core.config import Settings
 from app.models.auth_token import EmailVerification, PasswordReset
 from app.models.billing import Invoice, Payment
+from app.models.gym import DISTRICT_1_GYM_ID, WorkforceGymAssignment
 from app.models.membership import MembershipPlan
 from app.models.membership import UserMembership
 from app.models.operations import AuditLog, Notification
@@ -294,12 +295,22 @@ async def test_purchase_renewal_idempotency_invoice_and_ownership(client, storag
         await session.commit()
     token, _ = create_access_token(user_id=user.id, role="member", tier="normal")
     headers = {"Authorization": f"Bearer {token}"}
-    payload = {"plan_id": str(plan.id), "idempotency_key": "purchase-test-1", "mock_payment_confirmed": False}
+    payload = {
+        "plan_id": str(plan.id),
+        "gym_id": str(DISTRICT_1_GYM_ID),
+        "idempotency_key": "purchase-test-1",
+        "mock_payment_confirmed": False,
+    }
     assert (await client.post("/api/v1/memberships/purchase", json=payload, headers=headers)).status_code == 400
+    no_gym = {key: value for key, value in payload.items() if key != "gym_id"} | {"mock_payment_confirmed": True}
+    missing_gym = await client.post("/api/v1/memberships/purchase", json=no_gym, headers=headers)
+    assert missing_gym.status_code == 422
+    assert missing_gym.json()["error"]["code"] == "GYM_SELECTION_REQUIRED"
     payload["mock_payment_confirmed"] = True
     response = await client.post("/api/v1/memberships/purchase", json=payload, headers=headers)
     assert response.status_code == 200
     first = response.json()
+    assert first["membership"]["home_gym_id"] == str(DISTRICT_1_GYM_ID)
     assert Decimal(first["payment"]["amount"]) == Decimal("684000")
     duplicate = (await client.post("/api/v1/memberships/purchase", json=payload, headers=headers)).json()
     assert duplicate["payment"]["id"] == first["payment"]["id"]
@@ -324,6 +335,8 @@ async def test_manager_can_manually_enroll_member_and_audit_action(client, stora
         manager = User(name="Reception manager", email="reception-manager@example.com", phone="123450001", password_hash="unused", role="manager", is_email_verified=True)
         plan = MembershipPlan(name="Reception monthly", duration_months=1, duration_days=30, base_price=Decimal("500000"), discount_percent=Decimal("0"))
         session.add_all([member, manager, plan])
+        await session.flush()
+        session.add(WorkforceGymAssignment(user_id=manager.id, gym_id=DISTRICT_1_GYM_ID, assigned_role="manager"))
         await session.commit()
     manager_token, _ = create_access_token(user_id=manager.id, role="manager", tier=manager.tier)
     response = await client.post(
@@ -337,3 +350,4 @@ async def test_manager_can_manually_enroll_member_and_audit_action(client, stora
         membership = (await session.execute(select(UserMembership).where(UserMembership.user_id == member.id))).scalar_one()
         audit = (await session.execute(select(AuditLog).where(AuditLog.action == "membership.manual_enrollment.created", AuditLog.target_user_id == member.id))).scalar_one()
         assert membership.status == "active" and audit.actor_user_id == manager.id
+        assert membership.home_gym_id == DISTRICT_1_GYM_ID

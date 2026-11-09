@@ -812,16 +812,28 @@ class NotificationRepository:
     async def get_broadcast(self, broadcast_id: UUID) -> BroadcastAnnouncement | None:
         return await self.session.get(BroadcastAnnouncement, broadcast_id)
 
-    async def list_broadcasts(self) -> list[BroadcastAnnouncement]:
+    async def list_broadcasts(self, *, gym_id: UUID | None = None) -> list[BroadcastAnnouncement]:
+        query = select(BroadcastAnnouncement)
+        if gym_id is not None:
+            query = query.where(BroadcastAnnouncement.gym_id == gym_id)
         return list(
             (
                 await self.session.execute(
-                    select(BroadcastAnnouncement).order_by(BroadcastAnnouncement.created_at.desc()),
+                    query.order_by(BroadcastAnnouncement.created_at.desc()),
                 )
             ).scalars().all(),
         )
 
-    async def list_active_broadcasts(self, *, now: datetime, tier: str) -> list[BroadcastAnnouncement]:
+    async def list_active_broadcasts(
+        self,
+        *,
+        now: datetime,
+        tier: str,
+        gym_id: UUID | None,
+    ) -> list[BroadcastAnnouncement]:
+        gym_scope = BroadcastAnnouncement.gym_id.is_(None)
+        if gym_id is not None:
+            gym_scope = or_(gym_scope, BroadcastAnnouncement.gym_id == gym_id)
         return list(
             (
                 await self.session.execute(
@@ -831,6 +843,7 @@ class NotificationRepository:
                         BroadcastAnnouncement.starts_at <= now,
                         or_(BroadcastAnnouncement.ends_at.is_(None), BroadcastAnnouncement.ends_at > now),
                         BroadcastAnnouncement.audience.in_(("all", "members", tier)),
+                        gym_scope,
                     )
                     .order_by(BroadcastAnnouncement.starts_at.desc()),
                 )

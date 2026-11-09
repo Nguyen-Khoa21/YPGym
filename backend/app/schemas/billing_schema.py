@@ -9,6 +9,8 @@ from app.schemas.membership_schema import AttendanceBenefitQuote
 
 class PaymentHistoryItem(BaseModel):
     id: UUID
+    gym_id: UUID
+    gym_name: str
     product_type: str
     product_name: str
     class_booking_id: UUID | None
@@ -27,6 +29,8 @@ class PaymentHistoryItem(BaseModel):
 
 class InvoiceHistoryItem(BaseModel):
     id: UUID
+    gym_id: UUID
+    gym_name: str
     invoice_number: str
     plan_name: str
     product_type: str
@@ -45,6 +49,8 @@ class InvoiceHistoryItem(BaseModel):
 
 class AdminBillingItem(BaseModel):
     payment_id: UUID
+    gym_id: UUID
+    gym_name: str
     user_id: UUID
     member_name: str
     member_email: str

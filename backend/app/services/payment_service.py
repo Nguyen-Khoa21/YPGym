@@ -75,11 +75,16 @@ class PayOSPaymentService:
         plan = await self.plans.get_by_id(payload.membership_plan_id)
         if not plan or not plan.is_active:
             raise ResourceNotFoundError("Membership plan was not found.")
+        gym = await self.memberships.resolve_purchase_gym(
+            user=user,
+            requested_gym_id=payload.gym_id,
+        )
         current_membership = await self.memberships.memberships.get_current_for_user(user.id)
         quote = await self.memberships.attendance_benefit_quote(
             user=user,
             plan=plan,
             current_membership=current_membership,
+            gym=gym,
         )
         if quote.status == "pending":
             raise AppError(
@@ -96,6 +101,7 @@ class PayOSPaymentService:
         order_code = await self.payments.next_payos_order_code()
         try:
             payment = await self.payments.create(
+                gym_id=gym.id,
                 user_id=user.id,
                 membership_id=current_membership.id if quote.pricing.transaction_kind == "renewal" else None,
                 plan_id=plan.id,
@@ -131,6 +137,8 @@ class PayOSPaymentService:
             checkout_url=payment.checkout_url,
             amount_vnd=payment.amount_vnd,
             expires_at=payment.expires_at,
+            gym_id=gym.id,
+            gym_name=gym.name,
         )
 
     async def create_class_payment(
@@ -154,6 +162,8 @@ class PayOSPaymentService:
         gym_class = await self.classes.get_class(class_id, for_update=True)
         if not gym_class:
             raise ResourceNotFoundError("Class was not found.")
+        if not await self.memberships.gyms.get_location(gym_class.gym_id, active_only=True):
+            raise AppError("CLASS_GYM_INACTIVE", "This class's gym location is inactive.", 409)
         if gym_class.status != "scheduled" or gym_class.start_at <= now:
             raise AppError("CLASS_UNAVAILABLE", "Only future scheduled classes can be purchased.", 409)
         if not gym_class.price_vnd or gym_class.price_vnd <= 0:
@@ -209,6 +219,7 @@ class PayOSPaymentService:
             )
         order_code = await self.payments.next_payos_order_code()
         payment = await self.payments.create(
+            gym_id=gym_class.gym_id,
             user_id=user.id,
             membership_id=None,
             plan_id=None,
@@ -301,6 +312,19 @@ class PayOSPaymentService:
         ).scalar_one()
         payment.paid_at = payment.pay_date or now
         if payment.product_type == "membership" and payment.plan_id and not payment.class_booking_id:
+            if not payment.gym.is_active:
+                transition_payment(payment, PaymentStatus.PAID_REVIEW)
+                await self.audit.create(
+                    target_user_id=payment.user_id,
+                    action="payment.payos.membership_resolution_required",
+                    entity_type="payment",
+                    entity_id=str(payment.id),
+                    outcome="paid_review",
+                    summary="The selected gym became inactive before membership payment settlement.",
+                    after_data={"gym_id": str(payment.gym_id)},
+                )
+                await self.session.commit()
+                return {"code": "00", "desc": "success"}
             transition_payment(payment, PaymentStatus.PAID)
             await self.memberships.finalize_provider_payment(
                 user=user, plan=payment.plan, payment=payment, transaction_date=payment.paid_at
@@ -366,7 +390,7 @@ class PayOSPaymentService:
             member_email=user.email,
             plan_name=gym_class.title,
             product_type="class_booking",
-            product_name=gym_class.title,
+            product_name=f"{gym_class.title} · {payment.gym.name}",
             amount=payment.amount,
             discount_amount=payment.discount_amount,
             transaction_date=payment.paid_at,
@@ -381,7 +405,7 @@ class PayOSPaymentService:
             payment_id=payment.id,
             plan_name=gym_class.title,
             product_type="class_booking",
-            product_name=gym_class.title,
+            product_name=f"{gym_class.title} · {payment.gym.name}",
             class_booking_id=booking.id,
             amount=payment.amount,
             discount_amount=payment.discount_amount,
@@ -414,7 +438,10 @@ class PayOSPaymentService:
             category="class_booking",
             notification_type="class_payment_confirmed",
             title="Class booking confirmed",
-            message=f"Your seat for {gym_class.title} is confirmed and invoice {invoice_number} is ready.",
+            message=(
+                f"Your seat for {gym_class.title} at {payment.gym.name} is confirmed and "
+                f"invoice {invoice_number} is ready."
+            ),
             channel="in_app",
             delivery_state="delivered",
             delivered_at=payment.paid_at,
@@ -429,7 +456,11 @@ class PayOSPaymentService:
             entity_id=str(payment.id),
             outcome="paid",
             summary="A verified payOS webhook confirmed one class reservation.",
-            after_data={"class_booking_id": str(booking.id), "invoice_id": str(invoice.id)},
+            after_data={
+                "class_booking_id": str(booking.id),
+                "invoice_id": str(invoice.id),
+                "gym_id": str(payment.gym_id),
+            },
         )
 
     async def get_status(self, *, user: User, payment_id: UUID) -> PaymentStatusResponse:
@@ -542,6 +573,8 @@ class PayOSPaymentService:
         product_name = payment.plan.name if payment.plan else gym_class.title
         return PaymentStatusResponse(
             id=payment.id,
+            gym_id=payment.gym_id,
+            gym_name=payment.gym.name,
             product_type=payment.product_type,
             membership_plan_id=payment.plan_id,
             class_booking_id=payment.class_booking_id,

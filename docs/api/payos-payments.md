@@ -83,3 +83,7 @@ YPGym records manual refund resolution; it does not claim an automatic payOS ref
 ## Controlled real-payment acceptance
 
 No automated command performs this test. With owner approval, use the smallest practical amount (about 2,000–10,000 VND) and verify: the checkout item/amount/recipient; funds reaching the linked bank account; signed webhook receipt; one paid payment/invoice; exactly one membership/class entitlement; exactly one receipt delivery; updated web/mobile/admin state; replay/refresh idempotency; and honest cancellation/expiry behavior.
+
+## Gym location
+
+Every payOS payment stores the gym it was created for. Membership checkout requires an active gym for a first purchase, and the member's home gym changes only after the verified webhook. See [gym-scoped-services.md](gym-scoped-services.md).

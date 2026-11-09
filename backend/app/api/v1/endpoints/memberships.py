@@ -29,12 +29,14 @@ async def get_attendance_benefit(
     plan_id: UUID,
     current_user: Annotated[User, Depends(require_roles("member"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
+    gym_id: UUID | None = None,
 ) -> AttendanceBenefitQuote:
     service = MembershipService(session)
     plan = await service.plans.get_by_id(plan_id)
     if not plan or not plan.is_active:
         raise ResourceNotFoundError("Membership plan was not found.")
-    return await service.attendance_benefit_quote(user=current_user, plan=plan)
+    gym = await service.resolve_purchase_gym(user=current_user, requested_gym_id=gym_id)
+    return await service.attendance_benefit_quote(user=current_user, plan=plan, gym=gym)
 
 
 @router.post("/purchase", response_model=PurchaseMembershipResponse)

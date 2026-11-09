@@ -59,6 +59,8 @@ export type AttendanceBenefitQuote = {
 
 export type PaymentHistoryItem = {
   id: string;
+  gym_id: string;
+  gym_name: string;
   product_type: "membership" | "class_booking";
   product_name: string;
   class_booking_id: string | null;
@@ -81,10 +83,14 @@ export type PayOSCreateResponse = {
   checkout_url: string;
   amount_vnd: number;
   expires_at: string;
+  gym_id: string;
+  gym_name: string;
 };
 
 export type PaymentStatus = {
   id: string;
+  gym_id: string;
+  gym_name: string;
   product_type: "membership" | "class_booking";
   membership_plan_id: string | null;
   class_booking_id: string | null;
@@ -112,6 +118,8 @@ export type PaymentStatus = {
 
 export type InvoiceHistoryItem = {
   id: string;
+  gym_id: string;
+  gym_name: string;
   invoice_number: string;
   plan_name: string;
   product_type: "membership" | "class_booking";
@@ -132,6 +140,8 @@ export type PurchaseResponse = {
   message: string;
   membership: {
     id: string;
+    home_gym_id: string;
+    home_gym_name: string;
     plan_id: string;
     plan_name: string;
     status: string;

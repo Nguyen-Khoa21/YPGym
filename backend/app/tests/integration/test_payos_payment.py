@@ -14,6 +14,7 @@ from app.core.exceptions import AppError
 from app.models.billing import Invoice, Payment
 from app.models.classes import ClassBooking, GymClass
 from app.models.email_delivery import EmailDelivery
+from app.models.gym import DISTRICT_1_GYM_ID, DISTRICT_11_GYM_ID, GymLocation
 from app.models.membership import MembershipPlan, UserMembership
 from app.models.operations import AuditLog
 from app.models.user import User
@@ -81,11 +82,11 @@ async def create_member_and_plan(storage, *, with_membership: bool = False):
     return plan, member, other
 
 
-async def start_payment(client, plan, member):
+async def start_payment(client, plan, member, *, gym_id=DISTRICT_1_GYM_ID):
     return await client.post(
         "/api/v1/payments/payos/create",
         headers=auth(member),
-        json={"membership_plan_id": str(plan.id), "client_platform": "web"},
+        json={"membership_plan_id": str(plan.id), "gym_id": str(gym_id), "client_platform": "web"},
     )
 
 
@@ -126,6 +127,8 @@ async def test_membership_checkout_uses_server_price_and_enforces_ownership(clie
     response = await start_payment(client, plan, member)
     assert response.status_code == 201, response.text
     checkout = response.json()
+    assert checkout["gym_id"] == str(DISTRICT_1_GYM_ID)
+    assert checkout["gym_name"] == "YPGym District 1"
     assert checkout["amount_vnd"] == 720_000
     assert checkout["checkout_url"].startswith("https://pay.payos.vn/")
     assert isinstance(checkout["order_code"], int)
@@ -134,9 +137,85 @@ async def test_membership_checkout_uses_server_price_and_enforces_ownership(clie
     sessions, _ = storage
     async with sessions() as session:
         payment = await session.get(Payment, checkout["transaction_id"])
+        assert payment.gym_id == DISTRICT_1_GYM_ID
         assert (payment.provider, payment.status, payment.payos_order_code) == ("payos", "pending", checkout["order_code"])
         assert await session.scalar(select(func.count()).select_from(UserMembership)) == 0
         assert await session.scalar(select(func.count()).select_from(Invoice)) == 0
+
+
+async def test_membership_gym_is_required_validated_and_applied_only_after_webhook(client, storage):
+    plan, member, _ = await create_member_and_plan(storage)
+    missing = await client.post(
+        "/api/v1/payments/payos/create",
+        headers=auth(member),
+        json={"membership_plan_id": str(plan.id)},
+    )
+    assert missing.status_code == 422
+    assert missing.json()["error"]["code"] == "GYM_SELECTION_REQUIRED"
+
+    unknown = await start_payment(client, plan, member, gym_id=uuid4())
+    assert unknown.status_code == 404
+
+    sessions, _ = storage
+    async with sessions() as session:
+        district_11 = await session.get(GymLocation, DISTRICT_11_GYM_ID)
+        district_11.is_active = False
+        await session.commit()
+    inactive = await start_payment(client, plan, member, gym_id=DISTRICT_11_GYM_ID)
+    assert inactive.status_code == 404
+    async with sessions() as session:
+        district_11 = await session.get(GymLocation, DISTRICT_11_GYM_ID)
+        district_11.is_active = True
+        await session.commit()
+
+    checkout_response = await start_payment(client, plan, member, gym_id=DISTRICT_11_GYM_ID)
+    assert checkout_response.status_code == 201, checkout_response.text
+    checkout = checkout_response.json()
+    assert checkout["gym_id"] == str(DISTRICT_11_GYM_ID)
+    async with sessions() as session:
+        assert await session.scalar(
+            select(func.count()).select_from(UserMembership).where(UserMembership.user_id == member.id)
+        ) == 0
+        payment = await session.get(Payment, checkout["transaction_id"])
+        assert payment.gym_id == DISTRICT_11_GYM_ID
+
+    settled = await client.post(
+        "/api/v1/payments/payos/webhook",
+        json=webhook(checkout["order_code"], checkout["amount_vnd"]),
+    )
+    assert settled.status_code == 200
+    async with sessions() as session:
+        membership = (
+            await session.execute(select(UserMembership).where(UserMembership.user_id == member.id))
+        ).scalar_one()
+        invoice = (
+            await session.execute(select(Invoice).where(Invoice.payment_id == checkout["transaction_id"]))
+        ).scalar_one()
+        assert membership.home_gym_id == DISTRICT_11_GYM_ID
+        assert invoice.product_name == f"{plan.name} · YPGym District 11"
+
+
+async def test_renewal_changes_home_gym_only_after_verified_payment(client, storage):
+    plan, member, _ = await create_member_and_plan(storage, with_membership=True)
+    sessions, _ = storage
+    checkout_response = await start_payment(client, plan, member, gym_id=DISTRICT_11_GYM_ID)
+    assert checkout_response.status_code == 201, checkout_response.text
+    checkout = checkout_response.json()
+    async with sessions() as session:
+        membership = (
+            await session.execute(select(UserMembership).where(UserMembership.user_id == member.id))
+        ).scalar_one()
+        assert membership.home_gym_id == DISTRICT_1_GYM_ID
+
+    assert (await client.post(
+        "/api/v1/payments/payos/webhook",
+        json=webhook(checkout["order_code"], checkout["amount_vnd"]),
+    )).status_code == 200
+    async with sessions() as session:
+        membership = (
+            await session.execute(select(UserMembership).where(UserMembership.user_id == member.id))
+        ).scalar_one()
+        assert membership.home_gym_id == DISTRICT_11_GYM_ID
 
 
 async def test_valid_webhook_is_atomic_and_duplicate_safe(client, storage):
@@ -151,12 +230,15 @@ async def test_valid_webhook_is_atomic_and_duplicate_safe(client, storage):
     assert [response.status_code for response in responses] == [200, 200]
     status = (await client.get(f"/api/v1/payments/{checkout['transaction_id']}", headers=auth(member))).json()
     assert status["status"] == "paid"
+    assert status["gym_id"] == str(DISTRICT_1_GYM_ID)
     assert status["membership_status"] == "active"
     assert status["invoice_id"]
 
     sessions, _ = storage
     async with sessions() as session:
         assert await session.scalar(select(func.count()).select_from(UserMembership).where(UserMembership.user_id == member.id)) == 1
+        membership = (await session.execute(select(UserMembership).where(UserMembership.user_id == member.id))).scalar_one()
+        assert membership.home_gym_id == DISTRICT_1_GYM_ID
         assert await session.scalar(select(func.count()).select_from(Invoice).where(Invoice.payment_id == checkout["transaction_id"])) == 1
         assert await session.scalar(select(func.count()).select_from(EmailDelivery).where(EmailDelivery.payment_id == checkout["transaction_id"])) == 1
         assert await session.scalar(select(func.count()).select_from(AuditLog).where(AuditLog.entity_id == checkout["transaction_id"], AuditLog.action == "payment.payos.confirmed")) == 1

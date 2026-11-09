@@ -10,6 +10,7 @@ from app.models.classes import ClassBooking, ClassWaitlist, GymClass, PersonalTr
 from app.models.enums import ClassBookingStatus, ClassStatus, PaymentStatus, RefundStatus, WaitlistStatus
 from app.models.user import User
 from app.repositories.class_repository import ClassRepository
+from app.repositories.gym_repository import GymRepository
 from app.repositories.operations_repository import AuditRepository
 from app.schemas.class_schema import (
     ClassCancel,
@@ -30,6 +31,7 @@ from app.schemas.class_schema import (
 )
 from app.schemas.operations_schema import PageInfo
 from app.services.configuration_service import ConfigurationService
+from app.services.gym_service import GymScopeService
 from app.services.state_transitions import (
     transition_booking,
     transition_class,
@@ -53,6 +55,7 @@ class ClassService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.classes = ClassRepository(session)
+        self.gyms = GymRepository(session)
         self.audit = AuditRepository(session)
 
     async def list_trainers(self) -> list[TrainerItem]:
@@ -77,10 +80,13 @@ class ClassService:
 
     async def create(self, *, actor: User, payload: ClassCreate) -> ClassItem:
         validate_class_times(payload.start_at, payload.end_at)
+        if not await self.gyms.get_location(payload.gym_id, active_only=True):
+            raise ResourceNotFoundError("The selected gym location was not found or is inactive.")
         trainer_name = await self._trainer_name(payload.trainer_id)
         await self._ensure_no_overlap(
             start_at=payload.start_at,
             end_at=payload.end_at,
+            gym_id=payload.gym_id,
             location=payload.location,
             trainer_id=payload.trainer_id,
         )
@@ -109,11 +115,14 @@ class ClassService:
         changes = payload.model_dump(exclude_unset=True)
         for key, value in changes.items():
             setattr(item, key, value)
+        if not await self.gyms.get_location(item.gym_id, active_only=True):
+            raise ResourceNotFoundError("The selected gym location was not found or is inactive.")
         validate_class_times(item.start_at, item.end_at)
         trainer_name = await self._trainer_name(item.trainer_id)
         await self._ensure_no_overlap(
             start_at=item.start_at,
             end_at=item.end_at,
+            gym_id=item.gym_id,
             location=item.location,
             trainer_id=item.trainer_id,
             exclude_id=item.id,
@@ -256,6 +265,7 @@ class ClassService:
     def _item(item: GymClass, trainer_name: str | None) -> ClassItem:
         return ClassItem(
             id=item.id,
+            gym_id=item.gym_id,
             title=item.title,
             class_type=item.class_type,
             description=item.description,
@@ -275,6 +285,7 @@ class ClassService:
     @staticmethod
     def _audit_data(item: GymClass) -> dict[str, object]:
         return {
+            "gym_id": str(item.gym_id),
             "title": item.title,
             "class_type": item.class_type,
             "start_at": item.start_at.isoformat(),
@@ -476,6 +487,8 @@ class BookingService:
     def __init__(self, session: AsyncSession, redis: Redis) -> None:
         self.session = session
         self.classes = ClassRepository(session)
+        self.gyms = GymRepository(session)
+        self.gym_scope = GymScopeService(session)
         self.configuration = ConfigurationService(session, redis)
         self.audit = AuditRepository(session)
         self.waitlist_promotions = WaitlistPromotionService(session)
@@ -485,10 +498,14 @@ class BookingService:
         if not user.is_email_verified:
             raise AppError("EMAIL_NOT_VERIFIED", "Please verify your email before booking a class.", 403)
 
-    async def list_upcoming(self, user: User) -> MemberClassList:
-        rows = await self.classes.member_classes(user_id=user.id)
+    async def list_upcoming(self, user: User, *, gym_id: UUID | None = None) -> MemberClassList:
+        effective_gym_id = gym_id or await self.gym_scope.effective_gym_id(user=user)
+        if not await self.gyms.get_location(effective_gym_id, active_only=True):
+            raise ResourceNotFoundError("The selected gym location was not found or is inactive.")
+        rows = await self.classes.member_classes(user_id=user.id, gym_id=effective_gym_id)
         eligible = user.is_email_verified
         return MemberClassList(
+            gym_id=effective_gym_id,
             items=[self._member_class(row, eligible=eligible) for row in rows],
             booking_eligible=eligible,
             eligibility_status="eligible" if eligible else "email_unverified",
@@ -721,6 +738,7 @@ class BookingService:
             state = "available"
         return MemberClassItem(
             id=gym_class.id,
+            gym_id=gym_class.gym_id,
             title=gym_class.title,
             class_type=gym_class.class_type,
             description=gym_class.description,

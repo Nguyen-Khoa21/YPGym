@@ -25,6 +25,8 @@ class BillingService:
         return [
             PaymentHistoryItem(
                 id=payment.id,
+                gym_id=payment.gym_id,
+                gym_name=payment.gym.name,
                 product_type=payment.product_type,
                 product_name=payment.plan.name if payment.plan else payment.class_booking.gym_class.title,
                 class_booking_id=payment.class_booking_id,
@@ -79,6 +81,8 @@ class BillingService:
         return [
             AdminBillingItem(
                 payment_id=payment.id,
+                gym_id=payment.gym_id,
+                gym_name=payment.gym.name,
                 user_id=payment.user_id,
                 member_name=payment.user.name,
                 member_email=payment.user.email,
@@ -99,6 +103,8 @@ class BillingService:
     def _invoice_history_item(self, invoice) -> InvoiceHistoryItem:
         return InvoiceHistoryItem(
             id=invoice.id,
+            gym_id=invoice.payment.gym_id,
+            gym_name=invoice.payment.gym.name,
             invoice_number=invoice.invoice_number,
             plan_name=invoice.plan_name,
             product_type=invoice.product_type,

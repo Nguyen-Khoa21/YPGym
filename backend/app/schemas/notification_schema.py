@@ -47,6 +47,7 @@ class NotificationPage(BaseModel):
 
 
 class BroadcastCreate(BaseModel):
+    gym_id: UUID | None = None
     audience: str = Field(default="all", pattern="^(all|members|normal|advance|vip)$")
     title: str = Field(min_length=3, max_length=180)
     message: str = Field(min_length=5, max_length=3000)
@@ -71,6 +72,7 @@ class BroadcastUpdate(BaseModel):
 
 class BroadcastItem(BaseModel):
     id: UUID
+    gym_id: UUID | None
     audience: str
     title: str
     message: str

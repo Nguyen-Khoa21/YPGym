@@ -6,7 +6,6 @@ from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.gym import DISTRICT_1_GYM_ID
 from app.models.mixins import TimestampMixin
 
 
@@ -155,7 +154,6 @@ class BroadcastAnnouncement(TimestampMixin, Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     gym_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("gym_locations.id", ondelete="RESTRICT"),
-        default=DISTRICT_1_GYM_ID,
     )
     audience: Mapped[str] = mapped_column(String(40), nullable=False, default="all")
     title: Mapped[str] = mapped_column(String(180), nullable=False)
