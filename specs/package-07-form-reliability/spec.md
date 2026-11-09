@@ -1,6 +1,6 @@
 # Package 7: form reliability
 
-**Status:** `PLANNED`. Independent of Packages 5 and 6, but ordered after them. Web only. Browser-level tests depend on decision D-02 in [decisions.md](../decisions.md).
+**Status:** `IMPLEMENTED_VERIFIED` for the shared controls, the broadcast form and the member request forms; the remaining raw controls are recorded below as intentionally custom. Independent of Packages 5 and 6, but ordered after them. Web only. Browser-level tests depend on decision D-02 in [decisions.md](../decisions.md).
 
 ## Purpose
 
@@ -83,3 +83,28 @@ Redesigning the visual system, changing validation rules, and any backend change
 ## Dependencies
 
 Decision D-02 for the browser steps. The Package 4 broadcast page is the primary target.
+
+## Implementation record
+
+`Form.tsx` now has a `Textarea` and a `Field` context. `Label` points at the field control by default, and `Input` and `Textarea` get a generated `id`, `aria-invalid` and `aria-describedby` that link to the `FieldError` (`role="alert"`). The broadcast Message field and both member request forms (freeze reason, cancellation reason) use `Textarea`.
+
+### Audit of raw `<input>` and `<textarea>` (T7-03)
+
+| Location | Decision | Reason |
+| --- | --- | --- |
+| AdminBroadcastsPage message | Migrated | The reported defect. |
+| MembershipRequestsPage freeze and cancellation reasons | Migrated | Non-modal form already using `Field` and `Label`. |
+| AdminBillingPage, AdminMembersPage, AdminAuditPage, AdminClassesPage and AdminAttendancePage toolbar filters | Left as is | Styled by `.ops-toolbar` and `.ops-filter-row`; they carry `aria-label`; migrating would change their look. |
+| Modal fields (AdminMemberDetailPage, AdminMembershipApprovalsPage, AdminTrainersPage, AdminClassesPage, AdminAttendancePage) | Left as is | Styled by `.ops-modal__panel`; migration only when the look is identical (NFR-FORM-003), not verified, so deferred. |
+| AdminTrainingPage name and three textareas, MemberTrainingPage, MemberClassesPage, AdminSettingsPage, NotificationPreferencesPage, BuyMembershipPage, AdminBranchesPage checkbox | Left as is | Wrapped in an implicit `<label>`, so they are associated and typeable; they use their own classes. Candidates for a later pass. |
+
+### `index.css` audit (T7-04)
+
+The selectors that touch form controls are `.ops-toolbar`, `.ops-filter-row` and `.ops-modal__panel` (input, select, textarea) and `.ops-modal__body textarea`. All are scoped to toolbars and modals. The broadcast and request forms sit in plain panels, so no rule conflicts with `Input` or `Textarea`. No fix was needed.
+
+### Evidence
+
+- `npm test`: 41 pass (the new `formControls.test.mjs` bundles `Form.tsx` with esbuild and renders with `react-dom/server`; covers AC-FORM-001 and 002).
+- `npx eslint`: 0 errors, 1 older warning. `tsc -b`: clean.
+- Playwright `e2e/form-reliability.spec.ts` against the seeded demo stack: 3 pass (type in Title, two-line Message without submitting, empty submit sets `aria-invalid` and a linked alert, fixing the field clears it, equal widths and no horizontal scroll at 375 px). `e2e/operations-scope.spec.ts` still passes (3).
+- Not done: screenshot comparison of every existing page; no visual regression run (NFR-FORM-002 rests on only touching the broadcast and request forms). `npm run build` passes in the verification workspace.

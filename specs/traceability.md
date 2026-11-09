@@ -34,7 +34,7 @@ Completed packages use the Master Prompt section as their requirement reference,
 | G4 | Staff use attendance only while clocked in, FR-OPS-001 to 008 | 6 | `ShiftGuard`, locked staff workspace (`05363bb`, `778b8cb`) | `test_shift_and_scope_rules.py`, Playwright | `IMPLEMENTED_VERIFIED` |
 | G4 | Manager summary analytics limited to the branch, no chain-wide revenue, FR-OPS-014 | 6 | Scoped summary, manager forced to own gym, revenue owner-only (`05363bb`) | `test_shift_and_scope_rules.py` | `IMPLEMENTED_VERIFIED` |
 | G4 | Gym scope shown in every operations header; manager has no selector, FR-OPS-009 to 011 | 6 | `GET /gyms/me`, `GymScopeBar` on Attendance and Branches pages only | Playwright; AC-OPS-013 | `PARTIALLY_IMPLEMENTED` |
-| G4 | Typeable, consistent management forms including broadcasts, FR-FORM-001 to 010 | 7 | Broadcast Message uses a raw textarea; no shared `Textarea` | AC-FORM-001 to 010 | `NOT_FOUND` |
+| G4 | Typeable, consistent management forms including broadcasts, FR-FORM-001 to 010 | 7 | Broadcast Message uses a raw textarea; no shared `Textarea` | AC-FORM-001 to 010 | `IMPLEMENTED_VERIFIED` (modal and toolbar controls intentionally unchanged, see Package 7 audit) |
 | G5 | Gym and workforce management API | 1 | `/admin/gym-locations`, `/workforce/assignments` | `test_gym_locations.py` | `IMPLEMENTED_VERIFIED` |
 | G5 | Gym and workforce management in the web app, FR-OPS-015 | 6 | `AdminBranchesPage` (`778b8cb`) | typecheck and build only; not exercised in a browser | `IMPLEMENTED_UNTESTED` |
 | G5 | Owner branch selector and per-branch comparison cards, FR-OPS-012, FR-OPS-013 | 6 | Branch selector and branch cards (`778b8cb`) | Playwright | `IMPLEMENTED_VERIFIED` |
