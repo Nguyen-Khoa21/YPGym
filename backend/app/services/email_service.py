@@ -10,6 +10,7 @@ from email.utils import format_datetime, formataddr
 from mailbox import Maildir
 from pathlib import Path
 from typing import Protocol
+from urllib.parse import urlsplit
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +24,12 @@ from app.services.invoice_service import format_vnd
 from app.utils.security import generate_url_token, hash_token
 
 logger = logging.getLogger(__name__)
+
+
+def is_loopback_url(url: str) -> bool:
+    """True for localhost-style URLs that a phone cannot reach."""
+    host = (urlsplit(url).hostname or "").lower()
+    return host in {"localhost", "127.0.0.1", "::1", "0.0.0.0"} or host.endswith(".localhost")
 
 
 class EmailTransport(Protocol):
@@ -348,7 +355,7 @@ class EmailDeliveryService:
         message["Message-ID"] = f"<registration-welcome.{user.id}@{sender_domain}>"
         message.set_content(
             f"Hi {user.name},\n\n"
-            "Welcome to YPGym. Verify your email using the separate verification message, then sign in to "
+            "Welcome to YPGym. Enter the 6-digit code from your verification email, then sign in to "
             "view membership plans and member features.\n\n"
             f"Sign in: {login_url}\n\n"
             "YPGym Team\n",
@@ -356,7 +363,7 @@ class EmailDeliveryService:
         message.add_alternative(
             "<!doctype html><html><body>"
             f"<p>Hi {safe_name},</p>"
-            "<p>Welcome to YPGym. Verify your email using the separate verification message, then sign in "
+            "<p>Welcome to YPGym. Enter the 6-digit code from your verification email, then sign in "
             "to view membership plans and member features.</p>"
             f'<p><a href="{safe_login_url}">Sign in to YPGym</a></p>'
             "<p>YPGym Team</p>"
@@ -392,6 +399,35 @@ class EmailDeliveryService:
             f'<p><a href="{html.escape(link, quote=True)}">Confirm secure account link</a></p>'
             "<p>This single-use link expires shortly. If you did not request it, ignore this message.</p>"
             "<p>YPGym Team</p></body></html>",
+            subtype="html",
+        )
+        return message
+
+    def verification_message(self, *, user: User, code: str, token: str) -> EmailMessage:
+        """Sign-up verification mail: the code comes first; the link is optional and never loopback."""
+        minutes = self.settings.EMAIL_VERIFICATION_CODE_TTL_MINUTES
+        message = self._base_message(user.email, "Your YPGym verification code", f"verify-email.{secrets.token_hex(8)}")
+        link = None
+        if not is_loopback_url(self.settings.FRONTEND_URL):
+            link = f"{self.settings.FRONTEND_URL.rstrip('/')}/verify-email?token={token}"
+        plain = (
+            f"Hi {user.name},\n\nYour YPGym verification code is: {code}\n\n"
+            f"Enter it in the app to verify your email. The code expires in {minutes} minutes.\n"
+        )
+        if link:
+            plain += f"\nOr open this link on this device:\n{link}\n"
+        plain += "\nIf you did not create a YPGym account, ignore this message.\n\nYPGym Team\n"
+        message.set_content(plain)
+        link_html = f'<p>Or <a href="{html.escape(link, quote=True)}">verify with this link</a>.</p>' if link else ""
+        message.add_alternative(
+            "<!doctype html><html><body>"
+            f"<p>Hi {html.escape(user.name, quote=True)},</p>"
+            "<p>Your YPGym verification code is:</p>"
+            f'<p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:12px 0">{html.escape(code, quote=True)}</p>'
+            f"<p>Enter it in the app to verify your email. The code expires in {minutes} minutes.</p>"
+            f"{link_html}"
+            "<p>If you did not create a YPGym account, ignore this message.</p><p>YPGym Team</p>"
+            "</body></html>",
             subtype="html",
         )
         return message

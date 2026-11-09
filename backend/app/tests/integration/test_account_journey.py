@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from email import policy
@@ -162,15 +163,16 @@ async def test_smtp_mode_delivers_the_one_time_verification_link(client, storage
     message = delivered_messages[0]
     assert message["From"] == "YPGym Team <team@example.com>"
     assert message["To"] == "smtp-member@example.com"
-    links = message.get_content().splitlines()
-    assert links[0].startswith("https://gym.example.com/verify-email?token=")
-    assert links[1].startswith("ypgym://verify-email?token=")
-    token = parse_qs(urlsplit(links[0]).query)["token"][0]
-    assert parse_qs(urlsplit(links[1]).query)["token"] == [token]
+    plain = message.get_body(preferencelist=("plain",)).get_content()
+    code = re.search(r"code is: (\d{6})", plain).group(1)
+    assert "ypgym://" not in message.as_string()
+    link = next(line for line in plain.splitlines() if line.startswith("https://gym.example.com/verify-email?token="))
+    token = parse_qs(urlsplit(link).query)["token"][0]
     async with sessions() as session:
         row = (await session.execute(select(EmailVerification))).scalar_one()
         assert row.token_hash == hash_token(token)
         assert token not in row.token_hash
+        assert row.code_hash and code not in row.code_hash
     assert (await client.get("/api/v1/auth/verify-email", params={"token": token})).status_code == 200
 
 
@@ -185,7 +187,7 @@ async def test_welcome_delivery_failure_is_private_and_retryable(client, storage
         )
 
     monkeypatch.setattr(
-        "app.services.auth_service.AuthService._prepare_development_email",
+        "app.services.auth_service.AuthService._send_verification_email",
         unavailable_verification_outbox,
     )
     payload = {

@@ -27,11 +27,25 @@ class RegisterRequest(BaseModel):
 class RegisterResponse(BaseModel):
     message: str
     user: UserPublic
+    verification_email_sent: bool = True
 
 
 class VerifyEmailResponse(BaseModel):
     message: str
     user: UserPublic | None = None
+
+
+class VerifyEmailCodeRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(pattern=r"^\d{6}$")
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class ResendVerificationResponse(BaseModel):
+    message: str
 
 
 class LoginRequest(BaseModel):

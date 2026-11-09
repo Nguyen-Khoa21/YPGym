@@ -7,7 +7,9 @@ PostgreSQL remains authoritative for users, roles and durable transactions; Redi
 | Family | Scope | Limit / window |
 |---|---|---|
 | Registration | Hashed client IP; also hashed IP + normalized email | 10/hour per IP; 3/hour per pair |
-| Email verification | Hashed client IP; also hashed one-time token | 60/15 minutes per IP; 10/15 minutes per token |
+| Email verification (link) | Hashed client IP; also hashed one-time token | 60/15 minutes per IP; 10/15 minutes per token |
+| Email verification (code) | Hashed client IP; also hashed normalized email | 60/15 minutes per IP; 15/15 minutes per email; the code itself locks after 5 wrong attempts |
+| Verification resend | Hashed client IP; also hashed normalized email | 20/hour per IP; 5/hour per IP + email; plus a 60-second per-email cooldown applied to unknown emails too, so responses never reveal whether an account exists |
 | Login | Hashed client IP; also hashed IP + normalized email | 60/minute per IP; 10/minute per pair |
 | Forgot password | Hashed client IP; also hashed IP + normalized email | 20/15 minutes per IP; 5/15 minutes per pair |
 | Password reset confirmation | Hashed client IP; also hashed one-time token | 20/15 minutes per IP; 5/15 minutes per token |

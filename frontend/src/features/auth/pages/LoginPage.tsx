@@ -56,7 +56,7 @@ export function LoginPage() {
         <span className="grid size-11 place-items-center rounded-xl bg-secondary text-foreground"><KeyRound className="size-5" aria-hidden /></span>
         <h2 className="mt-5 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none">Welcome back</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">Use your verified YPGym email and password.</p>
-        {error ? <ErrorState className="mt-5" title={error.title} message={error.message} /> : null}
+        {error ? <ErrorState className="mt-5" title={error.title} message={error.message} action={error.code === "EMAIL_NOT_VERIFIED" ? <Link className="inline-flex rounded-full bg-primary px-4 py-2 text-sm font-extrabold text-primary-foreground" to={`/verify-email?email=${encodeURIComponent(form.getValues("email"))}`}>Enter your verification code</Link> : undefined} /> : null}
         <form className="mt-6 space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
           <Field>
             <Label htmlFor="email">Email address</Label>

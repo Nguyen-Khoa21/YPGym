@@ -22,7 +22,7 @@ const schema = z.object({
 });
 
 type RegisterForm = z.infer<typeof schema>;
-type RegisterResponse = { message: string; user: User };
+type RegisterResponse = { message: string; user: User; verification_email_sent?: boolean };
 
 export function RegisterPage() {
   const [error, setError] = useState<UiError | null>(null);
@@ -50,14 +50,14 @@ export function RegisterPage() {
     <AuthShell
       eyebrow="New member"
       title={<>Find your<br /><span className="text-secondary">pace.</span></>}
-      description="Start with a secure member account. Verify your email, then select a plan configured by the gym."
+      description="Start with a secure member account. Verify your email with a 6-digit code, then select a plan configured by the gym."
       detail="Your email and phone are checked against the real account records before a profile is created."
     >
       <section className="form-card p-6 sm:p-8">
         <span className="grid size-11 place-items-center rounded-xl bg-secondary text-foreground"><UserPlus className="size-5" aria-hidden /></span>
         <h2 className="mt-5 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none">Create account</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">Your email and phone number must be unique.</p>
-        {registered ? <div className="mt-5 rounded-2xl border border-secondary/50 bg-secondary/15 p-4"><BadgeCheck className="size-5 text-primary" aria-hidden /><h3 className="mt-3 text-xl font-bold">Check your verification link</h3><p className="mt-1 text-sm leading-6 text-muted-foreground">{registered.message} Check the email inbox configured for this environment.</p><Link className="mt-4 inline-flex items-center gap-2 text-sm font-extrabold text-primary underline-offset-4 hover:underline" to="/login">Go to login <ArrowRight className="size-4" aria-hidden /></Link></div> : null}
+        {registered ? <div className="mt-5 rounded-2xl border border-secondary/50 bg-secondary/15 p-4"><BadgeCheck className="size-5 text-primary" aria-hidden /><h3 className="mt-3 text-xl font-bold">{registered.verification_email_sent === false ? "We could not send your code" : "Check your email for a code"}</h3><p className="mt-1 text-sm leading-6 text-muted-foreground">{registered.message}</p><Link className="mt-4 inline-flex items-center gap-2 text-sm font-extrabold text-primary underline-offset-4 hover:underline" to={`/verify-email?email=${encodeURIComponent(registered.user.email)}`}>{registered.verification_email_sent === false ? "Request a new code" : "Enter your code"} <ArrowRight className="size-4" aria-hidden /></Link></div> : null}
         {error ? <ErrorState className="mt-5" title={error.title} message={error.message} /> : null}
         {!registered ? <form className="mt-6 grid gap-4 sm:grid-cols-2" onSubmit={form.handleSubmit(onSubmit)}>
           <Field className="sm:col-span-2"><Label htmlFor="name">Full name</Label><Input id="name" autoComplete="name" {...form.register("name")} /><FieldError message={form.formState.errors.name?.message} /></Field>

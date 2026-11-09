@@ -15,21 +15,25 @@ from app.models.user import User
 from app.repositories.auth_repository import AuthTokenRepository
 from app.repositories.operations_repository import NotificationRepository
 from app.repositories.user_repository import UserRepository
-from app.services.email_service import ConfiguredEmailTransport
+from app.services.email_service import ConfiguredEmailTransport, EmailDeliveryService
 from app.schemas.auth_schema import (
     ForgotPasswordResponse,
     LoginResponse,
     RegisterRequest,
     RegisterResponse,
+    ResendVerificationResponse,
     ResetPasswordResponse,
     UserPublic,
     VerifyEmailResponse,
 )
 from app.utils.security import (
     create_access_token,
+    generate_numeric_code,
     generate_url_token,
     hash_password,
     hash_token,
+    hash_verification_code,
+    verification_code_matches,
     verify_password,
 )
 
@@ -72,7 +76,8 @@ class AuthService:
                 tier=MemberTier.NORMAL.value,
                 is_email_verified=False,
             )
-            verification_token = await self._create_email_verification(user)
+            verification_code = generate_numeric_code()
+            verification_token = await self._create_email_verification(user, code=verification_code)
             await self.notifications.create_notification_once(
                 user_id=user.id,
                 category="account",
@@ -92,17 +97,13 @@ class AuthService:
                 status_code=409,
             ) from exc
 
-        try:
-            await self._prepare_development_email(user.email, "Email verification", "/verify-email", verification_token)
-        except DependencyUnavailableError as exc:
-            logger.warning(
-                "registration_verification_email_failed user_id=%s exception_type=%s",
-                user.id,
-                type(exc).__name__,
-            )
+        email_sent = await self._send_verification_email(user, verification_token, verification_code)
         return RegisterResponse(
-            message="Registration successful. Please verify your email before logging in.",
+            message="Registration successful. Enter the 6-digit code we emailed you to verify your account."
+            if email_sent
+            else "Registration successful, but the verification email could not be sent. Request a new code.",
             user=UserPublic.model_validate(user),
+            verification_email_sent=email_sent,
         )
 
     async def verify_email(self, token: str) -> VerifyEmailResponse:
@@ -125,6 +126,62 @@ class AuthService:
         if record.expires_at < now:
             raise AppError("VERIFICATION_TOKEN_EXPIRED", "The verification link has expired.", 400)
 
+        return await self._complete_verification(record, user, now)
+
+    async def verify_email_code(self, *, email: str, code: str) -> VerifyEmailResponse:
+        """Verify with the short emailed code. Every failure for an unknown or verified account looks the same."""
+        invalid = AppError("INVALID_VERIFICATION_CODE", "The verification code is incorrect.", 400)
+        user = await self.users.get_by_email(email.lower())
+        if user is None or user.is_email_verified:
+            raise invalid
+        record = await self.tokens.get_latest_open_code(user.id, for_update=True)
+        if record is None:
+            raise invalid
+        max_attempts = self.settings.EMAIL_VERIFICATION_CODE_MAX_ATTEMPTS
+        if record.failed_attempts >= max_attempts:
+            raise AppError(
+                "VERIFICATION_CODE_LOCKED",
+                "Too many incorrect codes. Request a new code to continue.",
+                429,
+            )
+        now = datetime.now(UTC)
+        if record.expires_at < now:
+            raise AppError("VERIFICATION_TOKEN_EXPIRED", "The verification code has expired. Request a new one.", 400)
+        if not verification_code_matches(code, user.id, record.code_hash):
+            record.failed_attempts += 1
+            locked = record.failed_attempts >= max_attempts
+            await self.session.commit()
+            if locked:
+                raise AppError(
+                    "VERIFICATION_CODE_LOCKED",
+                    "Too many incorrect codes. Request a new code to continue.",
+                    429,
+                )
+            raise AppError(
+                "INVALID_VERIFICATION_CODE",
+                "The verification code is incorrect.",
+                400,
+                {"attempts_remaining": max_attempts - record.failed_attempts},
+            )
+        return await self._complete_verification(record, user, now)
+
+    async def resend_verification(self, *, email: str) -> ResendVerificationResponse:
+        """Always answers the same way so the endpoint cannot be used to discover accounts."""
+        generic = ResendVerificationResponse(
+            message="If an account with that email still needs verification, a new code has been sent.",
+        )
+        user = await self.users.get_by_email(email.lower())
+        if user is None or user.is_email_verified:
+            return generic
+        now = datetime.now(UTC)
+        await self.tokens.expire_open_signup_verifications(user.id, now=now)
+        code = generate_numeric_code()
+        token = await self._create_email_verification(user, code=code)
+        await self.session.commit()
+        await self._send_verification_email(user, token, code)
+        return generic
+
+    async def _complete_verification(self, record, user: User, now: datetime) -> VerifyEmailResponse:
         if record.new_email:
             existing = await self.users.get_by_email(record.new_email)
             if existing and existing.id != user.id:
@@ -221,17 +278,41 @@ class AuthService:
 
         return ResetPasswordResponse(message="Password reset successful. You can log in now.")
 
-    async def _create_email_verification(self, user: User) -> str:
+    async def _create_email_verification(self, user: User, *, code: str | None = None) -> str:
         token = generate_url_token()
-        expires_at = datetime.now(UTC) + timedelta(
-            hours=self.settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS,
+        lifetime = (
+            timedelta(minutes=self.settings.EMAIL_VERIFICATION_CODE_TTL_MINUTES)
+            if code
+            else timedelta(hours=self.settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS)
         )
+        expires_at = datetime.now(UTC) + lifetime
         await self.tokens.create_email_verification(
             user_id=user.id,
             token_hash=hash_token(token),
             expires_at=expires_at,
+            code_hash=hash_verification_code(code, user.id) if code else None,
         )
         return token
+
+    async def _send_verification_email(self, user: User, token: str, code: str) -> bool:
+        """Mail the code. False only when delivery fails; local development mail is intentionally disabled in tests."""
+        if self.settings.EMAIL_DELIVERY_MODE == "development" and self.settings.ENVIRONMENT != "development":
+            return True
+        message = EmailDeliveryService(self.session, settings=self.settings).verification_message(
+            user=user,
+            code=code,
+            token=token,
+        )
+        try:
+            await asyncio.to_thread(ConfiguredEmailTransport(self.settings).send, message)
+        except (OSError, smtplib.SMTPException, DependencyUnavailableError) as exc:
+            logger.warning(
+                "verification_email_failed user_id=%s exception_type=%s",
+                user.id,
+                type(exc).__name__,
+            )
+            return False
+        return True
 
     async def _prepare_development_email(self, recipient: str, label: str, route: str, token: str) -> None:
         if self.settings.EMAIL_DELIVERY_MODE == "development" and self.settings.ENVIRONMENT != "development":

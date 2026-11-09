@@ -1,6 +1,7 @@
+import hmac
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
-from secrets import token_urlsafe
+from secrets import randbelow, token_urlsafe
 from typing import Any
 from uuid import UUID
 
@@ -27,6 +28,21 @@ def generate_url_token() -> str:
 
 def hash_token(token: str) -> str:
     return sha256(token.encode("utf-8")).hexdigest()
+
+
+def generate_numeric_code(digits: int = 6) -> str:
+    """Uniform zero-padded one-time numeric code."""
+    return f"{randbelow(10 ** digits):0{digits}d}"
+
+
+def hash_verification_code(code: str, user_id: UUID) -> str:
+    """Keyed hash bound to the user; a plain hash of a 6-digit code would be trivially reversible."""
+    key = get_settings().JWT_SECRET_KEY.encode("utf-8")
+    return hmac.new(key, f"verify-email-code:{user_id}:{code}".encode("utf-8"), sha256).hexdigest()
+
+
+def verification_code_matches(code: str, user_id: UUID, expected_hash: str | None) -> bool:
+    return bool(expected_hash) and hmac.compare_digest(hash_verification_code(code, user_id), expected_hash)
 
 
 def create_access_token(

@@ -41,7 +41,7 @@ export default function RegisterScreen() {
     finally { setBusy(false); }
   }
 
-  return <Screen><Brand /><Heading eyebrow="New member" title="Create your YPGym account" detail="Register here, verify the one-time email link, then sign in to choose a membership." />
+  return <Screen><Brand /><Heading eyebrow="New member" title="Create your YPGym account" detail="Register here, enter the 6-digit code we email you, then sign in to choose a membership." />
     <Card accent><Text style={textStyles.subheading}>One account, every visit</Text><Text style={textStyles.muted}>Your membership, scanner visits, classes and invoices stay connected to the same verified identity.</Text></Card>
     <View style={{ gap: 16 }}>
       <Field label="Full name" value={name} onChangeText={change('name', setName)} error={errors.name} autoComplete="name" />

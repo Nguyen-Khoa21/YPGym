@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     IOT_DEVICE_API_KEY: str = "local-iot-key"
     DEVELOPMENT_SEED_PASSWORD: str = "YPGymDemo123!"
     EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
+    EMAIL_VERIFICATION_CODE_TTL_MINUTES: int = Field(default=10, ge=1, le=60)
+    EMAIL_VERIFICATION_CODE_MAX_ATTEMPTS: int = Field(default=5, ge=1, le=20)
+    EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS: int = Field(default=60, ge=1, le=3600)
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 60
     DEVELOPMENT_MAIL_DIR: str = "storage/mail"
     INVOICE_STORAGE_DIR: str = "storage/invoices"

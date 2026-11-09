@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.dependencies import get_current_user
 from app.core.rate_limit import rate_limits
 from app.db.redis import get_redis_client
@@ -16,9 +17,12 @@ from app.schemas.auth_schema import (
     LoginResponse,
     RegisterRequest,
     RegisterResponse,
+    ResendVerificationRequest,
+    ResendVerificationResponse,
     ResetPasswordRequest,
     ResetPasswordResponse,
     UserPublic,
+    VerifyEmailCodeRequest,
     VerifyEmailResponse,
 )
 from app.services.auth_service import AuthService
@@ -52,6 +56,46 @@ async def verify_email(
     await rate_limits.enforce(redis, key=f"ypgym:rate:verify:ip:{hash_token(client)}", limit=60, window_seconds=900)
     await rate_limits.enforce(redis, key=f"ypgym:rate:verify:token:{hash_token(token)}", limit=10, window_seconds=900)
     return await AuthService(session).verify_email(token)
+
+
+@router.post("/verify-email/code", response_model=VerifyEmailResponse)
+async def verify_email_code(
+    payload: VerifyEmailCodeRequest,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> VerifyEmailResponse:
+    client = request.client.host if request.client else "unknown"
+    email = payload.email.lower()
+    await rate_limits.enforce(redis, key=f"ypgym:rate:verify-code:ip:{hash_token(client)}", limit=60, window_seconds=900)
+    await rate_limits.enforce(redis, key=f"ypgym:rate:verify-code:email:{hash_token(email)}", limit=15, window_seconds=900)
+    return await AuthService(session).verify_email_code(email=email, code=payload.code)
+
+
+@router.post("/verify-email/resend", response_model=ResendVerificationResponse)
+async def resend_verification(
+    payload: ResendVerificationRequest,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> ResendVerificationResponse:
+    client = request.client.host if request.client else "unknown"
+    email = payload.email.lower()
+    # The cooldown applies to every email, existing or not, so it cannot reveal which accounts exist.
+    await rate_limits.enforce(
+        redis,
+        key=f"ypgym:rate:verify-resend:cooldown:{hash_token(email)}",
+        limit=1,
+        window_seconds=get_settings().EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS,
+    )
+    await rate_limits.enforce(redis, key=f"ypgym:rate:verify-resend:ip:{hash_token(client)}", limit=20, window_seconds=3600)
+    await rate_limits.enforce(
+        redis,
+        key=f"ypgym:rate:verify-resend:{hash_token(f'{client}:{email}')}",
+        limit=5,
+        window_seconds=3600,
+    )
+    return await AuthService(session).resend_verification(email=email)
 
 
 @router.post("/login", response_model=LoginResponse)

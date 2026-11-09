@@ -97,3 +97,14 @@ Protocol references checked on 2026-09-26:
 - [Google OAuth security practices](https://developers.google.com/identity/protocols/oauth2/resources/best-practices)
 - [Google App Passwords](https://support.google.com/accounts/answer/185833)
 - [Meta Facebook Login](https://developers.facebook.com/docs/facebook-login/)
+
+## Email verification code (Package 11)
+
+Registration emails a 6-digit code. It is stored only as an HMAC-SHA256 hash bound to the user id on the same `email_verifications` row as the link token, expires after `EMAIL_VERIFICATION_CODE_TTL_MINUTES` (10), and locks after `EMAIL_VERIFICATION_CODE_MAX_ATTEMPTS` (5) wrong tries. A new code replaces any open one.
+
+- `POST /api/v1/auth/verify-email/code` body `{email, code}` verifies the account. Wrong, expired or locked codes return one generic error.
+- `POST /api/v1/auth/verify-email/resend` body `{email}` always answers with the same message. A per-email cooldown (`EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS`, 60) is enforced for unknown emails too, so it cannot be used to discover accounts.
+- `GET /api/v1/auth/verify-email?token=` still works for older emails.
+- The email shows the code first. A link is added only when `FRONTEND_URL` is not a loopback address; no `ypgym://` link is sent.
+
+Phone testing: set `EMAIL_DELIVERY_MODE=smtp` with working SMTP credentials. The code arrives in the real inbox and is typed into the web or mobile verify screen, so no localhost link is needed. In development mode the message still goes to the Maildir outbox.
