@@ -1,4 +1,4 @@
-import type { Action, Credentials, ScanResult, ScannerError } from './types.ts';
+import type { Action, Credentials, DeviceInfo, ScanResult, ScannerError } from './types.ts';
 
 export class ScannerApiError extends Error implements ScannerError {
   readonly code: string;
@@ -13,7 +13,7 @@ export class ScannerApiError extends Error implements ScannerError {
 }
 
 export async function verifyDevice(credentials: Credentials, fetcher: typeof fetch = fetch) {
-  return request<{ device_id: string; display_name: string; status: 'active' }>(credentials, '/attendance/device/verify', { device_id: credentials.deviceId }, fetcher);
+  return request<DeviceInfo>(credentials, '/attendance/device/verify', { device_id: credentials.deviceId }, fetcher);
 }
 
 export async function submitScan(credentials: Credentials, action: Action, qrToken: string, fetcher: typeof fetch = fetch) {

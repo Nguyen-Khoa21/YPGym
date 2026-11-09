@@ -38,3 +38,15 @@ test('network and API errors never claim success and retain request ID', async (
   const failed = async () => new Response(JSON.stringify({ error: { code: 'EXPIRED_TOKEN', message: 'Expired.' } }), { status: 400, headers: { 'x-request-id': 'request-123' } });
   await assert.rejects(() => submitScan(credentials, 'check_out', 'q'.repeat(30), failed), (error) => error.code === 'EXPIRED_TOKEN' && error.requestId === 'request-123');
 });
+
+test('device verification exposes the gym the scanner belongs to', async () => {
+  const fetcher = async () => new Response(JSON.stringify({ device_id: 'door-1', display_name: 'Front door', gym_id: 'gym-11', gym_name: 'YPGym District 11', status: 'active' }), { status: 200, headers: { 'content-type': 'application/json' } });
+  const device = await verifyDevice(credentials, fetcher);
+  assert.equal(device.gym_name, 'YPGym District 11');
+});
+
+test('gym mismatch refusals keep their stable codes', async () => {
+  const refuse = (code) => async () => new Response(JSON.stringify({ error: { code, message: 'x' } }), { status: 403 });
+  await assert.rejects(() => submitScan(credentials, 'check_in', 'q'.repeat(30), refuse('MEMBERSHIP_GYM_MISMATCH')), (e) => e.code === 'MEMBERSHIP_GYM_MISMATCH');
+  await assert.rejects(() => submitScan(credentials, 'check_out', 'q'.repeat(30), refuse('ATTENDANCE_GYM_MISMATCH')), (e) => e.code === 'ATTENDANCE_GYM_MISMATCH');
+});

@@ -42,6 +42,8 @@ Completed packages use the Master Prompt section as their requirement reference,
 | G6 | Rotating QR visible on the dashboard with refresh and countdown, FR-DASH-007 to 010 | 5 | `EmbeddedQr`, `useRotatingQr` | Playwright rotation test | `IMPLEMENTED_VERIFIED` |
 | G6 | Cross-gym manual close denied | 2 | `GymScopeService.require_access` | `test_attendance_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |
 | All | Role matrix, ERD, API reference, demo flow, verification record, FR-DOC-001 to 011 | 8 | `roles.md` has no gym scope (finding G-07) | AC-DOC-001 to 006 | `PARTIALLY_IMPLEMENTED` (documents written and checked against code and a seeded run; companion files used for architecture and route map; see Package 8 record) |
+| G6 | Scanner app shows its gym and explains gym refusals, FR-SCN-001 to 004 | 9 | `scanner-mobile` `DeviceInfo`, header, `errors.ts` | `api.test.mjs`, `errors.test.mjs`, `state.test.mjs` (15 pass); not run on a device | `IMPLEMENTED_VERIFIED` (unit level), `IMPLEMENTED_UNTESTED` on device |
+| G1, G3 | Member mobile app shows and chooses the gym, FR-MOB-001 to 008 | 10 | None yet; the app sends no gym | AC-MOB-001 to 006 | `PLANNED` |
 
 "Verified" for Packages 1 to 4 means the named test files exist and the full backend suite (209 tests) passed on 2026-11-09. It does not mean every assertion in those files was re-audited.
 

@@ -11,6 +11,8 @@ const guidance: Record<string, string> = {
   NO_ACTIVE_SESSION: 'No active session exists to check out.',
   QR_STATE_UNAVAILABLE: 'QR verification is temporarily unavailable.',
   SCAN_STATE_UNAVAILABLE: 'Duplicate protection is temporarily unavailable.',
+  MEMBERSHIP_GYM_MISMATCH: 'Wrong gym. This membership belongs to another YPGym location. Ask the member to use their own gym.',
+  ATTENDANCE_GYM_MISMATCH: 'Wrong gym. This member checked in at another YPGym location. Check out there.',
   VALIDATION_ERROR: 'The QR could not be submitted. Ask the member to reopen My QR.',
 };
 

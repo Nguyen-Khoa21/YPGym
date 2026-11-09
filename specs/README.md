@@ -19,6 +19,8 @@ Lightweight spec-driven development for the web-first multi-gym rollout. These f
 | [package-06-management-workspaces/spec.md](package-06-management-workspaces/spec.md) | Staff, manager and owner workspaces |
 | [package-07-form-reliability/spec.md](package-07-form-reliability/spec.md) | Shared Textarea and form repairs |
 | [package-08-documentation/spec.md](package-08-documentation/spec.md) | Documentation and release evidence |
+| [package-09-scanner-gym-awareness/spec.md](package-09-scanner-gym-awareness/spec.md) | Scanner app shows its gym and explains gym refusals |
+| [package-10-member-mobile-gyms/spec.md](package-10-member-mobile-gyms/spec.md) | Member mobile app gym support |
 | [traceability.md](traceability.md) | Business goal to requirement to package to code to test |
 
 ## Conventions

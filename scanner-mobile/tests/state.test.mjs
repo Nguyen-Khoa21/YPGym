@@ -91,5 +91,7 @@ test('success presentation contains only the safe door result', () => {
   assert.equal(presentation.membershipStatus, 'ACTIVE');
   assert.equal(presentation.occupancy, '24 / 150');
   assert.equal(presentation.crowdedness, 'Low occupancy');
-  assert.deepEqual(Object.keys(presentation).sort(), ['action', 'crowdedness', 'displayName', 'membershipStatus', 'occupancy', 'occurredAt']);
+  assert.equal(presentation.gymName, '');
+  assert.deepEqual(Object.keys(presentation).sort(), ['action', 'crowdedness', 'displayName', 'gymName', 'membershipStatus', 'occupancy', 'occurredAt']);
+  assert.equal(buildSuccessPresentation({ ...result, gym_name: 'YPGym District 11' }, 'Asia/Ho_Chi_Minh').gymName, 'YPGym District 11');
 });

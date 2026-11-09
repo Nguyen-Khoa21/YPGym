@@ -3,6 +3,7 @@ import type { ScanResult } from './types.ts';
 export function buildSuccessPresentation(result: ScanResult, timeZone: string) {
   return {
     action: result.action === 'check_in' ? 'CHECKED IN' : 'CHECKED OUT',
+    gymName: result.gym_name ?? '',
     displayName: result.member.display_name,
     membershipStatus: result.member.membership_status.toUpperCase(),
     occurredAt: new Intl.DateTimeFormat('en', {

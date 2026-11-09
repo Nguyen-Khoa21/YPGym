@@ -31,6 +31,7 @@ export default function App() {
   const [state, dispatch] = useReducer(scannerReducer, initialState);
   const [credentials, setCredentials] = useState<Credentials | null>(null);
   const [deviceName, setDeviceName] = useState('');
+  const [gymName, setGymName] = useState('');
   const [action, setAction] = useState<Action>('check_in');
   const [permission, requestPermission] = useCameraPermissions();
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
@@ -46,6 +47,7 @@ export default function App() {
       const device = await verifyDevice(value);
       setCredentials(value);
       setDeviceName(device.display_name);
+      setGymName(device.gym_name ?? '');
       setAction(initialActionForMode(value.mode));
       scanLocked.current = false;
       dispatch({ type: permission?.granted ? 'READY' : 'PERMISSION_REQUIRED' });
@@ -118,7 +120,7 @@ export default function App() {
 
   const resetDevice = () => Alert.alert('Remove scanner credentials?', 'This phone will need to be provisioned again.', [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Remove', style: 'destructive', onPress: () => void clearCredentials().then(() => { setCredentials(null); setDeviceName(''); dispatch({ type: 'UNPROVISION' }); }) },
+    { text: 'Remove', style: 'destructive', onPress: () => void clearCredentials().then(() => { setCredentials(null); setDeviceName(''); setGymName(''); dispatch({ type: 'UNPROVISION' }); }) },
   ]);
 
   return (
@@ -133,6 +135,7 @@ export default function App() {
             state={state}
             credentials={credentials}
             deviceName={deviceName}
+            gymName={gymName}
             action={action}
             setAction={setAction}
             foreground={foreground}
@@ -146,8 +149,8 @@ export default function App() {
   );
 }
 
-function ScannerScreen({ state, credentials, deviceName, action, setAction, foreground, permissionGranted, requestPermission, onScan, onReset, onRetry }: {
-  state: ReturnType<typeof scannerReducer>; credentials: Credentials; deviceName: string; action: Action; setAction: (action: Action) => void;
+function ScannerScreen({ state, credentials, deviceName, gymName, action, setAction, foreground, permissionGranted, requestPermission, onScan, onReset, onRetry }: {
+  state: ReturnType<typeof scannerReducer>; credentials: Credentials; deviceName: string; gymName: string; action: Action; setAction: (action: Action) => void;
   foreground: boolean; permissionGranted: boolean; requestPermission: () => void; onScan: (result: BarcodeScanningResult) => void;
   onReset: () => void; onRetry: () => void;
 }) {
@@ -158,6 +161,7 @@ function ScannerScreen({ state, credentials, deviceName, action, setAction, fore
       <View style={[styles.dot, { backgroundColor: online ? GREEN : '#ef4444' }]} />
       <Text style={styles.muted}>{deviceName || safeDeviceId(credentials.deviceId)} · {online ? 'Online' : 'Unavailable'}</Text>
     </View>
+    {gymName ? <Text accessibilityRole="header" style={styles.gymName}>{gymName.toUpperCase()}</Text> : null}
     {credentials.mode === 'both' ? <View style={styles.modeRow}>
       <ModeButton label="Check in" selected={action === 'check_in'} onPress={() => setAction('check_in')} />
       <ModeButton label="Check out" selected={action === 'check_out'} onPress={() => setAction('check_out')} />
@@ -213,7 +217,7 @@ function ProvisionScreen({ onProvision }: { onProvision: (credentials: Credentia
 function Success({ result, onReset }: { result: ScanResult; onReset: () => void }) {
   const presentation = buildSuccessPresentation(result, GYM_TIMEZONE);
   return <View accessibilityLiveRegion="assertive" style={[styles.panel, styles.success]}>
-    <Text style={styles.resultKicker}>{presentation.action}</Text>
+    <Text style={styles.resultKicker}>{presentation.action}{presentation.gymName ? ` · ${presentation.gymName}` : ''}</Text>
     <Text style={styles.member}>{presentation.displayName}</Text>
     <Text style={styles.badge}>{presentation.membershipStatus}</Text>
     <Text style={styles.time}>{presentation.occurredAt}</Text>
@@ -246,7 +250,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0a0a0a', paddingHorizontal: 20, paddingTop: 16 },
   brand: { color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: 1.5 }, orange: { color: ORANGE },
   body: { flex: 1, paddingTop: 18, gap: 16 }, deviceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 }, dot: { width: 9, height: 9, borderRadius: 5 }, muted: { color: '#aaa', fontSize: 13 },
-  modeRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' }, mode: { minHeight: 50, flexGrow: 1, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: '#333', alignItems: 'center', justifyContent: 'center' }, modeSelected: { backgroundColor: ORANGE, borderColor: ORANGE }, modeText: { color: '#aaa', fontWeight: '800' }, modeTextSelected: { color: '#101010' }, lockedMode: { color: ORANGE, fontWeight: '900', letterSpacing: 1 },
+  modeRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' }, mode: { minHeight: 50, flexGrow: 1, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: '#333', alignItems: 'center', justifyContent: 'center' }, modeSelected: { backgroundColor: ORANGE, borderColor: ORANGE }, modeText: { color: '#aaa', fontWeight: '800' }, modeTextSelected: { color: '#101010' }, lockedMode: { color: ORANGE, fontWeight: '900', letterSpacing: 1 }, gymName: { color: '#fff', fontSize: 20, fontWeight: '900', letterSpacing: 1 },
   cameraShell: { flex: 1, minHeight: 360, overflow: 'hidden', borderRadius: 24, borderWidth: 2, borderColor: '#333', alignItems: 'center', justifyContent: 'center' }, target: { width: 240, height: 240, borderRadius: 24, borderWidth: 4, borderColor: ORANGE }, freeze: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,.72)', alignItems: 'center', justifyContent: 'center' }, freezeText: { color: '#fff', fontSize: 24, fontWeight: '900' }, instruction: { color: '#ddd', textAlign: 'center', fontSize: 17, marginBottom: 18 },
   form: { flex: 1, gap: 16, justifyContent: 'center' }, title: { color: '#fff', fontSize: 28, fontWeight: '900' }, help: { color: '#bbb', fontSize: 16, lineHeight: 23, textAlign: 'center' }, label: { color: '#aaa', fontSize: 11, fontWeight: '800', marginBottom: 7, letterSpacing: 1 }, input: { minHeight: 52, borderWidth: 1, borderColor: '#3a3a3a', borderRadius: 13, backgroundColor: '#171717', color: '#fff', paddingHorizontal: 14, fontSize: 16 },
   primary: { minHeight: 54, borderRadius: 14, backgroundColor: ORANGE, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, marginTop: 8 }, primaryText: { color: '#111', fontWeight: '900', letterSpacing: .8 },
