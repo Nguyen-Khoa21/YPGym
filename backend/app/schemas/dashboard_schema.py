@@ -44,7 +44,7 @@ class MemberDashboard(BaseModel):
     member: DashboardMember
     membership: DashboardMembership | None
     qr_access: DashboardQrAccess
-    crowdedness: CrowdednessResponse
+    crowdedness: CrowdednessResponse | None = None
     upcoming_bookings: list[BookingItem]
     active_waitlists: list[WaitlistItem]
     unread_notification_count: int

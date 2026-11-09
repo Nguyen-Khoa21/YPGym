@@ -313,3 +313,5 @@ async def test_dashboard_uses_authenticated_member_and_handles_missing_membershi
     assert dashboard.membership is None
     assert not dashboard.qr_access.eligible
     assert dashboard.quick_actions[0].label == "Buy membership"
+    assert "qr" not in {action.key for action in dashboard.quick_actions}
+    assert dashboard.crowdedness is None

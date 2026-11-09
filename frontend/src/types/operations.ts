@@ -417,7 +417,7 @@ export type MemberDashboardPayload = {
     message: string;
   } | null;
   qr_access: { eligible: boolean; reason: string | null; target: string };
-  crowdedness: Crowdedness;
+  crowdedness: Crowdedness | null;
   upcoming_bookings: ClassBooking[];
   active_waitlists: ClassWaitlist[];
   unread_notification_count: number;

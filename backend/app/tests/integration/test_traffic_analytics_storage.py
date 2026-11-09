@@ -168,3 +168,8 @@ async def test_previous_month_traffic_is_gym_scoped_cached_and_role_safe(
     assert owner_default.json()["gym_id"] == str(DISTRICT_1_GYM_ID)
     assert owner_district_11.status_code == 200
     assert owner_district_11.json()["gym_id"] == str(DISTRICT_11_GYM_ID)
+
+    staff_headers = {"Authorization": f"Bearer {staff_token}"}
+    for headers in (staff_headers, manager_headers, owner_headers):
+        member_endpoint = await client.get("/api/v1/attendance/traffic-summary", headers=headers)
+        assert member_endpoint.status_code == 403

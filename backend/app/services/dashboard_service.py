@@ -74,9 +74,7 @@ class DashboardService:
             membership=membership_summary,
             qr_access=DashboardQrAccess(eligible=eligible, reason=reason),
             crowdedness=(
-                await self.crowdedness.get(gym_id=membership.home_gym_id)
-                if membership
-                else await self.crowdedness.get()
+                await self.crowdedness.get(gym_id=membership.home_gym_id) if membership else None
             ),
             upcoming_bookings=upcoming,
             active_waitlists=waitlists,
@@ -85,7 +83,6 @@ class DashboardService:
             active_broadcasts=broadcasts[:3],
             quick_actions=[
                 DashboardQuickAction(key="membership", label=membership_action, target="/memberships", enabled=True),
-                DashboardQuickAction(key="qr", label="QR code", target="/app/qr", enabled=eligible, reason=reason),
                 DashboardQuickAction(key="classes", label="Classes", target="/app/classes", enabled=True),
                 DashboardQuickAction(key="profile", label="Profile", target="/app/profile", enabled=True),
             ],
