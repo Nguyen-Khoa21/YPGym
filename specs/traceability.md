@@ -21,7 +21,7 @@ Completed packages use the Master Prompt section as their requirement reference,
 |---|---|---|---|---|---|
 | G1 | Live occupancy per gym (Master Prompt, attendance and occupancy section) | 2 | `CrowdednessService`, `/attendance/crowdedness`, `/gyms/{id}/crowdedness` | `test_attendance_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |
 | G1 | Prominent live occupancy on the member dashboard, FR-DASH-002 | 5 | `OccupancyCard`, `MemberDashboardPage.tsx` (commit `04b676f`) | AC-DASH-001, 002; Playwright `member-dashboard.spec.ts` | `IMPLEMENTED_VERIFIED` |
-| G1 | Occupancy updates in real time for the right gym, FR-OPS-016, FR-OPS-017 | 6 | Socket accepts a gym; web client does not send one and refreshes all gyms | AC-OPS-014 | `PARTIALLY_IMPLEMENTED` |
+| G1 | Occupancy updates in real time for the right gym, FR-OPS-016, FR-OPS-017 | 6 | Owner socket carries the branch; events refresh only that gym's queries (`778b8cb`) | `gymScope.test.mjs`; AC-OPS-014 | `IMPLEMENTED_VERIFIED` (predicate level, no two-session test) |
 | G2 | Previous-month busiest and quietest two-hour windows | 3 | `/attendance/traffic-summary`, `TrafficAnalyticsService` | `test_traffic_analytics.py`, `test_traffic_analytics_storage.py` | `IMPLEMENTED_VERIFIED` |
 | G2 | Show busiest, quietest and the two-hour chart to members, FR-DASH-003 to 006 | 5 | `TrafficHistory`, `memberDashboardLogic.ts` | `memberDashboard.test.mjs`; AC-DASH-007, 008 | `IMPLEMENTED_VERIFIED` |
 | G3 | Choose a gym when buying or renewing; gym applied only after verified payment | 4 | `MembershipService.resolve_purchase_gym`, `PayOSPaymentService`, `payments.gym_id` | `test_payos_payment.py`, `test_account_journey.py` | `IMPLEMENTED_VERIFIED` |
@@ -31,13 +31,13 @@ Completed packages use the Master Prompt section as their requirement reference,
 | G3 | Dashboard shows the member's home gym, FR-DASH-001, FR-DASH-013 | 5 | Dashboard header and QR page show the home gym | Playwright | `IMPLEMENTED_VERIFIED` |
 | G4 | Manager attendance and manual close limited to the assigned gym | 2 | `GymScopeService`, `AttendanceService.manual_close` | `test_attendance_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |
 | G4 | Manager traffic summary limited to the assigned gym | 3 | `/admin/analytics/traffic-summary` | `test_traffic_analytics_storage.py` | `IMPLEMENTED_VERIFIED` |
-| G4 | Staff use attendance only while clocked in, FR-OPS-001 to 008 | 6 | No shift check exists (finding G-01) | AC-OPS-001 to 009 | `NOT_FOUND` |
-| G4 | Manager summary analytics limited to the branch, no chain-wide revenue, FR-OPS-014 | 6 | `/admin/analytics/summary` is chain-wide (finding G-08) | AC-OPS-010 | `NOT_FOUND` |
-| G4 | Gym scope shown in every operations header; manager has no selector, FR-OPS-009 to 011 | 6 | None (finding G-02, D-01) | AC-OPS-013 | `NOT_FOUND` |
+| G4 | Staff use attendance only while clocked in, FR-OPS-001 to 008 | 6 | `ShiftGuard`, locked staff workspace (`05363bb`, `778b8cb`) | `test_shift_and_scope_rules.py`, Playwright | `IMPLEMENTED_VERIFIED` |
+| G4 | Manager summary analytics limited to the branch, no chain-wide revenue, FR-OPS-014 | 6 | Scoped summary, manager forced to own gym, revenue owner-only (`05363bb`) | `test_shift_and_scope_rules.py` | `IMPLEMENTED_VERIFIED` |
+| G4 | Gym scope shown in every operations header; manager has no selector, FR-OPS-009 to 011 | 6 | `GET /gyms/me`, `GymScopeBar` on Attendance and Branches pages only | Playwright; AC-OPS-013 | `PARTIALLY_IMPLEMENTED` |
 | G4 | Typeable, consistent management forms including broadcasts, FR-FORM-001 to 010 | 7 | Broadcast Message uses a raw textarea; no shared `Textarea` | AC-FORM-001 to 010 | `NOT_FOUND` |
 | G5 | Gym and workforce management API | 1 | `/admin/gym-locations`, `/workforce/assignments` | `test_gym_locations.py` | `IMPLEMENTED_VERIFIED` |
-| G5 | Gym and workforce management in the web app, FR-OPS-015 | 6 | No page found | AC-OPS-015 | `NOT_FOUND` |
-| G5 | Owner branch selector and per-branch comparison cards, FR-OPS-012, FR-OPS-013 | 6 | Per-gym endpoints exist; no owner UI | AC-OPS-011, 012 | `NOT_FOUND` |
+| G5 | Gym and workforce management in the web app, FR-OPS-015 | 6 | `AdminBranchesPage` (`778b8cb`) | typecheck and build only; not exercised in a browser | `IMPLEMENTED_UNTESTED` |
+| G5 | Owner branch selector and per-branch comparison cards, FR-OPS-012, FR-OPS-013 | 6 | Branch selector and branch cards (`778b8cb`) | Playwright | `IMPLEMENTED_VERIFIED` |
 | G6 | Scanner bound to a gym; member membership checked against that gym; occupancy and cache per gym | 2 | Scanner service, `AttendanceService` | `test_attendance_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |
 | G6 | Rotating QR visible on the dashboard with refresh and countdown, FR-DASH-007 to 010 | 5 | `EmbeddedQr`, `useRotatingQr` | Playwright rotation test | `IMPLEMENTED_VERIFIED` |
 | G6 | Cross-gym manual close denied | 2 | `GymScopeService.require_access` | `test_attendance_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |

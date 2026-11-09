@@ -1,6 +1,17 @@
 # Package 6: staff and management workspaces
 
-**Status:** `PLANNED`. Depends on Packages 1, 2, 3 and 4. Web only. Several requirements depend on decisions D-01, D-03 and D-07 in [decisions.md](../decisions.md).
+**Status:** `IMPLEMENTED_VERIFIED` with the gaps listed below (backend commit `05363bb`, web commit `778b8cb`, 2026-11-09). Depends on Packages 1, 2, 3 and 4. Decisions D-01, D-03 and D-07 are approved in [decisions.md](../decisions.md). The backend change is not purely web: it adds `GET /gyms/me`, the shift guard and a scoped analytics summary.
+
+**Verification record.** Backend suite 217 passed and `alembic check` clean (no migration). Web lint 0 errors, type-check and build clean, 36 web tests pass. A Playwright run against a seeded stack passed three times in a row: staff locked, clock in, unlocked, clock out, locked with no further attendance requests; manager sees their gym with no selector and no revenue; owner switches branch and sees one card per gym.
+
+**Known gaps, stated plainly.**
+
+- FR-OPS-009 is only partly met. The gym scope bar is shown on the Attendance and Branches pages. Other operations pages (members, billing, classes, approvals and so on) do not show it yet.
+- AC-OPS-011 is verified for the switch, but the test does not assert the interim loading state or that District 1 rows vanish at once.
+- AC-OPS-014 is verified at the query-key rule level (a District 11 event leaves District 1 queries stale-free). It was not tested with two live browser sessions.
+- AC-OPS-015 and FR-OPS-018 are implemented but not exercised in a browser: the Branches page edit and reassign flows, and double clicks on clock-in, clock-out and manual close (the buttons are disabled while a request is pending).
+- The admin class list, peak hours and crowdedness now require a gym for the owner. The admin traffic summary still defaults to District 1 for the owner, because it was outside D-03.
+- The member realtime socket and the mobile apps are unchanged.
 
 ## Purpose
 
