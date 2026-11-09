@@ -21,7 +21,7 @@ export default function MemberTabs() {
     tabBarLabelStyle: { fontSize: 11, fontWeight: '800', paddingBottom: 5 },
     tabBarIcon: ({ color, size, focused }) => {
       const icon = icons[route.name];
-      return <Ionicons name={icon ? (focused ? icon.active : icon.inactive) : 'ellipse-outline'} size={size} color={color} />;
+      return <Ionicons name={icon ? (focused ? icon.active : icon.inactive) : 'ellipse-outline'} size={size} color={typeof color === 'number' || color == null ? colors.muted : color} />;
     },
   })}>
     <Tabs.Screen name="dashboard" options={{ title: 'Dashboard' }} />

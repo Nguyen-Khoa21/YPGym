@@ -6,6 +6,8 @@ node_modules/
 # Expo
 .expo/
 dist/
+dist-scanner-realtime-check/
+dist-feature5/
 web-build/
 expo-env.d.ts
 
