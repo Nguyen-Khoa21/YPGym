@@ -18,6 +18,7 @@ export default function QrScreen() {
   const [foregroundReady, setForegroundReady] = useState(true);
   const access = useQuery({ queryKey: ['dashboard', user?.id], queryFn: ({ signal }) => request<Dashboard>('/dashboard/me', { signal }), staleTime: 0, refetchOnMount: 'always', refetchInterval: 30_000 });
   const eligible = access.data?.qr_access.eligible === true;
+  const homeGym = access.data?.membership?.home_gym_name;
   const qr = useQuery({ queryKey: ['qr', user?.id], queryFn: ({ signal }) => request<QrToken>('/attendance/qr-token/me', { signal }), enabled: eligible,
     retry: false, refetchInterval: (query) => query.state.data ? Math.max(1000, new Date(query.state.data.expires_at).getTime() - Date.now() - 5000) : false });
   const refetchQr = qr.refetch;
@@ -38,11 +39,11 @@ export default function QrScreen() {
   const seconds = qrSecondsLeft(qr.data?.expires_at, now);
   const showCode = mayShowQr(eligible, foregroundReady, qr.isError, seconds, Boolean(qr.data?.token));
   return <Screen onRefresh={() => { void access.refetch(); if (eligible) void refreshQr(); }} refreshing={access.isRefetching || qr.isRefetching}>
-    <Brand /><Heading eyebrow="Front desk pass" title={user?.name ?? 'Check-in pass'} detail={`${access.data?.membership?.status.toUpperCase() ?? 'NO MEMBERSHIP'} · ID ${user?.id.slice(0, 8) ?? ''}`} />
+    <Brand /><Heading eyebrow="Front desk pass" title={user?.name ?? 'Check-in pass'} detail={`${access.data?.membership?.status.toUpperCase() ?? 'NO MEMBERSHIP'} · ID ${user?.id.slice(0, 8) ?? ''}${homeGym ? ` · ${homeGym}` : ''}`} />
     {access.isLoading ? <Busy label="Checking membership access" /> : null}
     {access.isError ? <Message title="Access unavailable" detail={errorMessage(access.error)} action="Retry" onAction={() => void access.refetch()} tone="error" /> : null}
     {access.data && !eligible ? <Message title="QR access restricted" detail={access.data.qr_access.reason ?? access.data.membership?.message ?? 'An active membership is required.'} action="View plans" onAction={() => router.push('/(member)/renew')} tone="error" /> : null}
-    {eligible ? <Card accent><Text style={[textStyles.muted, { textAlign: 'center' }]}>Scan this code at the gym entrance</Text><Pill label={showCode ? 'Live entry code' : 'Checking code'} centered />
+    {eligible ? <Card accent><Text style={[textStyles.muted, { textAlign: 'center' }]}>{homeGym ? `Scan this code at the ${homeGym} entrance` : 'Scan this code at the gym entrance'}</Text>{homeGym ? <Text style={[textStyles.accent, { textAlign: 'center' }]}>This QR is valid at your home gym only: {homeGym}.</Text> : null}<Pill label={showCode ? 'Live entry code' : 'Checking code'} centered />
       {qr.isLoading ? <Busy label="Issuing your rotating pass" /> : null}
       {qr.isError ? <Message title="Code unavailable" detail={errorMessage(qr.error)} action="Try again" onAction={() => void refreshQr()} tone="error" /> : null}
       {showCode && qr.data ? <View style={{ alignItems: 'center', paddingVertical: 18, gap: 17 }}><View style={{ backgroundColor: colors.white, borderColor: colors.border, borderWidth: 1, padding: 16, borderRadius: 18 }}><QRCode value={qr.data.token} size={Math.min(width - 102, 252)} backgroundColor={colors.white} color={colors.qrInk} /></View><Text style={textStyles.accent}>Refreshes in {seconds}s</Text></View> : qr.data && !qr.isError ? <Message title="Pass refreshing" detail="A fresh server-issued code is required before check-in." action="Refresh now" onAction={() => void refreshQr()} /> : null}

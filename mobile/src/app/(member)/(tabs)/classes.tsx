@@ -7,15 +7,17 @@ import { Alert, Platform, Pressable, Text, View } from 'react-native';
 import { Action, Brand, Busy, Card, Field, Heading, Message, Pill, Screen, textStyles } from '@/components/ui';
 import { errorMessage, formatDate, formatMoney, formatTime } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { withGymParam } from '@/lib/gyms';
 import { queryClient } from '@/lib/query';
 import { colors } from '@/lib/theme';
-import type { ClassCheckoutResponse, ClassList, MemberClass, Waitlist } from '@/lib/types';
+import type { ClassCheckoutResponse, ClassList, GymLocation, MemberClass, Waitlist } from '@/lib/types';
 
 export default function ClassesScreen() {
   const { request, user } = useAuth();
   const [search, setSearch] = useState('');
   const [day, setDay] = useState<'all' | 'today' | 'tomorrow'>('all');
-  const classes = useQuery({ queryKey: ['classes', user?.id], queryFn: ({ signal }) => request<ClassList>('/classes/upcoming', { signal }) });
+  const gym = useQuery({ queryKey: ['gym', 'me', user?.id], queryFn: ({ signal }) => request<GymLocation>('/gyms/me', { signal }) });
+  const classes = useQuery({ queryKey: ['classes', user?.id, gym.data?.id ?? null], queryFn: ({ signal }) => request<ClassList>(withGymParam('/classes/upcoming', gym.data?.id), { signal }), enabled: !gym.isLoading });
   const change = useMutation<Waitlist | ClassCheckoutResponse, Error, { item: MemberClass; waitlist: boolean }>({ mutationFn: ({ item, waitlist }) => waitlist ? request<Waitlist>(`/classes/${item.id}/waitlist`, { method: 'POST' }) : request<ClassCheckoutResponse>(`/classes/${item.id}/checkout`, { method: 'POST', body: { idempotency_key: `${Date.now()}-${Math.random().toString(36).slice(2)}`, client_platform: Platform.OS === 'web' ? 'mobile_web' : 'mobile' } }),
     onSuccess: async (result, variables) => { if (variables.waitlist) { await Promise.all([queryClient.invalidateQueries({ queryKey: ['classes'] }), queryClient.invalidateQueries({ queryKey: ['bookings'] })]); Alert.alert('Waitlist joined', variables.item.title); return; } const payment = result as ClassCheckoutResponse; router.push(`/payment-result?transaction_id=${encodeURIComponent(payment.transaction_id)}&state=processing` as Href); if (Platform.OS === 'web') window.location.assign(payment.checkout_url); else await WebBrowser.openBrowserAsync(payment.checkout_url); },
     onError: (error) => Alert.alert('Could not update class', errorMessage(error)) });
@@ -33,7 +35,7 @@ export default function ClassesScreen() {
       { text: 'Confirm', onPress: () => change.mutate({ item, waitlist }) },
     ]);
   }
-  return <Screen refreshing={classes.isRefetching} onRefresh={() => void classes.refetch()}><Brand /><Heading title="Find a Class" detail="Live places, trainers and your booking state." />
+  return <Screen refreshing={classes.isRefetching} onRefresh={() => void classes.refetch()}><Brand /><Heading title="Find a Class" detail={gym.data ? `Classes at ${gym.data.name}. Live places, trainers and your booking state.` : 'Live places, trainers and your booking state.'} />
     <Field label="Search by class or instructor" placeholder="Search classes" value={search} onChangeText={setSearch} />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginVertical: 17 }}>{(['all', 'today', 'tomorrow'] as const).map((value) => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: day === value }} onPress={() => setDay(value)} style={({ pressed }) => ({ minHeight: 46, justifyContent: 'center', backgroundColor: day === value ? colors.primary : colors.white, borderColor: day === value ? colors.primary : colors.border, borderWidth: 1, borderRadius: 14, paddingHorizontal: 17, opacity: pressed ? 0.82 : 1 })}><Text style={{ color: day === value ? colors.white : colors.text, fontWeight: '800', textTransform: 'capitalize' }}>{value}</Text></Pressable>)}</View>
     <Action label="My bookings and waitlists" onPress={() => router.push('/(member)/bookings')} outline />

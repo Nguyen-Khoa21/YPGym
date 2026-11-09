@@ -3,7 +3,7 @@ import { QueryClient } from '@tanstack/react-query';
 export const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 15_000 } } });
 
 const sharedQueryRoots = new Set(['health', 'plans']);
-const membershipQueryRoots = ['dashboard', 'profile', 'qr', 'invoices', 'billing', 'plans', 'membership'] as const;
+const membershipQueryRoots = ['dashboard', 'profile', 'qr', 'invoices', 'billing', 'plans', 'membership', 'gym', 'classes', 'attendance-benefit'] as const;
 
 export function clearMemberQueryData(client: QueryClient = queryClient) {
   client.removeQueries({ predicate: (query) => !sharedQueryRoots.has(String(query.queryKey[0])) });

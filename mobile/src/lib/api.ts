@@ -51,7 +51,20 @@ export async function apiRequest<T>(path: string, token?: string | null, options
   return data as T;
 }
 
-export function errorMessage(error: unknown) { return error instanceof ApiError ? error.message : 'Something went wrong. Please try again.'; }
+// Fixed member-facing wording for gym refusals. Other backend messages pass through unchanged.
+export const gymErrorMessages: Record<string, string> = {
+  GYM_SELECTION_REQUIRED: 'Choose the gym you want to join before paying.',
+  MEMBERSHIP_GYM_MISMATCH: 'This membership belongs to a different gym. Please use the entrance at your home gym.',
+  ATTENDANCE_GYM_MISMATCH: 'You checked in at a different YPGym location. Please check out there.',
+  CLASS_GYM_INACTIVE: 'This class\'s gym is not taking bookings right now.',
+};
+export function errorMessage(error: unknown) {
+  if (!(error instanceof ApiError)) return 'Something went wrong. Please try again.';
+  const known = gymErrorMessages[error.code];
+  if (known) return known;
+  if (error.code === 'RESOURCE_NOT_FOUND' && /gym location/i.test(error.message)) return 'That gym is no longer available. Please pick another gym.';
+  return error.message;
+}
 export const formatMoney = (amount: string | number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(Number(amount));
 export const GYM_TIMEZONE = process.env.EXPO_PUBLIC_GYM_TIMEZONE || 'Asia/Ho_Chi_Minh';
 export const formatDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)

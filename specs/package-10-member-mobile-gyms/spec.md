@@ -1,6 +1,6 @@
 # Package 10: member mobile app gym support
 
-**Status:** `PLANNED`. Member app only (`mobile`). No backend change expected; if one is needed it is raised in decisions first.
+**Status:** `PARTIALLY_IMPLEMENTED`. T10-00 to T10-07 are done. T10-08 (real devices) is not done. Member app only (`mobile`). No backend change expected; if one is needed it is raised in decisions first.
 
 ## Purpose
 
@@ -54,3 +54,25 @@ Members on the phone cannot see or choose their gym. The backend resolves a miss
 ## Out of scope
 
 Mobile traffic chart, preference questionnaire, recommendations, online PT services (deferred). A scanner or gym provisioning UI.
+
+## Results (2026-11-09)
+
+**Built.** The member app now sends and shows a gym everywhere the spec asks. `lib/gyms.ts` holds the pure helpers. `errorMessage` in `lib/api.ts` gives fixed wording for `GYM_SELECTION_REQUIRED`, `MEMBERSHIP_GYM_MISMATCH`, `ATTENDANCE_GYM_MISMATCH`, `CLASS_GYM_INACTIVE` and the "gym location not found or inactive" 404. The membership refresh also covers `gym`, `classes` and `attendance-benefit`, and runs by itself once a payment status is `paid`.
+
+**Found on the way.** The dashboard type said `crowdedness` is never null, but the backend returns null for a member with no membership. The old dashboard would have crashed for a first-time buyer. The card now shows "Shown once you have a membership."
+
+**Verified.** `npm test` went from 18 to 28 tests, all passing. `tsc --noEmit` is clean.
+
+| Requirement | Evidence |
+|---|---|
+| FR-MOB-003, AC-MOB-002 | Tests: default previous gym, pick overrides, inactive gym never offered, both request builders carry `gym_id` |
+| FR-MOB-005, AC-MOB-004 | Test: after refresh, cached gym and class data take the new server value |
+| FR-MOB-007, AC-MOB-003 | Test: each gym error code maps to its message, other errors unchanged |
+| AC-MOB-006 | The 18 existing tests still pass |
+
+**Not verified.**
+- FR-MOB-001, 002, 004, 006, 008 and AC-MOB-001 and 005 are checked by reading the code only. The app has no component tests.
+- T10-08 has not been run. No real phone, no scanner at each gym, no Android or iOS run.
+- The `GET /gyms/me` result for a member with no membership was not run against a live backend. The classes tab falls back to the backend default if that call fails.
+
+**Left alone on purpose.** The seven uncommitted owner files in `mobile/` (decision D-11), including `(tabs)/_layout.tsx`. Nothing in Package 10 needed them.
