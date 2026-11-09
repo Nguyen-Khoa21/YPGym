@@ -1,9 +1,10 @@
+import logging
 from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import PermissionDeniedError, ResourceNotFoundError
+from app.core.exceptions import AppError, PermissionDeniedError, ResourceNotFoundError
 from app.models.user import User
 from app.repositories.billing_repository import InvoiceRepository, PaymentRepository
 from app.schemas.billing_schema import (
@@ -12,6 +13,8 @@ from app.schemas.billing_schema import (
     PaymentHistoryItem,
 )
 from app.services.invoice_service import InvoicePdfService
+
+logger = logging.getLogger(__name__)
 
 
 class BillingService:
@@ -54,6 +57,26 @@ class BillingService:
         if not invoice:
             raise ResourceNotFoundError("Invoice was not found.")
 
+        # Prefer the PDF stored at purchase time; only regenerate when it is missing or unreadable.
+        stored = self.invoice_pdf.resolve_stored_pdf(invoice.pdf_path)
+        if stored is not None:
+            return stored
+
+        try:
+            return self._regenerate_invoice_pdf(invoice)
+        except Exception as exc:  # noqa: BLE001 - never leak storage or renderer details to the client
+            logger.error(
+                "invoice_pdf_unavailable invoice_id=%s exception_type=%s",
+                invoice.id,
+                type(exc).__name__,
+            )
+            raise AppError(
+                "INVOICE_PDF_UNAVAILABLE",
+                "The invoice PDF is temporarily unavailable. Please try again shortly.",
+                503,
+            ) from exc
+
+    def _regenerate_invoice_pdf(self, invoice) -> Path:
         return Path(
             self.invoice_pdf.generate_pdf(
                 invoice_number=invoice.invoice_number,

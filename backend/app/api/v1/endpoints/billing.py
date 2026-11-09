@@ -48,6 +48,7 @@ async def download_my_invoice(
         path,
         media_type="application/pdf",
         filename=path.name,
+        headers={"Cache-Control": "private, no-store"},
     )
 
 
