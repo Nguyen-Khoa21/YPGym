@@ -94,3 +94,35 @@ Use `compose.test.yml` or the standalone demo project for clean-database exercis
 - Capacity-changing booking, waitlist, cancellation, and promotion operations serialize on the class row. Waitlist order uses stored position, creation timestamp, and UUID; promotion and notification records commit with the freed slot.
 - Trainer bio and availability are nullable profile fields; assigned/upcoming classes remain derived from `classes` rather than duplicated on the trainer row.
 - Audit indexes cover timestamp, action, actor, target, and entity lookup.
+
+## Multi-gym relations (revisions `20261107_0020` and `20261109_0021`)
+
+`gym_locations` is the parent of every gym-scoped table. This list was read from the foreign keys of the migrated test database (`pg_constraint`), not copied from the models, and each row exists in both places.
+
+```mermaid
+erDiagram
+  gym_locations ||--o{ workforce_gym_assignments : staffs
+  gym_locations ||--o{ iot_devices : hosts
+  gym_locations ||--o{ attendance_sessions : records
+  gym_locations ||--o{ attendance_events : records
+  gym_locations ||--o{ user_memberships : home_gym
+  gym_locations ||--o{ classes : schedules
+  gym_locations ||--o{ staff_shifts : covers
+  gym_locations ||--o{ payments : paid_at
+  gym_locations |o--o{ broadcast_announcements : targets
+  users ||--o| workforce_gym_assignments : assigned
+  users ||--o{ staff_shifts : works
+```
+
+| Table | Column | Null | Meaning |
+|---|---|---|---|
+| `workforce_gym_assignments` | `gym_id` | NOT NULL | Manager, staff or PT home gym; unique active row per user |
+| `iot_devices` | `gym_id` | NOT NULL | Gym the scanner belongs to |
+| `attendance_sessions`, `attendance_events` | `gym_id` | NOT NULL | Gym where the visit happened |
+| `user_memberships` | `home_gym_id` | NOT NULL | Member's home gym |
+| `classes` | `gym_id` | NOT NULL | Gym that runs the class |
+| `staff_shifts` | `gym_id` | NOT NULL | Gym the shift was clocked in at |
+| `payments` | `gym_id` | NOT NULL | Gym chosen at checkout |
+| `broadcast_announcements` | `gym_id` | NULL | NULL means chain-wide |
+
+`gym_locations` has `name`, unique `slug`, `district`, `address`, `timezone`, `capacity` (greater than 0), `is_active`, `created_at` and `updated_at`. The migration chain above ends at `20260723_0007` for history; the later revisions up to `20261103_0019` are not listed here. The two multi-gym revisions are described in [multi-gym migration note](multigym-migrations.md).

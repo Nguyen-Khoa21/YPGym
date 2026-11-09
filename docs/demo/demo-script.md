@@ -77,3 +77,22 @@ docker compose -p ypgym-demo -f compose.demo.yml up -d --build
 Never apply `--volumes` to the normal application project. This runbook is software rehearsal, not human evaluation or final submission readiness.
 
 Evidence indexes belong under `docs/design/evidence/`; the route map and release tracker must be updated with the actual date, viewport/device, and observed result.
+
+## Multi-gym walkthrough (ten steps)
+
+Seeded accounts for this flow, all with password `YPGymDemo123!`: `owner@`, `managerdist1@`, `managerdist11@`, `staffdist1@`, `staffdist11@`, `memberdist1@`, `memberdist11@` (`ypgym.dev`). The demo scanners are `local-simulator-1` (District 1) and `local-simulator-dist11` (District 11). Steps 1 to 9 were run against the API of a freshly migrated and seeded stack on 2026-11-09; the actual results are in the [verification record](../release/multigym-verification.md). Step 10 and the screens were covered by the Playwright specs.
+
+| Step | Do this | Expected result |
+|---|---|---|
+| 1 | Sign in as `owner@`. Open the gym list. | Two active gyms: District 1 and District 11. |
+| 2 | As owner, read live occupancy for each gym. | Each gym reports its own count, both 0 on a fresh seed. |
+| 3 | As `memberdist1@`, scan in at the District 1 scanner. Read occupancy again. | `CHECK_IN_SUCCESS`. District 1 shows 1, District 11 still 0. |
+| 4 | Scan `memberdist1@` at the District 11 scanner. Then scan `memberdist11@` there. | First: `403 MEMBERSHIP_GYM_MISMATCH`. Second: `CHECK_IN_SUCCESS`. |
+| 5 | As `managerdist1@`, list attendance. Then ask for District 11. | Only District 1 sessions. District 11 request: `403 PERMISSION_DENIED`. |
+| 6 | As `staffdist1@`, list attendance, then clock in, then list again. | Before: `403 SHIFT_REQUIRED`. Clock-in: 201. After: the District 1 sessions. |
+| 7 | As the clocked-in staff member, ask for District 11. | `403 PERMISSION_DENIED`. |
+| 8 | Compare the analytics summary for the manager and the owner. Manager asks for District 11. | Manager: no revenue field. Owner: revenue present. District 11 for the manager: `403`. |
+| 9 | Manager publishes a broadcast, then names District 11. Owner publishes one chain-wide. Read active broadcasts as both members. | Own-gym broadcast: created. Naming District 11: `403`. `memberdist1@` sees both notices, `memberdist11@` only the chain-wide one. |
+| 10 | In the web app, sign in as the owner and open Branches. Switch the gym on Attendance. | One card per gym. The Attendance page follows the chosen gym. |
+
+The web screens for steps 6 and 10 are `/staff/time-clock`, `/admin/attendance` and `/admin/branches`. The step 4 mismatch and the step 6 shift gate are the two refusals to point out to an examiner.

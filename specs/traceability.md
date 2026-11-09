@@ -41,7 +41,7 @@ Completed packages use the Master Prompt section as their requirement reference,
 | G6 | Scanner bound to a gym; member membership checked against that gym; occupancy and cache per gym | 2 | Scanner service, `AttendanceService` | `test_attendance_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |
 | G6 | Rotating QR visible on the dashboard with refresh and countdown, FR-DASH-007 to 010 | 5 | `EmbeddedQr`, `useRotatingQr` | Playwright rotation test | `IMPLEMENTED_VERIFIED` |
 | G6 | Cross-gym manual close denied | 2 | `GymScopeService.require_access` | `test_attendance_gym_isolation.py` | `IMPLEMENTED_VERIFIED` |
-| All | Role matrix, ERD, API reference, demo flow, verification record, FR-DOC-001 to 011 | 8 | `roles.md` has no gym scope (finding G-07) | AC-DOC-001 to 006 | `PLANNED` |
+| All | Role matrix, ERD, API reference, demo flow, verification record, FR-DOC-001 to 011 | 8 | `roles.md` has no gym scope (finding G-07) | AC-DOC-001 to 006 | `PARTIALLY_IMPLEMENTED` (documents written and checked against code and a seeded run; companion files used for architecture and route map; see Package 8 record) |
 
 "Verified" for Packages 1 to 4 means the named test files exist and the full backend suite (209 tests) passed on 2026-11-09. It does not mean every assertion in those files was re-audited.
 

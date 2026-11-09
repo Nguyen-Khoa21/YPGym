@@ -31,3 +31,30 @@
 - Booking, waitlist, cancellation, and dashboard endpoints are member-only and derive the user ID from the JWT. A member cannot cancel another member's booking.
 - `/trainers/me` is PT-only and derives the linked profile from the current account. PTs cannot mutate trainer profiles, schedule classes or read admin fields through this route. Public trainer list/detail routes remain accessible without a role.
 - Expo is a member client; operations and PT logins are rejected. This platform boundary does not weaken backend permissions.
+
+## Gym scope and shift rule (multi-gym release)
+
+The owner is the `admin` role in code, API and database. "Owner" is the business name. Manager, staff and PT accounts have exactly one active row in `workforce_gym_assignments`. Members use `user_memberships.home_gym_id`. The backend decides the gym through `GymScopeService`; the web app only hides controls.
+
+| Role | Gym scope | Notes |
+|---|---|---|
+| Owner (`admin`) | All gyms | Picks a gym with `gym_id`. Some lists accept no gym and then cover every gym (attendance sessions, analytics summary, staff shifts, broadcasts). Others require one (crowdedness, peak hours: `422 GYM_SCOPE_REQUIRED`). The only role that sees revenue, billing ledger, class administration and branch management. |
+| Manager | Assigned gym only | `gym_id` is optional. Naming another gym is `403`. No revenue in analytics, no billing ledger, no class administration. Can approve requests, read the CRM, run broadcasts and view analytics for the assigned gym. |
+| Staff | Assigned gym, only while on shift | Attendance sessions and manual close return `403 SHIFT_REQUIRED` unless the staff member has an open shift at the assigned gym. Clock-in is at the assigned gym. No analytics. |
+| PT | Assigned gym for shift clock-in | No attendance operations. Trainer workspace is unchanged. |
+| Member | Home gym | Own QR, own attendance, home-gym crowdedness and traffic summary, class list for the home gym, chain-wide plus home-gym broadcasts. Choosing a gym at checkout does not change the home gym until payment succeeds. |
+
+Cross-gym access by a non-owner returns `403`. A workforce account with no active assignment returns `403 GYM_ASSIGNMENT_REQUIRED`, and a member with no membership returns `403 GYM_MEMBERSHIP_REQUIRED`. An unknown or inactive gym returns `404`. Staff who are clocked in at one gym cannot operate another gym's attendance.
+
+### Capability changes from the base matrix
+
+| Capability | Staff | Manager | Owner |
+|---|---|---|---|
+| Attendance sessions list and manual close | Own gym, on shift | Own gym | Any gym, or all gyms for the list |
+| Gym crowdedness and live occupancy | Own gym (the API does not check the shift; the web operations page does) | Own gym | One selected gym |
+| Peak-hours analytics | No | Own gym | One selected gym |
+| Analytics summary revenue | Not allowed | Hidden (field omitted) | Shown |
+| Branch list, edit, workforce reassignment | No | No | Yes (`/admin/branches`) |
+| Staff shift list (`/admin/staff-shifts`) | No | Own gym | Any gym |
+
+The matching tests are `test_shift_and_scope_rules.py`, `test_attendance_gym_isolation.py`, `test_member_service_gym_isolation.py`, `test_gym_locations.py` and `test_analytics_storage.py` in `backend/app/tests/integration`. See [gym-aware endpoints](../api/gym-aware-endpoints.md) for the per-endpoint rules.

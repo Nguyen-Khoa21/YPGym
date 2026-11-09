@@ -1,6 +1,6 @@
 # Package 8: documentation and release evidence
 
-**Status:** `PLANNED`. Runs after Packages 5 to 7 so the documents describe finished behavior. Documentation only: no application code changes.
+**Status:** `PARTIALLY_IMPLEMENTED`: the documents below were written and checked against code and a seeded run, with the gaps listed at the end. Documentation only: no application code changes.
 
 ## Purpose
 
@@ -57,3 +57,21 @@ Make the multi-gym system explainable and demonstrable, and give the owner hones
 ## Out of scope
 
 Any code or test changes. If the documentation work finds a defect, it is reported to the owner and handled as its own change.
+
+## Implementation record
+
+Written 2026-11-09. Where a target file held the owner's uncommitted edits, a new companion file was written instead of editing it, so no unrelated hunks were staged.
+
+| Requirement | Where | State |
+|---|---|---|
+| FR-DOC-001 | `docs/policies/roles.md`, new gym scope section | Done. Matches `GymScopeService` and `ShiftGuard`; spot checks are steps 5 to 9 of the demo flow. |
+| FR-DOC-002 | `docs/database/erd.md`, new multi-gym section | Done. Checked against the foreign keys of the migrated test database; every gym column in it appears, and every relation drawn exists. |
+| FR-DOC-003 | `docs/api/gym-aware-endpoints.md` | Done. Endpoint list taken from the application's OpenAPI document; roles and scope rules read from the router files. |
+| FR-DOC-004 | `docs/architecture/multigym-flows.md` | Done as a companion file. Folding it into `system-architecture.md` waits for the owner's edits to that file. |
+| FR-DOC-005 | `docs/design/multigym-routes.md` | Done as a companion file. `route-screen-map.md` itself is untouched for the same reason. |
+| FR-DOC-006 | `docs/database/multigym-migrations.md` | Done. |
+| FR-DOC-007 | `docs/demo/demo-script.md`, multi-gym walkthrough | Done. Steps 1 to 9 were run on a seeded stack through the API; step 10 is covered by Playwright. A person has not followed it by hand (AC-DOC-004 is partly met). |
+| FR-DOC-008 | `docs/release/multigym-verification.md` | Done from fresh runs. |
+| FR-DOC-009, 010, 011 | Same file | Done. The master prompt's future-scope section is not in the repository, so the deferred list does not link to it. |
+
+Not done: the full AC-DOC-001 check of five role and gym combinations through the web UI, the AC-DOC-003 automated comparison of every endpoint (it was a manual read), and the AC-DOC-005 rerun by a second person.
