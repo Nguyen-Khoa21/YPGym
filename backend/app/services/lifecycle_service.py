@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import AppError, ConflictError, ResourceNotFoundError
+from app.core.exceptions import AppError, ConflictError, PermissionDeniedError, ResourceNotFoundError
 from app.models.enums import MembershipStatus, RequestStatus
 from app.models.membership import UserMembership
 from app.models.operations import MembershipCancellationRequest, MembershipFreezeRequest
@@ -23,6 +23,7 @@ from app.schemas.operations_schema import (
     PageInfo,
     RequestDecision,
 )
+from app.services.gym_service import GymScopeService
 from app.services.state_transitions import transition_membership, transition_request
 
 
@@ -162,8 +163,9 @@ class MembershipLifecycleService:
         request = await self.operations.get_freeze_request_for_update(request_id)
         if not request:
             raise ResourceNotFoundError("Freeze request was not found.")
-        transition_request(request, RequestStatus.APPROVED if payload.approve else RequestStatus.REJECTED)
         membership = await self._membership_for_update(request.membership_id)
+        await self._require_reviewer_gym(reviewer, membership)
+        transition_request(request, RequestStatus.APPROVED if payload.approve else RequestStatus.REJECTED)
         now = datetime.now(UTC)
         request.reviewer_id = reviewer.id
         request.decision_reason = payload.decision_reason.strip()
@@ -248,8 +250,9 @@ class MembershipLifecycleService:
         request = await self.operations.get_cancellation_request_for_update(request_id)
         if not request:
             raise ResourceNotFoundError("Cancellation request was not found.")
-        transition_request(request, RequestStatus.APPROVED if payload.approve else RequestStatus.REJECTED)
         membership = await self._membership_for_update(request.membership_id)
+        await self._require_reviewer_gym(reviewer, membership)
+        transition_request(request, RequestStatus.APPROVED if payload.approve else RequestStatus.REJECTED)
         now = datetime.now(UTC)
         request.outcome = payload.outcome
         request.reviewer_id = reviewer.id
@@ -308,8 +311,14 @@ class MembershipLifecycleService:
         status: str | None,
         page: int,
         page_size: int,
+        actor: User | None = None,
     ) -> MembershipApprovalPage:
-        freezes, cancellations = await self.operations.list_approval_requests(status)
+        scope_gym_id = (
+            await GymScopeService(self.session).resolve_gym_id(user=actor, requested_gym_id=None, allow_admin_all=True)
+            if actor is not None
+            else None
+        )
+        freezes, cancellations = await self.operations.list_approval_requests(status, scope_gym_id)
         items = [
             MembershipApprovalItem(
                 **self._freeze_item(request).model_dump(),
@@ -357,6 +366,12 @@ class MembershipLifecycleService:
                 changed += 1
         await self.session.commit()
         return changed
+
+    async def _require_reviewer_gym(self, reviewer: User, membership: UserMembership) -> None:
+        """Only the owner may decide requests of any gym; a manager only those of the assigned gym."""
+        scope_gym_id = await GymScopeService(self.session).resolve_gym_id(user=reviewer, requested_gym_id=None, allow_admin_all=True)
+        if scope_gym_id is not None and membership.home_gym_id != scope_gym_id:
+            raise PermissionDeniedError("This request belongs to a different gym location.")
 
     async def _membership_for_update(self, membership_id: UUID) -> UserMembership:
         result = await self.session.execute(

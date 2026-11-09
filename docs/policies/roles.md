@@ -56,5 +56,11 @@ Cross-gym access by a non-owner returns `403`. A workforce account with no activ
 | Analytics summary revenue | Not allowed | Hidden (field omitted) | Shown |
 | Branch list, edit, workforce reassignment | No | No | Yes (`/admin/branches`) |
 | Staff shift list (`/admin/staff-shifts`) | No | Own gym | Any gym |
+| CRM list and member detail (`/admin/members`) | No | Own gym only (members whose latest membership is at the gym, plus the gym's workforce). Another gym's member is `403` | Any gym, or one chosen with `gym_id` |
+| Membership requests list and freeze or cancellation decisions | No | Own gym; deciding another gym's request is `403` | Any gym |
+| Staff account list (`/admin/staff-accounts`) | No | Own gym; each account shows its gym | Any gym, or one chosen with `gym_id` |
+| Create staff or PT account | No | Forced to the own gym; naming another is `403` | Must choose a gym |
 
-The matching tests are `test_shift_and_scope_rules.py`, `test_attendance_gym_isolation.py`, `test_member_service_gym_isolation.py`, `test_gym_locations.py` and `test_analytics_storage.py` in `backend/app/tests/integration`. See [gym-aware endpoints](../api/gym-aware-endpoints.md) for the per-endpoint rules.
+Package 13 closed gaps where the CRM list and detail, membership requests, staff accounts and staff shifts were not yet limited to the manager's gym. Known remaining gap: the audit log (`/admin/audit-logs`) has no gym column and is still readable by managers across gyms; it needs a gym field on audit rows to be scoped.
+
+The matching tests are `test_workforce_gym_separation.py`, `test_shift_and_scope_rules.py`, `test_attendance_gym_isolation.py`, `test_member_service_gym_isolation.py`, `test_gym_locations.py` and `test_analytics_storage.py` in `backend/app/tests/integration`. See [gym-aware endpoints](../api/gym-aware-endpoints.md) for the per-endpoint rules.

@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from "react";
-import { LayoutDashboard, LogOut, Menu, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { LayoutDashboard, LogOut, MapPin, Menu, Sparkles } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 
 import { publicNavigation, type NavigationItem } from "@/app/navigation";
@@ -7,6 +8,22 @@ import { routePaths } from "@/app/routes";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { workspacePathForRole } from "@/features/auth/workspace";
+import { apiRequest } from "@/lib/apiClient";
+import type { GymLocation } from "@/types/operations";
+
+/** Manager, staff and PT accounts each belong to one gym. Show which one in the header of every workforce page. */
+function WorkforceGymChip() {
+  const { user, token } = useAuth();
+  const isWorkforce = user?.role === "manager" || user?.role === "staff" || user?.role === "pt";
+  const gym = useQuery({
+    queryKey: ["gyms", "me", user?.id],
+    enabled: isWorkforce && Boolean(token),
+    staleTime: 300_000,
+    queryFn: ({ signal }) => apiRequest<GymLocation>("/gyms/me", { token, signal }),
+  });
+  if (!isWorkforce || !gym.data) return null;
+  return <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-extrabold text-foreground" data-testid="workforce-gym"><MapPin className="size-3.5" aria-hidden />{gym.data.name}</span>;
+}
 
 type AppFrameProps = PropsWithChildren<{
   compact?: boolean;
@@ -49,6 +66,7 @@ export function AppFrame({ children, compact = false, navigation }: AppFrameProp
           <div className="site-header__actions">
             {user ? (
               <>
+                <WorkforceGymChip />
                 <Link className="header-join" to={workspacePathForRole(user.role)}>
                   <LayoutDashboard className="size-4" aria-hidden />
                   Workspace

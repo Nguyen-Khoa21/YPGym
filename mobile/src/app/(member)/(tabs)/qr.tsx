@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
 import { AppState, Text, View, useWindowDimensions } from 'react-native';
 
+import { ExpiredMembershipPanel } from '@/components/ExpiredMembershipPanel';
 import { Action, Brand, Busy, Card, Heading, Message, Pill, Screen, textStyles } from '@/components/ui';
 import { errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -40,6 +41,7 @@ export default function QrScreen() {
   const showCode = mayShowQr(eligible, foregroundReady, qr.isError, seconds, Boolean(qr.data?.token));
   return <Screen onRefresh={() => { void access.refetch(); if (eligible) void refreshQr(); }} refreshing={access.isRefetching || qr.isRefetching}>
     <Brand /><Heading eyebrow="Front desk pass" title={user?.name ?? 'Check-in pass'} detail={`${access.data?.membership?.status.toUpperCase() ?? 'NO MEMBERSHIP'} · ID ${user?.id.slice(0, 8) ?? ''}${homeGym ? ` · ${homeGym}` : ''}`} />
+    <ExpiredMembershipPanel membership={access.data?.membership} />
     {access.isLoading ? <Busy label="Checking membership access" /> : null}
     {access.isError ? <Message title="Access unavailable" detail={errorMessage(access.error)} action="Retry" onAction={() => void access.refetch()} tone="error" /> : null}
     {access.data && !eligible ? <Message title="QR access restricted" detail={access.data.qr_access.reason ?? access.data.membership?.message ?? 'An active membership is required.'} action="View plans" onAction={() => router.push('/(member)/renew')} tone="error" /> : null}

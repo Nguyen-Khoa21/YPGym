@@ -7,13 +7,14 @@ import { MemberShell } from "@/components/layout/MemberShell";
 import { OperationsHeader, Panel, StatusBadge } from "@/components/operations/OperationsUi";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthContext";
+import { ExpiredMembershipPanel } from "@/features/member/components/ExpiredMembershipPanel";
 import { OccupancyCard } from "@/features/member/components/OccupancyCard";
 import { TrafficHistory } from "@/features/member/components/TrafficHistory";
 import { useHomeCrowdedness, useRotatingQr, useTrafficSummary } from "@/features/member/useMemberQueries";
 import { apiRequest } from "@/lib/apiClient";
 import { toUiError } from "@/lib/apiErrors";
 import { formatDateTime } from "@/lib/format";
-import type { AttendancePage } from "@/types/operations";
+import type { AttendancePage, MemberDashboardPayload } from "@/types/operations";
 
 export function MemberQrPage() {
   const { token, user } = useAuth();
@@ -22,6 +23,7 @@ export function MemberQrPage() {
     queryKey: ["attendance", "me", "qr-summary"],
     queryFn: ({ signal }) => apiRequest<AttendancePage>("/attendance/me?page=1&page_size=5", { token, signal }),
   });
+  const dashboard = useQuery({ queryKey: ["dashboard", "me"], queryFn: ({ signal }) => apiRequest<MemberDashboardPayload>("/dashboard/me", { token, signal }) });
   const crowdedness = useHomeCrowdedness();
   const traffic = useTrafficSummary();
 
@@ -29,6 +31,7 @@ export function MemberQrPage() {
   const gymLine = traffic.data ? `${traffic.data.gym_name} · ${traffic.data.district}` : crowdedness.data?.gym_name;
   return <MemberShell><div className="mx-auto max-w-6xl">
     <OperationsHeader kicker={gymLine ? `Your gym: ${gymLine}` : "Rotating access pass"} title="Your check-in code." description="A signed, short-lived code replaces static membership screenshots and refreshes before it expires." actions={<Button variant="outline" disabled={qr.isFetching} onClick={() => void qr.refetch()}><RefreshCw className={`size-4 ${qr.isFetching ? "animate-spin" : ""}`} /> Refresh now</Button>} />
+    <div className="mt-6"><ExpiredMembershipPanel membership={dashboard.data?.membership} /></div>
     {qr.isLoading ? <LoadingState className="mt-6" title="Issuing your rotating QR code" message="Membership eligibility and token state are being checked." /> : null}
     {qrError ? <ErrorState className="mt-6" title={qrError.title} message={qrError.message} action={<Button variant="outline" onClick={() => void qr.refetch()}>Check access again</Button>} /> : null}
     {qr.data ? <div className="mt-6 grid gap-5 lg:grid-cols-[0.82fr_1.18fr]">

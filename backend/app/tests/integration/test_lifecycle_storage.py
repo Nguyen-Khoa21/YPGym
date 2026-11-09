@@ -3,6 +3,7 @@ from datetime import date, timedelta
 import pytest
 from sqlalchemy import select
 
+from app.models.gym import DISTRICT_1_GYM_ID, WorkforceGymAssignment
 from app.models.membership import UserMembership
 from app.models.operations import AuditLog
 from app.models.user import User
@@ -33,6 +34,9 @@ async def test_freeze_cancellation_decisions_and_audit_are_persisted(client, sto
     async with sessions() as session:
         reviewer = User(name="Manager", email="reviewer@example.com", phone="555123456", role="manager", password_hash="unused", is_email_verified=True)
         session.add(reviewer)
+        await session.flush()
+        # Managers decide requests only for their own gym.
+        session.add(WorkforceGymAssignment(user_id=reviewer.id, gym_id=DISTRICT_1_GYM_ID, assigned_role="manager"))
         await session.commit()
     manager = {"Authorization": f"Bearer {create_access_token(user_id=reviewer.id, role='manager', tier='normal')[0]}"}
     request = {"requested_start_date": date.today().isoformat(), "requested_end_date": (date.today() + timedelta(days=7)).isoformat(), "reason": "Travel for the coming week"}

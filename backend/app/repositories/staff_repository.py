@@ -5,6 +5,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.classes import PersonalTrainer
+from app.models.gym import GymLocation, WorkforceGymAssignment
 from app.models.staff import StaffShift
 from app.models.user import User
 
@@ -20,31 +21,39 @@ class StaffRepository:
         page_size: int,
         search: str | None,
         role: str | None,
-    ) -> tuple[list[tuple[User, UUID | None]], int]:
+        gym_id: UUID | None = None,
+    ) -> tuple[list[tuple[User, UUID | None, UUID | None, str | None]], int]:
         conditions = [User.role.in_(("staff", "pt"))]
+        if gym_id is not None:
+            conditions.append(WorkforceGymAssignment.gym_id == gym_id)
         if role:
             conditions.append(User.role == role)
         if search:
             term = f"%{search.strip()}%"
             conditions.append(or_(User.name.ilike(term), User.email.ilike(term)))
+        assignment = (
+            (WorkforceGymAssignment.user_id == User.id) & WorkforceGymAssignment.is_active.is_(True)
+        )
         total = int(
             (
                 await self.session.execute(
-                    select(func.count(User.id)).where(*conditions),
+                    select(func.count(User.id)).outerjoin(WorkforceGymAssignment, assignment).where(*conditions),
                 )
             ).scalar_one()
         )
         rows = (
             await self.session.execute(
-                select(User, PersonalTrainer.id)
+                select(User, PersonalTrainer.id, GymLocation.id, GymLocation.name)
                 .outerjoin(PersonalTrainer, PersonalTrainer.user_id == User.id)
+                .outerjoin(WorkforceGymAssignment, assignment)
+                .outerjoin(GymLocation, GymLocation.id == WorkforceGymAssignment.gym_id)
                 .where(*conditions)
                 .order_by(User.created_at.desc(), User.id)
                 .offset((page - 1) * page_size)
                 .limit(page_size),
             )
         ).all()
-        return [(row[0], row[1]) for row in rows], total
+        return [(row[0], row[1], row[2], row[3]) for row in rows], total
 
     async def trainer_id_for_user(self, user_id: UUID) -> UUID | None:
         return (
@@ -90,8 +99,11 @@ class StaffRepository:
         status: str | None,
         date_from: datetime | None,
         date_to_exclusive: datetime | None,
+        gym_id: UUID | None = None,
     ) -> tuple[list[tuple[StaffShift, User]], int]:
         conditions = [User.role.in_(("staff", "pt"))]
+        if gym_id is not None:
+            conditions.append(StaffShift.gym_id == gym_id)
         if search:
             term = f"%{search.strip()}%"
             conditions.append(or_(User.name.ilike(term), User.email.ilike(term)))

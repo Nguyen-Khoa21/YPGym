@@ -39,6 +39,8 @@ class StaffAccountItem(BaseModel):
     role: str
     must_change_password: bool
     trainer_profile_id: UUID | None
+    gym_id: UUID | None = None
+    gym_name: str | None = None
     created_at: datetime
 
 

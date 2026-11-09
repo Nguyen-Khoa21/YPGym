@@ -1,6 +1,7 @@
 from datetime import UTC, date, datetime, time, timedelta
 from math import ceil
 from secrets import SystemRandom, choice
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import IntegrityError
@@ -107,7 +108,7 @@ class StaffOperationsService:
             await self.session.rollback()
             raise ConflictError("The staff account conflicts with an existing login or phone number.") from exc
         return StaffAccountCreated(
-            account=self._account_item(user, trainer_profile_id),
+            account=self._account_item(user, trainer_profile_id, gym.id, gym.name),
             temporary_password=temporary_password,
             message="Copy the temporary password now. It is not stored or shown again.",
         )
@@ -119,15 +120,20 @@ class StaffOperationsService:
         page_size: int,
         search: str | None,
         role: str | None,
+        actor: User | None = None,
+        gym_id: UUID | None = None,
     ) -> StaffAccountPage:
+        # A manager sees only the assigned gym's accounts. The owner sees all or one chosen gym.
+        scope_gym_id = await self._scope_gym_id(actor, gym_id)
         rows, total = await self.staff.list_accounts(
             page=page,
             page_size=page_size,
             search=search,
             role=role,
+            gym_id=scope_gym_id,
         )
         return StaffAccountPage(
-            items=[self._account_item(user, trainer_id) for user, trainer_id in rows],
+            items=[self._account_item(user, trainer_id, row_gym_id, row_gym_name) for user, trainer_id, row_gym_id, row_gym_name in rows],
             page=PageInfo(
                 page=page,
                 page_size=page_size,
@@ -205,7 +211,10 @@ class StaffOperationsService:
         status: str | None,
         date_from: date | None,
         date_to: date | None,
+        actor: User | None = None,
+        gym_id: UUID | None = None,
     ) -> StaffShiftPage:
+        scope_gym_id = await self._scope_gym_id(actor, gym_id)
         if date_from and date_to and date_from > date_to:
             raise AppError("INVALID_DATE_RANGE", "The start date must not be after the end date.", 422)
         timezone = ZoneInfo(self.settings.GYM_TIMEZONE)
@@ -227,6 +236,7 @@ class StaffOperationsService:
             status=status,
             date_from=date_from_utc,
             date_to_exclusive=date_to_exclusive_utc,
+            gym_id=scope_gym_id,
         )
         return StaffShiftPage(
             items=[self._shift_item(shift, user) for shift, user in rows],
@@ -247,8 +257,15 @@ class StaffOperationsService:
         SystemRandom().shuffle(password)
         return "".join(password)
 
+    async def _scope_gym_id(self, actor: User | None, gym_id: UUID | None) -> UUID | None:
+        if actor is None:
+            return gym_id
+        return await GymScopeService(self.session).resolve_gym_id(
+            user=actor, requested_gym_id=gym_id, allow_admin_all=True,
+        )
+
     @staticmethod
-    def _account_item(user: User, trainer_profile_id) -> StaffAccountItem:
+    def _account_item(user: User, trainer_profile_id, gym_id: UUID | None = None, gym_name: str | None = None) -> StaffAccountItem:
         return StaffAccountItem(
             id=user.id,
             name=user.name,
@@ -257,6 +274,8 @@ class StaffOperationsService:
             role=user.role,
             must_change_password=user.must_change_password,
             trainer_profile_id=trainer_profile_id,
+            gym_id=gym_id,
+            gym_name=gym_name,
             created_at=user.created_at,
         )
 

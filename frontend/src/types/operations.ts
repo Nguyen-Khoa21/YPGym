@@ -435,6 +435,8 @@ export type StaffAccount = {
   role: "staff" | "pt";
   must_change_password: boolean;
   trainer_profile_id: string | null;
+  gym_id?: string | null;
+  gym_name?: string | null;
   created_at: string;
 };
 

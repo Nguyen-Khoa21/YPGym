@@ -87,6 +87,7 @@ async def list_membership_requests(
     status: Literal["pending", "approved", "rejected"] | None = None,
 ) -> MembershipApprovalPage:
     return await MembershipLifecycleService(session).list_approval_requests(
+        actor=current_user,
         status=status,
         page=page,
         page_size=page_size,
@@ -107,8 +108,11 @@ async def list_members(
     expiry_to: date | None = None,
     sort_by: Literal["name", "email", "created_at", "expiry_date", "status"] = "created_at",
     sort_order: Literal["asc", "desc"] = "desc",
+    gym_id: UUID | None = None,
 ) -> AdminMemberListResponse:
     return await CrmService(session).list_members(
+        actor=current_user,
+        gym_id=gym_id,
         page=page,
         page_size=page_size,
         search=search,
@@ -155,7 +159,7 @@ async def member_detail(
     current_user: Annotated[User, Depends(require_roles("manager", "admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> AdminMemberDetailResponse:
-    return await CrmService(session).member_detail(user_id)
+    return await CrmService(session).member_detail(user_id, actor=current_user)
 
 
 @router.post("/members/{user_id}/membership", response_model=PurchaseMembershipResponse)

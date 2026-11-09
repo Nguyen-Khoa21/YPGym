@@ -22,7 +22,17 @@ from app.models.operations import (
     NotificationPreference,
 )
 from app.models.system_configuration import SystemConfiguration
+from app.models.gym import WorkforceGymAssignment
 from app.models.user import User
+
+
+def gym_member_clause(gym_id: UUID, home_gym_column):
+    """A user belongs to a gym through their latest membership's home gym, or through an active workforce assignment."""
+    assigned = select(WorkforceGymAssignment.user_id).where(
+        WorkforceGymAssignment.gym_id == gym_id,
+        WorkforceGymAssignment.is_active.is_(True),
+    )
+    return or_(home_gym_column == gym_id, User.id.in_(assigned))
 
 
 def latest_membership_subquery():
@@ -252,6 +262,7 @@ class MembershipOperationsRepository:
     async def list_approval_requests(
         self,
         status: str | None,
+        gym_id: UUID | None = None,
     ) -> tuple[
         list[tuple[MembershipFreezeRequest, User]],
         list[tuple[MembershipCancellationRequest, User]],
@@ -264,6 +275,9 @@ class MembershipOperationsRepository:
             User,
             User.id == MembershipCancellationRequest.user_id,
         )
+        if gym_id is not None:
+            freeze_query = freeze_query.join(UserMembership, UserMembership.id == MembershipFreezeRequest.membership_id).where(UserMembership.home_gym_id == gym_id)
+            cancellation_query = cancellation_query.join(UserMembership, UserMembership.id == MembershipCancellationRequest.membership_id).where(UserMembership.home_gym_id == gym_id)
         if status:
             freeze_query = freeze_query.where(MembershipFreezeRequest.status == status)
             cancellation_query = cancellation_query.where(MembershipCancellationRequest.status == status)
@@ -319,6 +333,7 @@ class CrmRepository:
         expiry_to: date | None,
         sort_by: str,
         sort_order: str,
+        gym_id: UUID | None = None,
     ) -> tuple[list[tuple[User, UserMembership | None, MembershipPlan | None]], int, tuple[int, int, int, int, int]]:
         latest = latest_membership_subquery()
         membership = aliased(UserMembership)
@@ -338,6 +353,8 @@ class CrmRepository:
             expiry_from=expiry_from,
             expiry_to=expiry_to,
         )
+        if gym_id is not None:
+            conditions.append(gym_member_clause(gym_id, membership.home_gym_id))
         total = int(
             (
                 await self.session.execute(
@@ -381,6 +398,19 @@ class CrmRepository:
 
     async def get_user(self, user_id: UUID) -> User | None:
         return await self.session.get(User, user_id)
+
+    async def user_in_gym(self, user_id: UUID, gym_id: UUID) -> bool:
+        latest = latest_membership_subquery()
+        membership = aliased(UserMembership)
+        joins = (
+            User.__table__
+            .outerjoin(latest, and_(latest.c.user_id == User.id, latest.c.row_number == 1))
+            .outerjoin(membership, membership.id == latest.c.membership_id)
+        )
+        found = await self.session.execute(
+            select(User.id).select_from(joins).where(User.id == user_id, gym_member_clause(gym_id, membership.home_gym_id)),
+        )
+        return found.first() is not None
 
     async def list_memberships(self, user_id: UUID) -> list[UserMembership]:
         return list(

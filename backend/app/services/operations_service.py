@@ -6,7 +6,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ResourceNotFoundError
+from app.core.exceptions import PermissionDeniedError, ResourceNotFoundError
 from app.models.user import User
 from app.repositories.operations_repository import (
     AuditRepository,
@@ -35,6 +35,7 @@ from app.schemas.operations_schema import (
     MembershipRequestItem,
     PageInfo,
 )
+from app.services.gym_service import GymScopeService
 from app.services.lifecycle_service import MembershipLifecycleService
 
 
@@ -79,7 +80,15 @@ class CrmService:
         expiry_to: date | None,
         sort_by: str,
         sort_order: str,
+        actor: User | None = None,
+        gym_id: UUID | None = None,
     ) -> AdminMemberListResponse:
+        # A manager is locked to the assigned gym. The owner sees every gym or one chosen gym.
+        scope_gym_id = (
+            await GymScopeService(self.session).resolve_gym_id(user=actor, requested_gym_id=gym_id, allow_admin_all=True)
+            if actor is not None
+            else gym_id
+        )
         rows, total, summary = await self.crm.list_members(
             page=page,
             page_size=page_size,
@@ -91,6 +100,7 @@ class CrmService:
             expiry_to=expiry_to,
             sort_by=sort_by,
             sort_order=sort_order,
+            gym_id=scope_gym_id,
         )
         items = []
         for user, membership, plan in rows:
@@ -131,10 +141,14 @@ class CrmService:
             ),
         )
 
-    async def member_detail(self, user_id: UUID) -> AdminMemberDetailResponse:
+    async def member_detail(self, user_id: UUID, *, actor: User | None = None) -> AdminMemberDetailResponse:
         user = await self.crm.get_user(user_id)
         if not user:
             raise ResourceNotFoundError("Member was not found.")
+        if actor is not None:
+            scope_gym_id = await GymScopeService(self.session).resolve_gym_id(user=actor, requested_gym_id=None, allow_admin_all=True)
+            if scope_gym_id is not None and not await self.crm.user_in_gym(user_id, scope_gym_id):
+                raise PermissionDeniedError("This account belongs to a different gym location.")
         memberships = await self.crm.list_memberships(user_id)
         payments = await self.crm.list_payments(user_id)
         invoices = await self.crm.list_invoices(user_id)

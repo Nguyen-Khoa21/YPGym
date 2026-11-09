@@ -218,6 +218,31 @@ async def test_renewal_changes_home_gym_only_after_verified_payment(client, stor
         assert membership.home_gym_id == DISTRICT_11_GYM_ID
 
 
+async def test_expired_member_switching_gym_keeps_the_old_gym_until_payment(client, storage):
+    plan, member, _ = await create_member_and_plan(storage, with_membership=True)
+    sessions, _ = storage
+    async with sessions() as session:
+        membership = (await session.execute(select(UserMembership).where(UserMembership.user_id == member.id))).scalar_one()
+        membership.status = "expired"
+        membership.expiry_date = date.today() - timedelta(days=3)
+        await session.commit()
+
+    checkout_response = await start_payment(client, plan, member, gym_id=DISTRICT_11_GYM_ID)
+    assert checkout_response.status_code == 201, checkout_response.text
+    checkout = checkout_response.json()
+    async with sessions() as session:
+        membership = (await session.execute(select(UserMembership).where(UserMembership.user_id == member.id))).scalar_one()
+        # Payment is still pending: the expired member keeps the old home gym.
+        assert membership.home_gym_id == DISTRICT_1_GYM_ID
+        assert membership.status == "expired"
+
+    assert (await client.post("/api/v1/payments/payos/webhook", json=webhook(checkout["order_code"], checkout["amount_vnd"]))).status_code == 200
+    async with sessions() as session:
+        membership = (await session.execute(select(UserMembership).where(UserMembership.user_id == member.id))).scalar_one()
+        assert membership.home_gym_id == DISTRICT_11_GYM_ID
+        assert membership.status in {"active", "expiring_soon"}
+
+
 async def test_valid_webhook_is_atomic_and_duplicate_safe(client, storage):
     plan, member, _ = await create_member_and_plan(storage)
     checkout = (await start_payment(client, plan, member)).json()

@@ -1,5 +1,6 @@
 from datetime import date
 from typing import Annotated, Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,8 +54,11 @@ async def list_staff_accounts(
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = Query(None, max_length=160),
     role: Literal["staff", "pt"] | None = None,
+    gym_id: UUID | None = None,
 ) -> StaffAccountPage:
     return await StaffOperationsService(session).list_accounts(
+        actor=current_user,
+        gym_id=gym_id,
         page=page,
         page_size=page_size,
         search=search,
@@ -82,8 +86,11 @@ async def list_staff_shifts(
     status: Literal["open", "closed"] | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    gym_id: UUID | None = None,
 ) -> StaffShiftPage:
     return await StaffOperationsService(session).list_shifts(
+        actor=current_user,
+        gym_id=gym_id,
         page=page,
         page_size=page_size,
         search=search,
