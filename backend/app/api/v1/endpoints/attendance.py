@@ -30,11 +30,21 @@ from app.schemas.analytics_schema import AnalyticsSummaryResponse, TrafficSummar
 from app.services.analytics_service import AnalyticsService
 from app.services.attendance_service import AttendanceService, CrowdednessService, QrTokenService
 from app.services.gym_service import GymScopeService
+from app.services.shift_guard import ShiftGuard
 from app.services.traffic_analytics_service import TrafficAnalyticsService
 from app.utils.security import hash_token
 
 router = APIRouter(prefix="/attendance", tags=["attendance"])
 analytics_router = APIRouter(prefix="/admin/analytics", tags=["attendance analytics"])
+
+
+async def attendance_operator(
+    current_user: Annotated[User, Depends(require_roles("staff", "manager", "admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> User:
+    """Attendance operators: staff only while on shift, managers and owners always."""
+    await ShiftGuard(session).require_open_shift(current_user)
+    return current_user
 
 
 @router.get("/qr-token/me", response_model=QrTokenResponse)
@@ -117,10 +127,9 @@ async def crowdedness(
     redis: Annotated[Redis, Depends(get_redis_client)],
     gym_id: UUID | None = None,
 ) -> CrowdednessResponse:
-    requested_gym_id = gym_id or (DISTRICT_1_GYM_ID if current_user.role == "admin" else None)
     effective_gym_id = await GymScopeService(session).resolve_gym_id(
         user=current_user,
-        requested_gym_id=requested_gym_id,
+        requested_gym_id=gym_id,
     )
     assert effective_gym_id is not None
     return await CrowdednessService(session, redis).get(gym_id=effective_gym_id)
@@ -153,7 +162,7 @@ async def my_attendance(
 
 @router.get("/admin", response_model=AttendancePage)
 async def admin_attendance(
-    current_user: Annotated[User, Depends(require_roles("staff", "manager", "admin"))],
+    current_user: Annotated[User, Depends(attendance_operator)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     redis: Annotated[Redis, Depends(get_redis_client)],
     page: int = Query(1, ge=1),
@@ -185,7 +194,7 @@ async def manual_close(
     session_id: UUID,
     payload: ManualCloseRequest,
     request: Request,
-    current_user: Annotated[User, Depends(require_roles("staff", "manager", "admin"))],
+    current_user: Annotated[User, Depends(attendance_operator)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     redis: Annotated[Redis, Depends(get_redis_client)],
 ) -> AttendanceSessionItem:
@@ -212,10 +221,9 @@ async def peak_hours(
         raise AppError("ANALYTICS_RANGE_INVALID", "The analytics end time must be after the start time.", 422)
     if end - start > timedelta(days=366):
         raise AppError("ANALYTICS_RANGE_TOO_LARGE", "Peak-hours analytics are limited to 366 days.", 422)
-    requested_gym_id = gym_id or (DISTRICT_1_GYM_ID if current_user.role == "admin" else None)
     effective_gym_id = await GymScopeService(session).resolve_gym_id(
         user=current_user,
-        requested_gym_id=requested_gym_id,
+        requested_gym_id=gym_id,
     )
     assert effective_gym_id is not None
     return await AttendanceService(session, redis).peak_hours(
@@ -248,6 +256,7 @@ async def analytics_summary(
     redis: Annotated[Redis, Depends(get_redis_client)],
     date_from: AwareDatetime | None = None,
     date_to: AwareDatetime | None = None,
+    gym_id: UUID | None = None,
 ) -> AnalyticsSummaryResponse:
     end = date_to or datetime.now(UTC).replace(second=0, microsecond=0)
     start = date_from or end - timedelta(days=30)
@@ -255,4 +264,15 @@ async def analytics_summary(
         raise AppError("ANALYTICS_RANGE_INVALID", "The analytics end time must be after the start time.", 422)
     if end - start > timedelta(days=366):
         raise AppError("ANALYTICS_RANGE_TOO_LARGE", "Analytics summaries are limited to 366 days.", 422)
-    return await AnalyticsService(session, redis).summary(date_from=start, date_to=end)
+    # Managers are forced to their own gym. Only the owner may omit a gym (all gyms) and see revenue.
+    effective_gym_id = await GymScopeService(session).resolve_gym_id(
+        user=current_user,
+        requested_gym_id=gym_id,
+        allow_admin_all=True,
+    )
+    return await AnalyticsService(session, redis).summary(
+        date_from=start,
+        date_to=end,
+        gym_id=effective_gym_id,
+        include_revenue=current_user.role == "admin",
+    )

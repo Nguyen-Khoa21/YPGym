@@ -11,6 +11,7 @@ from app.core.exceptions import AppError
 from app.core.rate_limit import rate_limits
 from app.db.redis import get_redis_client
 from app.models.attendance import IoTDevice
+from app.models.gym import DISTRICT_1_GYM_ID, WorkforceGymAssignment
 from app.models.user import User
 from app.utils.security import create_access_token, hash_token
 
@@ -129,6 +130,9 @@ async def test_analytics_authorization_uses_persisted_role(client, storage, role
     user = User(id=uuid4(), name="Role test", email=f"{role}@example.com", phone="123456789", role=role, password_hash="unused", is_email_verified=True)
     async with sessions() as session:
         session.add(user)
+        await session.flush()
+        if role in {"manager", "staff", "pt"}:
+            session.add(WorkforceGymAssignment(user_id=user.id, gym_id=DISTRICT_1_GYM_ID, assigned_role=role))
         await session.commit()
     # Deliberately lie in the signed role claim: database authorization must win.
     token, _ = create_access_token(user_id=user.id, role="admin", tier="vip")

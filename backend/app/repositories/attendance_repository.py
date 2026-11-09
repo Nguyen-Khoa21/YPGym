@@ -255,20 +255,23 @@ class AttendanceRepository:
         *,
         date_from: datetime,
         date_to: datetime,
-        gym_id: UUID = DISTRICT_1_GYM_ID,
+        gym_id: UUID | None = DISTRICT_1_GYM_ID,
     ) -> list[tuple[int, int, int]]:
+        """Check-ins per weekday and hour. Pass gym_id=None for all gyms (owner overview only)."""
+        conditions = [
+            AttendanceEvent.event_type == "check_in",
+            AttendanceEvent.event_at >= date_from,
+            AttendanceEvent.event_at <= date_to,
+        ]
+        if gym_id is not None:
+            conditions.append(AttendanceEvent.gym_id == gym_id)
         utc_event_at = func.timezone("UTC", AttendanceEvent.event_at)
         weekday = func.extract("dow", utc_event_at).cast(Integer)
         hour = func.extract("hour", utc_event_at).cast(Integer)
         rows = (
             await self.session.execute(
                 select(weekday, hour, func.count(AttendanceEvent.id))
-                .where(
-                    AttendanceEvent.event_type == "check_in",
-                    AttendanceEvent.gym_id == gym_id,
-                    AttendanceEvent.event_at >= date_from,
-                    AttendanceEvent.event_at <= date_to,
-                )
+                .where(*conditions)
                 .group_by(weekday, hour)
                 .order_by(weekday, hour),
             )

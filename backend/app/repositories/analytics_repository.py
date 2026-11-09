@@ -16,7 +16,7 @@ class AnalyticsRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def membership_trends(self, *, date_from: datetime, date_to: datetime):
+    async def membership_trends(self, *, date_from: datetime, date_to: datetime, gym_id: UUID | None = None):
         period = cast(func.date_trunc("month", func.timezone("UTC", UserMembership.created_at)), Date).label("period")
         result = await self.session.execute(
             select(
@@ -30,16 +30,25 @@ class AnalyticsRepository:
                 func.count(UserMembership.id).filter(UserMembership.status == "pending_verification"),
                 func.count(UserMembership.id),
             )
-            .where(UserMembership.created_at >= date_from, UserMembership.created_at <= date_to)
+            .where(
+                UserMembership.created_at >= date_from,
+                UserMembership.created_at <= date_to,
+                *([UserMembership.home_gym_id == gym_id] if gym_id else []),
+            )
             .group_by(period)
             .order_by(period),
         )
         return result.all()
 
-    async def class_popularity(self, *, date_from: datetime, date_to: datetime):
+    async def class_popularity(self, *, date_from: datetime, date_to: datetime, gym_id: UUID | None = None):
         included = (
             select(GymClass.id, GymClass.class_type, GymClass.capacity)
-            .where(GymClass.start_at >= date_from, GymClass.start_at <= date_to, GymClass.status != "cancelled")
+            .where(
+                GymClass.start_at >= date_from,
+                GymClass.start_at <= date_to,
+                GymClass.status != "cancelled",
+                *([GymClass.gym_id == gym_id] if gym_id else []),
+            )
             .cte("included_classes")
         )
         capacities = (
@@ -72,7 +81,7 @@ class AnalyticsRepository:
         )
         return result.all()
 
-    async def attendance_summary(self, *, date_from: datetime, date_to: datetime):
+    async def attendance_summary(self, *, date_from: datetime, date_to: datetime, gym_id: UUID | None = None):
         duration_minutes = extract(
             "epoch",
             AttendanceSession.closed_at - AttendanceSession.checked_in_at,
@@ -89,11 +98,12 @@ class AnalyticsRepository:
                 AttendanceEvent.event_type == "check_in",
                 AttendanceEvent.event_at >= date_from,
                 AttendanceEvent.event_at <= date_to,
+                *([AttendanceEvent.gym_id == gym_id] if gym_id else []),
             ),
         )
         return result.one()
 
-    async def revenue_summary(self, *, date_from: datetime, date_to: datetime):
+    async def revenue_summary(self, *, date_from: datetime, date_to: datetime, gym_id: UUID | None = None):
         result = await self.session.execute(
             select(
                 func.count(Payment.id),
@@ -103,6 +113,7 @@ class AnalyticsRepository:
                 Payment.status.in_(("succeeded", "paid")),
                 Payment.created_at >= date_from,
                 Payment.created_at <= date_to,
+                *([Payment.gym_id == gym_id] if gym_id else []),
             ),
         )
         return result.one()

@@ -1,6 +1,8 @@
 import json
 from datetime import UTC, date, datetime
 
+from uuid import UUID
+
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,9 +29,21 @@ class AnalyticsService:
         self.attendance = AttendanceRepository(session)
         self.crowdedness = CrowdednessService(session, redis)
 
-    async def summary(self, *, date_from: datetime, date_to: datetime) -> AnalyticsSummaryResponse:
+    async def summary(
+        self,
+        *,
+        date_from: datetime,
+        date_to: datetime,
+        gym_id: UUID | None = None,
+        include_revenue: bool = True,
+    ) -> AnalyticsSummaryResponse:
+        """Aggregates for one gym, or for every gym when gym_id is None (owner only).
+
+        Revenue is returned only when include_revenue is true. The cache key carries both choices so a
+        cached owner response can never be served to a manager.
+        """
         date_from, date_to = date_from.astimezone(UTC), date_to.astimezone(UTC)
-        cache_key = self._cache_key(date_from, date_to)
+        cache_key = self._cache_key(date_from, date_to, gym_id, include_revenue)
         try:
             cached = await self.redis.get(cache_key)
             if cached:
@@ -38,8 +52,10 @@ class AnalyticsService:
         except (RedisError, ValueError, json.JSONDecodeError):
             pass
 
-        membership_rows, class_rows, attendance_row, revenue_row = await self._load_rows(date_from, date_to)
-        peak_rows = await self.attendance.peak_hours(date_from=date_from, date_to=date_to)
+        membership_rows, class_rows, attendance_row, revenue_row = await self._load_rows(
+            date_from, date_to, gym_id, include_revenue
+        )
+        peak_rows = await self.attendance.peak_hours(date_from=date_from, date_to=date_to, gym_id=gym_id)
         labels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
         busiest = max(peak_rows, key=lambda row: row[2]) if peak_rows else None
         attendance = AttendanceAnalyticsSummary(
@@ -47,7 +63,7 @@ class AnalyticsService:
             unique_members=int(attendance_row[1] or 0),
             average_visit_minutes=round(float(attendance_row[2]), 1) if attendance_row[2] is not None else None,
             busiest_slot=f"{labels[busiest[0]]} {busiest[1]:02d}:00" if busiest else None,
-            current_occupancy=await self.crowdedness.get(),
+            current_occupancy=await self.crowdedness.get(gym_id=gym_id) if gym_id else None,
         )
         response = AnalyticsSummaryResponse(
             date_from=date_from,
@@ -71,7 +87,8 @@ class AnalyticsService:
                 successful_payments=int(revenue_row[0] or 0),
                 gross_amount=revenue_row[1] or 0,
                 discounts=revenue_row[2] or 0,
-            ),
+            ) if revenue_row is not None else None,
+            gym_id=gym_id,
         )
         try:
             await self.redis.set(cache_key, response.model_dump_json(), ex=self.CACHE_TTL_SECONDS)
@@ -79,17 +96,20 @@ class AnalyticsService:
             pass
         return response
 
-    async def _load_rows(self, date_from: datetime, date_to: datetime):
+    async def _load_rows(self, date_from: datetime, date_to: datetime, gym_id: UUID | None, include_revenue: bool):
         return (
-            await self.analytics.membership_trends(date_from=date_from, date_to=date_to),
-            await self.analytics.class_popularity(date_from=date_from, date_to=date_to),
-            await self.analytics.attendance_summary(date_from=date_from, date_to=date_to),
-            await self.analytics.revenue_summary(date_from=date_from, date_to=date_to),
+            await self.analytics.membership_trends(date_from=date_from, date_to=date_to, gym_id=gym_id),
+            await self.analytics.class_popularity(date_from=date_from, date_to=date_to, gym_id=gym_id),
+            await self.analytics.attendance_summary(date_from=date_from, date_to=date_to, gym_id=gym_id),
+            await self.analytics.revenue_summary(date_from=date_from, date_to=date_to, gym_id=gym_id)
+            if include_revenue
+            else None,
         )
 
     @classmethod
-    def _cache_key(cls, date_from: datetime, date_to: datetime) -> str:
-        return f"{cls.CACHE_PREFIX}{date_from.isoformat()}:{date_to.isoformat()}"
+    def _cache_key(cls, date_from: datetime, date_to: datetime, gym_id: UUID | None, include_revenue: bool) -> str:
+        scope = str(gym_id) if gym_id else "all"
+        return f"{cls.CACHE_PREFIX}{scope}:{'rev' if include_revenue else 'norev'}:{date_from.isoformat()}:{date_to.isoformat()}"
 
     @staticmethod
     def _membership_points(rows, date_from: datetime, date_to: datetime) -> list[MembershipTrendPoint]:

@@ -34,7 +34,7 @@ class AttendanceAnalyticsSummary(BaseModel):
     unique_members: int
     average_visit_minutes: float | None
     busiest_slot: str | None
-    current_occupancy: CrowdednessResponse
+    current_occupancy: CrowdednessResponse | None = None
 
 
 class RevenueAnalyticsSummary(BaseModel):
@@ -52,7 +52,8 @@ class AnalyticsSummaryResponse(BaseModel):
     membership_trends: list[MembershipTrendPoint]
     class_popularity: list[ClassPopularityPoint]
     attendance: AttendanceAnalyticsSummary
-    revenue: RevenueAnalyticsSummary
+    revenue: RevenueAnalyticsSummary | None = None
+    gym_id: UUID | None = None
 
 
 class TrafficWindowPoint(BaseModel):

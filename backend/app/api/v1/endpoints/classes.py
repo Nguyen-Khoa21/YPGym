@@ -7,10 +7,10 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import require_roles
+from app.core.exceptions import AppError
 from app.db.redis import get_redis_client
 from app.db.session import get_db_session
 from app.models.user import User
-from app.models.gym import DISTRICT_1_GYM_ID
 from app.schemas.class_schema import (
     ClassCancel,
     ClassCheckoutRequest,
@@ -237,8 +237,10 @@ async def list_classes(
     search: str | None = Query(None, max_length=160),
     gym_id: UUID | None = None,
 ) -> ClassPage:
+    if gym_id is None:
+        raise AppError("GYM_SCOPE_REQUIRED", "Select a gym location for this operation.", 422)
     return await ClassService(session).list_classes(
-        gym_id=gym_id or DISTRICT_1_GYM_ID,
+        gym_id=gym_id,
         page=page,
         page_size=page_size,
         date_from=date_from,

@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.models.attendance import AttendanceEvent, AttendanceSession, IoTDevice
 from app.models.gym import DISTRICT_1_GYM_ID, WorkforceGymAssignment
 from app.models.membership import UserMembership
+from app.models.staff import StaffShift
 from app.models.user import User
 from app.services.attendance_service import CrowdednessService
 from app.services.attendance_realtime_service import AttendanceRealtimePublisher
@@ -265,6 +266,7 @@ async def test_manual_close_commits_audit_and_publishes_invalidation(client, sto
                 assigned_role="staff",
             ),
         )
+        session.add(StaffShift(user_id=staff.id, gym_id=DISTRICT_1_GYM_ID, clocked_in_at=now - timedelta(minutes=5)))
         await session.commit()
     published = []
 

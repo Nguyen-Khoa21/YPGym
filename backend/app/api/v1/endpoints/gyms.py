@@ -32,6 +32,19 @@ async def list_active_gyms(
     return await GymLocationService(session).list_active()
 
 
+@router.get("/me", response_model=GymLocationItem)
+async def get_my_gym(
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> GymLocationItem:
+    """The gym of the signed-in manager, staff member, personal trainer or member.
+
+    The owner has no single gym, so the owner receives 422 GYM_SCOPE_REQUIRED.
+    """
+    gym_id = await GymScopeService(session).effective_gym_id(user=current_user)
+    return await GymLocationService(session).get_active(gym_id)
+
+
 @router.get("/{gym_id}", response_model=GymLocationItem)
 async def get_active_gym(
     gym_id: UUID,
