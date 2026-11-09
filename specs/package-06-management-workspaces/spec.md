@@ -74,6 +74,7 @@ Backend authorization enforces every row. Navigation only reflects it.
 |---|---|
 | FR-OPS-016 | The realtime client sends the gym the page is scoped to (the selected gym for the owner, none for staff and manager whose scope is fixed). Switching branch reconnects or resubscribes. |
 | FR-OPS-017 | A realtime event refreshes only the active queries of the affected gym. An event for another gym does not refetch the current branch's data. |
+| FR-OPS-019 | Where the owner compares or manages branches, an omitted gym is rejected with 422 `GYM_SCOPE_REQUIRED` instead of silently using District 1: the admin class list, `GET /analytics/peak-hours` and `GET /attendance/crowdedness` (decision D-03). The web pages always send a gym. |
 | FR-OPS-018 | Double clicks on clock-in, clock-out and manual close do not create duplicate actions or show raw errors. |
 
 ## Non-functional requirements
@@ -112,6 +113,8 @@ Backend authorization enforces every row. Navigation only reflects it.
 
 **AC-OPS-014** Given a realtime occupancy event for District 11, when a District 1 manager's page is open, then no District 1 query is refetched because of it.
 
+**AC-OPS-016** Given an owner token, when the admin class list, `/analytics/peak-hours` or `/attendance/crowdedness` is called with no gym, then the response is 422 `GYM_SCOPE_REQUIRED`; with a gym it returns that gym's data.
+
 **AC-OPS-015** Given the owner on the gym management page, when a gym is edited or a staff member is reassigned, then the change is saved through the existing endpoints and an audit-visible result is shown.
 
 ## Tasks
@@ -133,6 +136,8 @@ Backend authorization enforces every row. Navigation only reflects it.
 - **T6-10** Owner overview with one card per gym, using `/gyms`, `/gyms/{id}/crowdedness` and the admin traffic summary. Closes FR-OPS-013, AC-OPS-012.
 - **T6-11** Gym location and workforce assignment management page and route. Closes FR-OPS-015, AC-OPS-015.
 - **T6-12** Navigation and route guards: confirm staff, PT and manager entries match the role table. Update `navigation-config.test.mjs`. Closes FR-OPS-008.
+
+- **T6-14** Replace the District 1 fallbacks with `GYM_SCOPE_REQUIRED` for admin on the three endpoints and update the web callers and tests. Closes FR-OPS-019, AC-OPS-016.
 
 **Checks**
 

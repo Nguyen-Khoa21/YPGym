@@ -39,6 +39,7 @@ Member only. Admin, manager, staff and PT never see these pages. The backend, no
 | FR-DASH-013 | The full QR page shows the home gym name and district, that gym's live capacity, and the same historical summary. It keeps the existing token refresh, countdown, error states and recent attendance list. |
 | FR-DASH-014 | Every data block has loading, error (with retry), empty and, where relevant, expired or unauthorized states. A failure in the traffic summary does not hide the QR or the membership card. |
 | FR-DASH-015 | The layout works from phone width (no horizontal page scroll, 16 px gutters) up to desktop. |
+| FR-DASH-016 | A member with no membership sees no occupancy and no history. The dashboard shows a prompt to buy a membership and choose a gym, linking to the membership page (decision D-04). The backend returns no District 1 fallback data for such a member. |
 
 ## Non-functional requirements
 
@@ -71,6 +72,8 @@ Member only. Admin, manager, staff and PT never see these pages. The backend, no
 
 **AC-DASH-011** Given a non-member role (staff, manager, admin), when `GET /attendance/traffic-summary` is called, then the response is 403.
 
+**AC-DASH-013** Given a member with no membership, when the dashboard loads, then no gym occupancy or traffic history is shown, the membership prompt is shown, and `GET /dashboard/me` carries no occupancy for any gym.
+
 **AC-DASH-012** Given the full QR page, when it loads for a District 11 member, then it shows District 11's name, district, live capacity and historical summary.
 
 ## Tasks
@@ -79,7 +82,7 @@ Each task lists the requirements and acceptance criteria it closes. Run the stat
 
 **Backend**
 
-- **T5-01** Remove the `qr` quick action from `DashboardService`. Update the assertion in `test_day_39_42_rules.py` (line 315 checks `quick_actions[0]`) and add one assertion that no `qr` key is returned. Closes FR-DASH-009, AC-DASH-005. Check: backend unit tests.
+- **T5-01** Remove the `qr` quick action from `DashboardService`, and stop returning District 1 occupancy for a member with no membership (decision D-04; make `crowdedness` optional in `MemberDashboard`). Update the assertion in `test_day_39_42_rules.py` (line 315 checks `quick_actions[0]`) and add one assertion that no `qr` key is returned. Closes FR-DASH-009, FR-DASH-016, AC-DASH-005, AC-DASH-013. Check: backend unit tests.
 
 **Frontend: shared code**
 
@@ -102,7 +105,7 @@ Each task lists the requirements and acceptance criteria it closes. Run the stat
 
 - **T5-10** Add web tests for the pure logic: window ordering and percentage mapping, insufficient-data branching, and the quick-action filter. Use the existing `node --test` setup in `frontend/tests/`. Closes AC-DASH-007, AC-DASH-008.
 - **T5-11** Add a backend test that a staff, manager and admin token gets 403 from `/attendance/traffic-summary`, if one is not already covered by `test_traffic_analytics_storage.py`. Closes AC-DASH-011.
-- **T5-12** Manual responsive and rotation check with the seeded `memberdist1@ypgym.dev` and `memberdist11@ypgym.dev` accounts at 375 px and 1280 px, recorded in the commit report. Closes AC-DASH-001 to 004, 010. See decision D-02 for browser automation.
+- **T5-12** Browser responsive and QR rotation check (Playwright, per D-02), with a manual fallback if a browser cannot run, with the seeded `memberdist1@ypgym.dev` and `memberdist11@ypgym.dev` accounts at 375 px and 1280 px, recorded in the commit report. Closes AC-DASH-001 to 004, 010. See decision D-02 for browser automation.
 - **T5-13** Run backend suite, `npm run lint`, `npm run build`, `npm test`, `alembic check`. No migration is expected.
 
 ## Out of scope
@@ -111,4 +114,4 @@ Native mobile dashboard, a gym selector for members, recommendations, and any ne
 
 ## Dependencies
 
-Packages 1 to 3 (gym scope, occupancy, traffic summary). Decision D-04 (members with no membership) before T5-08.
+Packages 1 to 3 (gym scope, occupancy, traffic summary). Decision D-04 is approved (see [decisions.md](../decisions.md)). Decision D-02 is approved: Package 5 adds the minimal Playwright config used by T5-12.
