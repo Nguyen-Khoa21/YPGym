@@ -1,12 +1,18 @@
 export type StaffPaymentState = "pending" | "paid" | "succeeded" | "failed" | "cancelled" | "expired" | "paid_review";
 
-/** A final status ends polling. `paid` is transient on the server, so keep waiting for `succeeded`. */
+/** The server marks a verified payOS payment `paid` and never moves it on; `succeeded` is the legacy equivalent. */
+export function isPaidStatus(status: string | undefined): boolean {
+  return status === "paid" || status === "succeeded";
+}
+
+/** A final status ends polling. */
 export function isFinalPaymentStatus(status: string): boolean {
-  return ["succeeded", "failed", "cancelled", "expired", "paid_review"].includes(status);
+  return ["paid", "succeeded", "failed", "cancelled", "expired", "paid_review"].includes(status);
 }
 
 export function paymentStatusLabel(status: string): { label: string; tone: "wait" | "ok" | "bad" } {
   switch (status) {
+    case "paid":
     case "succeeded": return { label: "Paid. Membership is active.", tone: "ok" };
     case "paid_review": return { label: "Paid, but needs manager review before activation.", tone: "bad" };
     case "failed": return { label: "Payment failed.", tone: "bad" };

@@ -18,7 +18,7 @@ import { formatMoney } from "@/lib/format";
 import type { MembershipPlan, PayOSCreateResponse, PurchaseResponse } from "@/types/api";
 import type { InPersonMemberRegistered, StaffPaymentStatus } from "@/types/operations";
 
-import { isFinalPaymentStatus, newPaymentKey, paymentStatusLabel, qrValue } from "../inPersonRegistration";
+import { isFinalPaymentStatus, isPaidStatus, newPaymentKey, paymentStatusLabel, qrValue } from "../inPersonRegistration";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Enter the member's full name."),
@@ -76,7 +76,7 @@ export function InPersonRegistrationDialog({ scope, onClose }: { scope: Operatio
     enabled: Boolean(qrCheckout) && stepState === "pay",
     refetchInterval: (query) => (query.state.data && isFinalPaymentStatus(query.state.data.status) ? false : 3000),
   });
-  const paid = status.data?.status === "succeeded";
+  const paid = isPaidStatus(status.data?.status);
   // A verified payment moves the dialog to the done screen without an effect.
   const step: Step = paid ? "done" : stepState;
 

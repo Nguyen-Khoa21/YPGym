@@ -1,11 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const { isFinalPaymentStatus, newPaymentKey, paymentStatusLabel, qrValue } = await import("../src/features/staff/inPersonRegistration.ts");
+const { isFinalPaymentStatus, isPaidStatus, newPaymentKey, paymentStatusLabel, qrValue } = await import("../src/features/staff/inPersonRegistration.ts");
 
 test("polling stops on final statuses only", () => {
-  for (const status of ["succeeded", "failed", "cancelled", "expired", "paid_review"]) assert.equal(isFinalPaymentStatus(status), true, status);
-  for (const status of ["pending", "paid", "anything-else"]) assert.equal(isFinalPaymentStatus(status), false, status);
+  for (const status of ["paid", "succeeded", "failed", "cancelled", "expired", "paid_review"]) assert.equal(isFinalPaymentStatus(status), true, status);
+  for (const status of ["pending", "anything-else"]) assert.equal(isFinalPaymentStatus(status), false, status);
+});
+
+test("a verified payment is paid whether the server says paid or legacy succeeded", () => {
+  assert.equal(isPaidStatus("paid"), true);
+  assert.equal(isPaidStatus("succeeded"), true);
+  for (const status of ["pending", "failed", "paid_review", undefined]) assert.equal(isPaidStatus(status), false, String(status));
+  assert.equal(paymentStatusLabel("paid").tone, "ok");
 });
 
 test("status labels never rely on colour alone", () => {

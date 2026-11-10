@@ -49,7 +49,8 @@ def test_quiet_window_is_quietest_overall_without_a_training_window():
 
 def test_quiet_window_stays_inside_the_training_window():
     buckets = [bucket(6, 20), bucket(10, 4), bucket(18, 30), bucket(20, 12)]
-    assert pick_quiet_window(buckets, "evening").start_hour == 20
+    assert pick_quiet_window(buckets, "evening").start_hour == 18
+    assert pick_quiet_window(buckets, "night").start_hour == 20
     assert pick_quiet_window(buckets, "early_morning").start_hour == 6
 
 

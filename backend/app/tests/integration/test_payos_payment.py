@@ -238,9 +238,13 @@ async def test_expired_member_switching_gym_keeps_the_old_gym_until_payment(clie
 
     assert (await client.post("/api/v1/payments/payos/webhook", json=webhook(checkout["order_code"], checkout["amount_vnd"]))).status_code == 200
     async with sessions() as session:
-        membership = (await session.execute(select(UserMembership).where(UserMembership.user_id == member.id))).scalar_one()
-        assert membership.home_gym_id == DISTRICT_11_GYM_ID
-        assert membership.status in {"active", "expiring_soon"}
+        # An expired membership is kept as history; payment opens a new one at the chosen gym.
+        memberships = (await session.execute(select(UserMembership).where(UserMembership.user_id == member.id))).scalars().all()
+        assert len(memberships) == 2
+        expired = next(item for item in memberships if item.status == "expired")
+        current = next(item for item in memberships if item.status in {"active", "expiring_soon"})
+        assert expired.home_gym_id == DISTRICT_1_GYM_ID
+        assert current.home_gym_id == DISTRICT_11_GYM_ID
 
 
 async def test_valid_webhook_is_atomic_and_duplicate_safe(client, storage):

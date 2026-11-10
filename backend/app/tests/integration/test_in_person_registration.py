@@ -151,7 +151,7 @@ async def test_qr_checkout_settles_only_after_verified_webhook_and_status_is_gym
 
     settled = await client.post("/api/v1/payments/payos/webhook", json=webhook(data["order_code"], data["amount_vnd"]))
     assert settled.status_code == 200
-    assert (await client.get(f"/api/v1/staff/payments/{data['transaction_id']}", headers=d1)).json()["status"] == "succeeded"
+    assert (await client.get(f"/api/v1/staff/payments/{data['transaction_id']}", headers=d1)).json()["status"] == "paid"
     async with sessions() as session:
         membership = (await session.execute(select(UserMembership).where(UserMembership.user_id == member["id"]))).scalar_one()
         assert membership.home_gym_id == DISTRICT_1_GYM_ID and membership.status == "active"

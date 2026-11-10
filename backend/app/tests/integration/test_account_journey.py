@@ -180,23 +180,33 @@ async def test_welcome_delivery_failure_is_private_and_retryable(client, storage
     sessions, _ = storage
     monkeypatch.setattr("app.services.auth_service.generate_url_token", lambda: "retry-verification-token-1234567")
 
-    async def unavailable_verification_outbox(*args, **kwargs):
+    smtp_settings = Settings(
+        _env_file=None,
+        ENVIRONMENT="test",
+        EMAIL_DELIVERY_MODE="smtp",
+        EMAIL_SENDER_ADDRESS="team@example.com",
+        SMTP_HOST="smtp.example.com",
+        FRONTEND_URL="https://gym.example.com",
+        MOBILE_APP_URL="ypgym://",
+    )
+    monkeypatch.setattr("app.services.auth_service.get_settings", lambda: smtp_settings)
+
+    def unavailable_transport(self, message):
         raise DependencyUnavailableError(
             "EMAIL_PREPARATION_UNAVAILABLE",
             "PRIVATE_VERIFICATION_OUTBOX_DETAIL",
         )
 
-    monkeypatch.setattr(
-        "app.services.auth_service.AuthService._send_verification_email",
-        unavailable_verification_outbox,
-    )
+    monkeypatch.setattr("app.services.auth_service.ConfiguredEmailTransport.send", unavailable_transport)
     payload = {
         "name": "Retry Member",
         "email": "retry-welcome@example.com",
         "phone": "123456781",
         "password": "Test-password-123",
     }
-    assert (await client.post("/api/v1/auth/register", json=payload)).status_code == 201
+    registered = await client.post("/api/v1/auth/register", json=payload)
+    assert registered.status_code == 201
+    assert registered.json()["verification_email_sent"] is False
     assert "PRIVATE_VERIFICATION_OUTBOX_DETAIL" not in caplog.text
 
     class FailingTransport:
