@@ -80,3 +80,37 @@ Thumbs.db
 *.pem
 *.key
 *.crt
+
+# Secrets, backups, and generated signing artifacts
+.cloudflare/
+.cloudflared/
+cloudflared/
+backups/
+*.sql.gz
+*.dump
+*.backup
+backup*.sql
+*-backup.sql
+dump*.sql
+*-dump.sql
+*.p12
+*.pfx
+*.p8
+*.mobileprovision
+*.keystore
+*.apk
+*.aab
+*.ipa
+mobile/credentials.json
+scanner-mobile/credentials.json
+
+# Obsidian vault: personal UI state, not project content
+YPGym vault/.obsidian/workspace.json
+YPGym vault/.obsidian/workspaces.json
+
+# Archify: keep candidate.json (the source), ignore generated output
+.archify/**/*.html
+.archify/**/*.finalize.json
+.archify/**/*.finalize-summary.json
+.archify/**/*.browser-check.json
+.archify/**/*.delivery.json

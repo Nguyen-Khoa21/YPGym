@@ -366,3 +366,12 @@ Choose the smallest solution that is:
 - Maintainable by the next developer.
 
 When fewer lines would weaken any of these qualities, use the additional code required to preserve them.
+
+---
+
+## Project knowledge
+
+- Context notes live in `YPGym vault/` (Obsidian). Start at `YPGym vault/00 Home/Home.md`. Check `YPGym vault/04 Decisions/Decisions Log.md` before changing architecture or business rules.
+- Business-flow diagrams are made with Archify in `.archify/`. The index and update log are in `YPGym vault/02 Architecture/Archify Diagrams.md`.
+- After finishing a package: update its note in `YPGym vault/03 Specs/`. If a business flow changed, update the latest `candidate.json`, regenerate the diagram with Archify, then add a line to the update log in `Archify Diagrams.md`.
+- Do not copy repo docs into the vault. Link to them. Repo files stay the source of truth for code, setup and run instructions.

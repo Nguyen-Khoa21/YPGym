@@ -1,0 +1,49 @@
+filters:
+  and:
+    - file.hasTag("package")
+    - file.folder == "03 Specs"
+properties:
+  note.package:
+    displayName: "#"
+  note.status:
+    displayName: Status
+  note.commit:
+    displayName: Commit
+  note.date:
+    displayName: Updated
+views:
+  - type: table
+    name: All packages
+    order:
+      - note.package
+      - file.name
+      - note.status
+      - note.commit
+      - note.date
+    sort:
+      - property: note.package
+        direction: ASC
+  - type: table
+    name: Needs attention
+    filters:
+      and:
+        - note.status != "implemented-verified"
+    order:
+      - note.package
+      - file.name
+      - note.status
+    sort:
+      - property: note.package
+        direction: ASC
+  - type: table
+    name: By status
+    groupBy:
+      property: note.status
+      direction: ASC
+    order:
+      - note.package
+      - file.name
+      - note.commit
+    sort:
+      - property: note.package
+        direction: ASC

@@ -1,0 +1,1000 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "YPGym — Luồng nghiệp vụ tổng thể",
+    "locale": "vi",
+    "translations": {
+      "page.title": "{title} · Sơ đồ",
+      "diagram.description.workflow": "Sơ đồ luồng nghiệp vụ được tạo bằng Archify.",
+      "node.focus": "Xem {label}",
+      "node.focus.detail": "Xem {label}, {detail}",
+      "node.context.workflow": "Bước nghiệp vụ",
+      "legend.title": "Chú giải",
+      "viewer.kind.frontend": "Giao diện",
+      "viewer.kind.backend": "Nghiệp vụ backend",
+      "viewer.kind.database": "Dữ liệu",
+      "viewer.kind.cloud": "Dịch vụ ngoài",
+      "viewer.kind.security": "Điểm kiểm soát",
+      "viewer.kind.messagebus": "Tác vụ nền",
+      "viewer.kind.external": "Người / thiết bị",
+      "viewer.motion.live": "Động",
+      "viewer.motion.still": "Tĩnh",
+      "viewer.motion.pause": "Tạm dừng chuyển động",
+      "viewer.motion.resume": "Tiếp tục chuyển động",
+      "viewer.theme.dark": "Tối",
+      "viewer.theme.light": "Sáng",
+      "viewer.theme.toggle": "Đổi giao diện sáng/tối",
+      "viewer.export.button": "Xuất",
+      "viewer.export.diagram": "Xuất sơ đồ",
+      "viewer.present.present": "Trình chiếu",
+      "viewer.present.exit.label": "Thoát",
+      "viewer.guide.title": "Khám phá sơ đồ",
+      "viewer.guide.close": "Đóng hướng dẫn",
+      "viewer.guide.find": "Tìm một bước",
+      "viewer.guide.route": "Lần theo một luồng",
+      "viewer.guide.map": "Xem toàn bộ sơ đồ",
+      "viewer.nav.route.short": "LUỒNG",
+      "viewer.nav.radar.short": "BẢN ĐỒ",
+      "viewer.nav.find": "Tìm một bước",
+      "viewer.nav.zoomIn": "Phóng to",
+      "viewer.nav.zoomOut": "Thu nhỏ",
+      "viewer.nav.reset": "Đặt lại góc nhìn",
+      "viewer.common.close": "Đóng",
+      "viewer.common.clear": "Xóa",
+      "viewer.common.copyLink": "Sao chép liên kết"
+    },
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/Nguyen-Khoa21/YPGym.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "e5fe8955025d6f5db07b9c49a155c3062ed899b6"
+    },
+    "output": ".archify/workflow-ypgym-payos-cloudflare-20261104-230600/ypgym-luong-nghiep-vu-payos-cloudflare.html",
+    "views": [
+      {
+        "id": "hanh_trinh_chinh",
+        "label": "Hành trình chính",
+        "focus": [
+          "bat_dau",
+          "web_mobile",
+          "xac_thuc",
+          "chon_dich_vu",
+          "dashboard",
+          "den_phong_gym",
+          "duy_tri_tai_khoan"
+        ],
+        "note": "Đọc từ trái sang phải: tạo tài khoản, chọn dịch vụ, sử dụng và duy trì quyền lợi."
+      },
+      {
+        "id": "thanh_toan",
+        "label": "Thanh toán payOS",
+        "focus": [
+          "chon_dich_vu",
+          "tao_checkout",
+          "payos",
+          "cloudflare_webhook",
+          "xac_minh_webhook",
+          "quyen_loi_hoa_don",
+          "ket_qua_trinh_duyet",
+          "loi_thanh_toan"
+        ],
+        "note": "Backend tự tính giá; webhook payOS đã xác minh mới có quyền hoàn tất giao dịch."
+      },
+      {
+        "id": "diem_danh",
+        "label": "QR và điểm danh",
+        "focus": [
+          "dashboard",
+          "phat_qr",
+          "den_phong_gym",
+          "scanner",
+          "ghi_nhan_attendance",
+          "redis_realtime",
+          "loi_quet"
+        ],
+        "note": "QR ngắn hạn, thiết bị được xác thực, PostgreSQL giữ trạng thái bền vững."
+      },
+      {
+        "id": "lop_yptrain",
+        "label": "Lớp và YPTrain",
+        "focus": [
+          "chon_dich_vu",
+          "checkout_lop",
+          "waitlist",
+          "tap_luyen_lop",
+          "lich_su_tap",
+          "nhanh_lop"
+        ],
+        "note": "Lớp thu phí độc lập; workout chỉ ghi khi đã check-in hợp lệ trong ngày."
+      },
+      {
+        "id": "van_hanh",
+        "label": "Vận hành và kiểm soát",
+        "focus": [
+          "manager_admin",
+          "scanner",
+          "pt_nhan_su",
+          "postgres_redis",
+          "celery",
+          "nhanh_quyen_truy_cap"
+        ],
+        "note": "Manager/admin/staff/PT có quyền khác nhau; hành động nhạy cảm được audit."
+      }
+    ],
+    "legend": {
+      "mode": "all",
+      "entries": {
+        "frontend": {
+          "label": "Màn hình người dùng"
+        },
+        "backend": {
+          "label": "Luật nghiệp vụ"
+        },
+        "database": {
+          "label": "Dữ liệu bền vững"
+        },
+        "cloud": {
+          "label": "Tích hợp bên ngoài"
+        },
+        "security": {
+          "label": "Điểm chặn / xác minh"
+        },
+        "messagebus": {
+          "label": "Tác vụ nền / sự kiện"
+        },
+        "external": {
+          "label": "Người hoặc thiết bị"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "journey",
+      "label": "1. Hành trình chính của hội viên"
+    },
+    {
+      "id": "attendance",
+      "label": "2. QR, điểm danh và cập nhật tức thời"
+    },
+    {
+      "id": "billing",
+      "label": "3. Thanh toán và kích hoạt quyền lợi"
+    },
+    {
+      "id": "classes",
+      "label": "4. Lớp học, waitlist và YPTrain"
+    },
+    {
+      "id": "operations",
+      "label": "5. Vận hành, dữ liệu và tác vụ nền"
+    }
+  ],
+  "phases": [
+    {
+      "id": "phase_start",
+      "label": "Bắt đầu",
+      "fromCol": 0,
+      "toCol": 0
+    },
+    {
+      "id": "phase_access",
+      "label": "Xác thực",
+      "fromCol": 1,
+      "toCol": 1,
+      "variant": "security"
+    },
+    {
+      "id": "phase_choose",
+      "label": "Chọn dịch vụ",
+      "fromCol": 2,
+      "toCol": 2
+    },
+    {
+      "id": "phase_activate",
+      "label": "Thanh toán / cấp quyền",
+      "fromCol": 3,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "phase_use",
+      "label": "Sử dụng tại gym",
+      "fromCol": 4,
+      "toCol": 4
+    },
+    {
+      "id": "phase_continue",
+      "label": "Theo dõi và duy trì",
+      "fromCol": 5,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "groups": [
+    {
+      "id": "attendance_group",
+      "label": "Luồng QR an toàn",
+      "lane": "attendance",
+      "fromCol": 3,
+      "toCol": 5,
+      "variant": "security"
+    },
+    {
+      "id": "payment_group",
+      "label": "payOS + Cloudflare + giao dịch nguyên tử",
+      "lane": "billing",
+      "fromCol": 2,
+      "toCol": 5,
+      "variant": "emphasis"
+    },
+    {
+      "id": "class_group",
+      "label": "Đặt lớp hoặc ghi workout",
+      "lane": "classes",
+      "fromCol": 2,
+      "toCol": 5,
+      "variant": "default"
+    },
+    {
+      "id": "operations_group",
+      "label": "Quản trị và tự động hóa",
+      "lane": "operations",
+      "fromCol": 2,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "bat_dau",
+    "web_mobile",
+    "xac_thuc",
+    "chon_dich_vu",
+    "dashboard",
+    "den_phong_gym",
+    "duy_tri_tai_khoan"
+  ],
+  "nodes": [
+    {
+      "id": "bat_dau",
+      "lane": "journey",
+      "col": 0,
+      "type": "external",
+      "icon": "person",
+      "label": "Đăng ký / đăng nhập",
+      "sublabel": "Email / mật khẩu / OAuth",
+      "sources": [
+        { "path": "backend/app/api/v1/endpoints/auth.py", "line": 30, "end_line": 76, "label": "API đăng ký và đăng nhập" }
+      ]
+    },
+    {
+      "id": "web_mobile",
+      "lane": "journey",
+      "col": 0,
+      "type": "frontend",
+      "icon": "frontend",
+      "label": "Web hoặc app hội viên",
+      "sublabel": "TypeScript · React/Expo",
+      "tag": "cùng API /api/v1",
+      "sources": [
+        { "path": "frontend/src/app/router.tsx", "line": 80, "end_line": 152, "label": "Các route phía web" },
+        { "path": "mobile/src/lib/api.ts", "line": 1, "end_line": 60, "label": "API client phía mobile" }
+      ],
+      "yOffset": 88
+    },
+    {
+      "id": "xac_thuc",
+      "lane": "journey",
+      "col": 1,
+      "type": "security",
+      "icon": "security",
+      "label": "Xác thực + phân quyền",
+      "sublabel": "Python · FastAPI/JWT",
+      "sources": [
+        { "path": "backend/app/core/dependencies.py", "line": 20, "end_line": 59, "label": "JWT và kiểm tra role" }
+      ]
+    },
+    {
+      "id": "chon_dich_vu",
+      "lane": "journey",
+      "col": 2,
+      "type": "frontend",
+      "icon": "decision",
+      "label": "Chọn nhu cầu",
+      "sublabel": "Gói · lớp · bài tập",
+      "sources": [
+        { "path": "frontend/src/app/router.tsx", "line": 84, "end_line": 152, "label": "Route gói, lớp và YPTrain" }
+      ]
+    },
+    {
+      "id": "dashboard",
+      "lane": "journey",
+      "col": 3,
+      "type": "frontend",
+      "icon": "active",
+      "label": "Dashboard cá nhân",
+      "sublabel": "QR · booking · thông báo",
+      "sources": [
+        { "path": "backend/app/api/v1/endpoints/dashboard.py", "line": 17, "end_line": 23, "label": "API dashboard hội viên" },
+        { "path": "frontend/src/features/member/pages/MemberDashboardPage.tsx", "line": 17, "end_line": 40, "label": "Màn hình dashboard" }
+      ]
+    },
+    {
+      "id": "den_phong_gym",
+      "lane": "journey",
+      "col": 4,
+      "type": "external",
+      "icon": "person",
+      "label": "Đến phòng gym",
+      "sublabel": "QR hoặc booking",
+      "sources": [
+        { "path": "backend/app/api/v1/endpoints/attendance.py", "line": 37, "end_line": 87, "label": "QR và API scanner" },
+        { "path": "backend/app/api/v1/endpoints/classes.py", "line": 138, "end_line": 150, "label": "Check-in theo booking" }
+      ]
+    },
+    {
+      "id": "duy_tri_tai_khoan",
+      "lane": "journey",
+      "col": 5,
+      "type": "frontend",
+      "icon": "success",
+      "label": "Theo dõi và duy trì",
+      "sublabel": "Lịch sử · gia hạn · yêu cầu",
+      "sources": [
+        { "path": "backend/app/api/v1/endpoints/memberships.py", "line": 28, "end_line": 73, "label": "Trạng thái và yêu cầu membership" },
+        { "path": "backend/app/api/v1/endpoints/billing.py", "line": 20, "end_line": 51, "label": "Lịch sử billing và invoice" }
+      ]
+    },
+    {
+      "id": "phat_qr",
+      "lane": "attendance",
+      "col": 3,
+      "type": "security",
+      "icon": "security",
+      "label": "Phát QR quay vòng",
+      "sublabel": "JWT TTL · JTI thay thế",
+      "tag": "Python + Redis TTL",
+      "sources": [
+        { "path": "backend/app/services/attendance_service.py", "line": 86, "end_line": 168, "label": "Sinh và xác minh QR" }
+      ]
+    },
+    {
+      "id": "scanner",
+      "lane": "attendance",
+      "col": 4,
+      "type": "external",
+      "icon": "external",
+      "label": "Scanner mobile",
+      "sublabel": "TS · Expo Camera · key",
+      "sources": [
+        { "path": "scanner-mobile/src/api.ts", "line": 1, "end_line": 24, "label": "Gọi API bằng device key" },
+        { "path": "scanner-mobile/src/state.ts", "line": 1, "end_line": 42, "label": "Trạng thái scanner" }
+      ]
+    },
+    {
+      "id": "ghi_nhan_attendance",
+      "lane": "attendance",
+      "col": 5,
+      "type": "backend",
+      "icon": "success",
+      "label": "Ghi nhận check-in/out",
+      "sublabel": "Session · event · occupancy",
+      "sources": [
+        { "path": "backend/app/services/attendance_service.py", "line": 169, "end_line": 301, "label": "Nghiệp vụ check-in/out" },
+        { "path": "backend/app/repositories/attendance_repository.py", "line": 12, "end_line": 153, "label": "Ghi session và event" }
+      ]
+    },
+    {
+      "id": "tao_checkout",
+      "lane": "billing",
+      "col": 2,
+      "type": "backend",
+      "icon": "backend",
+      "label": "Tạo checkout",
+      "sublabel": "Giá server · giữ chỗ",
+      "tag": "Python · SQLAlchemy async",
+      "sources": [
+        { "path": "backend/app/api/v1/endpoints/payments.py", "line": 25, "end_line": 38, "label": "Endpoint tạo payment" },
+        { "path": "backend/app/services/payment_service.py", "line": 60, "end_line": 134, "label": "Giá và orderCode từ server" },
+        { "path": "backend/app/repositories/billing_repository.py", "line": 13, "end_line": 83, "label": "Lưu payment pending" }
+      ]
+    },
+    {
+      "id": "payos",
+      "lane": "billing",
+      "col": 3,
+      "type": "cloud",
+      "icon": "cloud",
+      "label": "payOS VietQR",
+      "sublabel": "Napas 24/7 · hosted checkout",
+      "tag": "SDK async chính thức",
+      "sources": [
+        { "path": "backend/app/services/payos_service.py", "line": 8, "end_line": 35, "label": "SDK tạo link và verify webhook" }
+      ]
+    },
+    {
+      "id": "cloudflare_webhook",
+      "lane": "billing",
+      "col": 4,
+      "type": "cloud",
+      "icon": "cloud",
+      "label": "Cloudflare Tunnel",
+      "sublabel": "ypgym.com.co → localhost",
+      "tag": "HTTPS công khai",
+      "sources": [
+        { "path": "docker-compose.yml", "line": 76, "end_line": 94, "label": "Biến webhook và cổng backend" },
+        { "path": "docs/api/payos-payments.md", "line": 64, "end_line": 68, "label": "Contract reverse proxy/Tunnel" }
+      ]
+    },
+    {
+      "id": "ket_qua_trinh_duyet",
+      "lane": "billing",
+      "col": 4,
+      "type": "frontend",
+      "icon": "waiting",
+      "label": "Trang kết quả",
+      "sublabel": "Return/cancel chỉ polling",
+      "sources": [
+        { "path": "frontend/src/features/billing/pages/PaymentResultPage.tsx", "line": 17, "end_line": 52, "label": "Polling trạng thái local" },
+        { "path": "frontend/src/app/router.tsx", "line": 107, "end_line": 117, "label": "Route success/cancel" }
+      ],
+      "yOffset": 98
+    },
+    {
+      "id": "xac_minh_webhook",
+      "lane": "billing",
+      "col": 5,
+      "type": "security",
+      "icon": "decision",
+      "label": "Xác minh webhook",
+      "sublabel": "Chữ ký · VND · link · khóa dòng",
+      "sources": [
+        { "path": "backend/app/api/v1/endpoints/payments.py", "line": 41, "end_line": 61, "label": "Nhận raw webhook" },
+        { "path": "backend/app/services/payment_service.py", "line": 251, "end_line": 317, "label": "Verify và xử lý idempotent" },
+        { "path": "backend/app/repositories/billing_repository.py", "line": 119, "end_line": 137, "label": "Khóa payment theo orderCode" }
+      ],
+      "yOffset": -54
+    },
+    {
+      "id": "quyen_loi_hoa_don",
+      "lane": "billing",
+      "col": 5,
+      "type": "backend",
+      "icon": "success",
+      "label": "Kích hoạt quyền lợi",
+      "sublabel": "Quyền lợi · hóa đơn · báo tin",
+      "sources": [
+        { "path": "backend/app/services/membership_service.py", "line": 342, "end_line": 440, "label": "Membership, invoice và notification" },
+        { "path": "backend/app/services/payment_service.py", "line": 303, "end_line": 317, "label": "Điều phối loại sản phẩm" },
+        { "path": "backend/app/services/payment_service.py", "line": 319, "end_line": 433, "label": "Hoàn tất booking lớp" }
+      ],
+      "yOffset": 62
+    },
+    {
+      "id": "checkout_lop",
+      "lane": "classes",
+      "col": 2,
+      "type": "backend",
+      "icon": "calendar",
+      "label": "Mua chỗ lớp",
+      "sublabel": "Lớp trả phí riêng",
+      "sources": [
+        { "path": "backend/app/api/v1/endpoints/classes.py", "line": 74, "end_line": 91, "label": "Endpoint checkout lớp" },
+        { "path": "backend/app/services/payment_service.py", "line": 136, "end_line": 238, "label": "Giữ chỗ và payment lớp" }
+      ]
+    },
+    {
+      "id": "waitlist",
+      "lane": "classes",
+      "col": 3,
+      "type": "messagebus",
+      "icon": "waiting",
+      "label": "Đợi trong waitlist",
+      "sublabel": "Đợi khi lớp đầy",
+      "sources": [
+        { "path": "backend/app/services/class_service.py", "line": 537, "end_line": 570, "label": "Gia nhập waitlist" },
+        { "path": "backend/app/services/waitlist_service.py", "line": 21, "end_line": 75, "label": "Promote theo thứ tự" }
+      ]
+    },
+    {
+      "id": "tap_luyen_lop",
+      "lane": "classes",
+      "col": 4,
+      "type": "backend",
+      "icon": "active",
+      "label": "Lớp / ghi bài tập",
+      "sublabel": "Cần check-in hôm nay",
+      "sources": [
+        { "path": "backend/app/services/workout_service.py", "line": 63, "end_line": 127, "label": "Điều kiện check-in và ghi workout" },
+        { "path": "backend/app/api/v1/endpoints/classes.py", "line": 138, "end_line": 150, "label": "Check-in theo booking lớp" }
+      ]
+    },
+    {
+      "id": "lich_su_tap",
+      "lane": "classes",
+      "col": 5,
+      "type": "frontend",
+      "icon": "success",
+      "label": "Lịch sử và tổng kết",
+      "sublabel": "Lịch sử · exposure tuần",
+      "sources": [
+        { "path": "backend/app/services/workout_service.py", "line": 130, "end_line": 192, "label": "Lịch sử và tổng kết tuần" }
+      ]
+    },
+    {
+      "id": "manager_admin",
+      "lane": "operations",
+      "col": 2,
+      "type": "external",
+      "icon": "briefcase",
+      "label": "Manager / Admin",
+      "sublabel": "CRM · duyệt · audit",
+      "sources": [
+        { "path": "backend/app/api/v1/endpoints/admin.py", "line": 45, "end_line": 132, "label": "API quản trị có RBAC" },
+        { "path": "backend/app/services/operations_service.py", "line": 64, "end_line": 153, "label": "CRM và member detail" },
+        { "path": "backend/app/services/operations_service.py", "line": 373, "end_line": 383, "label": "Đọc audit log" }
+      ]
+    },
+    {
+      "id": "postgres_redis",
+      "lane": "operations",
+      "col": 3,
+      "type": "database",
+      "icon": "database",
+      "label": "PostgreSQL + Redis",
+      "sublabel": "SQL bền vững · Redis ngắn hạn",
+      "tag": "SQL giao dịch · Redis TTL/cache",
+      "sources": [
+        { "path": "backend/app/db/session.py", "line": 1, "end_line": 18, "label": "Async PostgreSQL session" },
+        { "path": "backend/app/db/redis.py", "line": 1, "end_line": 11, "label": "Redis client dùng chung" },
+        { "path": "backend/app/models/billing.py", "line": 14, "end_line": 110, "label": "Payment là dữ liệu bền vững" }
+      ]
+    },
+    {
+      "id": "redis_realtime",
+      "lane": "attendance",
+      "col": 5,
+      "type": "messagebus",
+      "icon": "messagebus",
+      "label": "Realtime invalidation",
+      "sublabel": "Pub/Sub → WebSocket → refetch",
+      "sources": [
+        { "path": "backend/app/services/attendance_realtime_service.py", "line": 167, "end_line": 205, "label": "Redis Pub/Sub subscriber" },
+        { "path": "backend/app/api/v1/endpoints/attendance_realtime.py", "line": 20, "end_line": 75, "label": "WebSocket xác thực" },
+        { "path": "frontend/src/components/common/AttendanceRealtime.tsx", "line": 12, "end_line": 52, "label": "Refetch phía web" }
+      ],
+      "yOffset": 90
+    },
+    {
+      "id": "celery",
+      "lane": "operations",
+      "col": 5,
+      "type": "messagebus",
+      "icon": "clock",
+      "label": "Celery Worker / Beat",
+      "sublabel": "Expiry · reminder · timeout",
+      "tag": "Python tác vụ nền",
+      "sources": [
+        { "path": "backend/app/workers/celery_app.py", "line": 20, "end_line": 62, "label": "Lịch Beat và Redis broker" },
+        { "path": "backend/app/workers/celery_app.py", "line": 159, "end_line": 175, "label": "Expiry payOS và attendance timeout" }
+      ]
+    },
+    {
+      "id": "pt_nhan_su",
+      "lane": "operations",
+      "col": 5,
+      "type": "external",
+      "icon": "briefcase",
+      "label": "Staff / PT",
+      "sublabel": "Attendance · lớp · ca làm",
+      "sources": [
+        { "path": "backend/app/api/v1/endpoints/staff.py", "line": 20, "end_line": 79, "label": "Ca làm Staff/PT" },
+        { "path": "backend/app/api/v1/endpoints/classes.py", "line": 138, "end_line": 175, "label": "Attendance lớp và PT" }
+      ],
+      "yOffset": 90
+    },
+    {
+      "id": "nhanh_xac_thuc",
+      "lane": "journey",
+      "col": 1,
+      "type": "security",
+      "icon": "failure",
+      "label": "Xác thực bị chặn",
+      "sublabel": "Trùng · hết hạn · chưa verify",
+      "sources": [
+        { "path": "backend/app/services/auth_service.py", "line": 47, "end_line": 177, "label": "Các nhánh đăng ký/verify/login" }
+      ],
+      "yOffset": 90
+    },
+    {
+      "id": "nhanh_quyen_truy_cap",
+      "lane": "journey",
+      "col": 2,
+      "type": "security",
+      "icon": "stop",
+      "label": "Quyền truy cập bị khóa",
+      "sublabel": "Frozen / expired / revoked",
+      "sources": [
+        { "path": "backend/app/services/membership_service.py", "line": 123, "end_line": 153, "label": "Điều kiện self-service" },
+        { "path": "backend/app/core/dependencies.py", "line": 53, "end_line": 59, "label": "Chặn sai role" }
+      ],
+      "yOffset": 90
+    },
+    {
+      "id": "loi_thanh_toan",
+      "lane": "billing",
+      "col": 5,
+      "type": "security",
+      "icon": "failure",
+      "label": "Thanh toán lỗi / chờ",
+      "sublabel": "Sai chữ ký · hết hạn · paid_review",
+      "sources": [
+        { "path": "backend/app/api/v1/endpoints/payments.py", "line": 41, "end_line": 61, "label": "Từ chối chữ ký/body lỗi" },
+        { "path": "backend/app/services/payment_service.py", "line": 251, "end_line": 286, "label": "Duplicate và paid_review" },
+        { "path": "backend/app/services/payment_service.py", "line": 449, "end_line": 468, "label": "Hết hạn payment" }
+      ],
+      "yOffset": -170
+    },
+    {
+      "id": "loi_quet",
+      "lane": "attendance",
+      "col": 4,
+      "type": "security",
+      "icon": "failure",
+      "label": "QR/scanner bị từ chối",
+      "sublabel": "Expired / superseded / duplicate",
+      "sources": [
+        { "path": "backend/app/services/attendance_service.py", "line": 132, "end_line": 168, "label": "QR hết hạn/thay thế" },
+        { "path": "backend/app/services/attendance_service.py", "line": 187, "end_line": 217, "label": "Chống quét trùng" }
+      ],
+      "yOffset": 90
+    },
+    {
+      "id": "nhanh_lop",
+      "lane": "classes",
+      "col": 2,
+      "type": "security",
+      "icon": "waiting",
+      "label": "Nhánh lớp học",
+      "sublabel": "Full / waitlist / refund",
+      "sources": [
+        { "path": "backend/app/services/class_service.py", "line": 537, "end_line": 570, "label": "Full và waitlist" },
+        { "path": "backend/app/services/payment_service.py", "line": 456, "end_line": 492, "label": "Hết hold và promote" },
+        { "path": "backend/app/services/payment_service.py", "line": 505, "end_line": 527, "label": "Resolve refund thủ công" }
+      ],
+      "yOffset": 90
+    }
+  ],
+  "edges": [
+    {
+      "id": "start_client",
+      "from": "bat_dau",
+      "to": "web_mobile",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "client_auth",
+      "from": "web_mobile",
+      "to": "xac_thuc",
+      "label": "gửi thông tin",
+      "variant": "security",
+      "role": "main"
+    },
+    {
+      "id": "auth_choose",
+      "from": "xac_thuc",
+      "to": "chon_dich_vu",
+      "label": "hợp lệ",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "choose_dashboard",
+      "from": "chon_dich_vu",
+      "to": "dashboard",
+      "label": "mở dashboard",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "dashboard_visit",
+      "from": "dashboard",
+      "to": "den_phong_gym",
+      "label": "QR / booking",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "visit_continue",
+      "from": "den_phong_gym",
+      "to": "duy_tri_tai_khoan",
+      "label": "tập / dùng lớp",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "auth_rejected",
+      "from": "xac_thuc",
+      "to": "nhanh_xac_thuc",
+      "label": "không đạt điều kiện",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "access_rejected",
+      "from": "dashboard",
+      "to": "nhanh_quyen_truy_cap",
+      "label": "khóa quyền",
+      "variant": "security",
+      "role": "branch"
+    },
+    {
+      "id": "dashboard_qr",
+      "from": "dashboard",
+      "to": "phat_qr",
+      "label": "yêu cầu My QR",
+      "variant": "security",
+      "role": "branch"
+    },
+    {
+      "id": "qr_scanner",
+      "from": "phat_qr",
+      "to": "scanner",
+      "label": "QR ngắn hạn",
+      "variant": "emphasis",
+      "role": "branch"
+    },
+    {
+      "id": "scanner_attendance",
+      "from": "scanner",
+      "to": "ghi_nhan_attendance",
+      "label": "key + QR",
+      "variant": "security",
+      "role": "branch"
+    },
+    {
+      "id": "scanner_rejected",
+      "from": "scanner",
+      "to": "loi_quet",
+      "label": "không hợp lệ",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "attendance_realtime",
+      "from": "ghi_nhan_attendance",
+      "to": "redis_realtime",
+      "label": "sau commit",
+      "variant": "dashed",
+      "role": "async"
+    },
+    {
+      "id": "choose_checkout",
+      "from": "chon_dich_vu",
+      "to": "tao_checkout",
+      "label": "mua gói/lớp",
+      "variant": "emphasis",
+      "role": "branch"
+    },
+    {
+      "id": "checkout_payos",
+      "from": "tao_checkout",
+      "to": "payos",
+      "label": "tạo link VietQR",
+      "variant": "default",
+      "role": "branch"
+    },
+    {
+      "id": "payos_cloudflare",
+      "from": "payos",
+      "to": "cloudflare_webhook",
+      "label": "webhook ký số",
+      "variant": "security",
+      "role": "branch"
+    },
+    {
+      "id": "cloudflare_verify",
+      "from": "cloudflare_webhook",
+      "to": "xac_minh_webhook",
+      "label": "raw body",
+      "variant": "security",
+      "role": "branch"
+    },
+    {
+      "id": "webhook_entitlement",
+      "from": "xac_minh_webhook",
+      "to": "quyen_loi_hoa_don",
+      "label": "hợp lệ + pending",
+      "variant": "emphasis",
+      "role": "branch"
+    },
+    {
+      "id": "webhook_failure",
+      "from": "xac_minh_webhook",
+      "to": "loi_thanh_toan",
+      "label": "từ chối / cần review",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "payos_browser",
+      "from": "payos",
+      "to": "ket_qua_trinh_duyet",
+      "label": "return / cancel",
+      "variant": "dashed",
+      "role": "return"
+    },
+    {
+      "id": "browser_poll",
+      "from": "ket_qua_trinh_duyet",
+      "to": "quyen_loi_hoa_don",
+      "label": "chỉ đọc trạng thái",
+      "variant": "dashed",
+      "role": "return"
+    },
+    {
+      "id": "class_specific_checkout",
+      "from": "tao_checkout",
+      "to": "checkout_lop",
+      "label": "sản phẩm lớp",
+      "variant": "default",
+      "role": "branch"
+    },
+    {
+      "id": "class_waitlist",
+      "from": "checkout_lop",
+      "to": "waitlist",
+      "label": "lớp đầy",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "waitlist_training",
+      "from": "waitlist",
+      "to": "tap_luyen_lop",
+      "label": "promote + trả phí",
+      "variant": "emphasis",
+      "role": "branch"
+    },
+    {
+      "id": "training_history",
+      "from": "tap_luyen_lop",
+      "to": "lich_su_tap",
+      "label": "ghi lịch sử",
+      "variant": "emphasis",
+      "role": "branch"
+    },
+    {
+      "id": "class_exception",
+      "from": "checkout_lop",
+      "to": "nhanh_lop",
+      "label": "full / hủy / hết hold",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "ops_storage",
+      "from": "manager_admin",
+      "to": "postgres_redis",
+      "label": "audit",
+      "variant": "security",
+      "role": "branch"
+    },
+    {
+      "id": "storage_jobs",
+      "from": "postgres_redis",
+      "to": "celery",
+      "label": "đến hạn",
+      "variant": "dashed",
+      "role": "async"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Cách đọc nhanh",
+      "items": [
+        "Hàng đầu là hành trình lý tưởng của hội viên, đọc từ trái sang phải.",
+        "Các hàng giữa mở chi tiết thanh toán, QR, lớp học và tác vụ vận hành.",
+        "Các ô đỏ là nhánh bị chặn, hết hạn, trùng lặp hoặc cần nhân sự can thiệp.",
+        "Các link Source được ghim vào commit e5fe895; bấm một bước để mở đúng file và dòng code trên GitHub."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Những phần code đã được đối chiếu",
+      "items": [
+        "Thanh toán: payment_service.py, payos_service.py, payments.py, billing model/repository và migration 20261103_0019.",
+        "Cloudflare/local: docker-compose.yml và docs/api/payos-payments.md mô tả biến webhook HTTPS và đường chuyển tiếp vào backend.",
+        "Nghiệp vụ khác: auth, membership lifecycle, attendance/QR/realtime, class/waitlist, YPTrain, admin/RBAC và Celery.",
+        "Domain ypgym.com.co và khóa payOS nằm trong cấu hình môi trường ngoài Git; sơ đồ chỉ link tới contract và điểm đọc cấu hình đã commit."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "TypeScript + React + Expo — vì sao hợp YPGym",
+      "items": [
+        "Một ngôn ngữ cho web, app hội viên và scanner giúp tái dùng tư duy kiểu dữ liệu, API contract và cách xử lý lỗi.",
+        "TypeScript bắt sớm sai tên trường hoặc trạng thái payment/booking/membership; JavaScript thuần chỉ lộ nhiều lỗi khi chạy.",
+        "React + TanStack Query hợp với dữ liệu server thay đổi liên tục: loading, retry, polling payOS, cache và refetch sau sự kiện.",
+        "Expo/React Native tránh duy trì hai codebase Swift và Kotlin khi YPGym chưa cần tính năng native đặc thù sâu."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Python + FastAPI — vì sao không thêm Node/Java",
+      "items": [
+        "FastAPI + Pydantic tạo API async, validation rõ và tài liệu OpenAPI tự động.",
+        "SQLAlchemy async giữ luồng endpoint → service → repository → model thống nhất cho payment, attendance và booking.",
+        "Python đã bao phủ PDF invoice, payOS SDK, Celery và kiểm thử; thêm Node hoặc Java ở backend sẽ tăng runtime, deployment và contract phải bảo trì mà chưa tạo lợi ích tương xứng.",
+        "FastAPI phù hợp workload I/O nhiều hơn CPU: gọi payOS, PostgreSQL, Redis, SMTP và phục vụ nhiều client."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "PostgreSQL — nguồn sự thật bắt buộc",
+      "items": [
+        "Quan hệ account → membership → payment → invoice → booking cần foreign key, unique/check constraint và transaction nguyên tử.",
+        "Row lock và partial unique index ngăn bán quá ghế, dùng lại orderCode, tạo hai invoice hoặc dùng quyền lợi giảm giá hai lần.",
+        "MongoDB linh hoạt schema nhưng không có lợi thế cho miền dữ liệu quan hệ dày đặc này; SQLite không phù hợp nhiều tiến trình API/worker và ghi đồng thời.",
+        "MySQL vẫn có thể làm được, nhưng PostgreSQL đang được dùng xuyên suốt với asyncpg, Alembic, partial index và SQL đã kiểm chứng—đổi DB chỉ thêm rủi ro."
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "Redis — nhanh, ngắn hạn, có thể dựng lại",
+      "items": [
+        "Redis giữ QR JTI có TTL, chống quét trùng, rate limit, cache occupancy/configuration, Pub/Sub và broker Celery.",
+        "Dùng PostgreSQL cho mọi lần đếm/TTL sẽ tạo hot rows và I/O không cần thiết; dùng memory trong một FastAPI process lại không chia sẻ được với worker hoặc nhiều instance.",
+        "Redis không thay PostgreSQL: attendance và payment đã commit trong SQL trước; cache/PubSub lỗi không được làm mất giao dịch bền vững.",
+        "Vì dữ liệu Redis có thể tái tạo, vận hành dễ phục hồi hơn so với lưu quyền lợi tài chính hoặc lịch sử duy nhất trong cache."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Celery Worker + Beat — tại sao không chạy trong request",
+      "items": [
+        "Beat lập lịch; worker xử lý hết hạn payOS, timeout attendance, membership lifecycle, reminder, email và hoàn tất lớp ngoài request HTTP.",
+        "FastAPI BackgroundTasks gắn với vòng đời web process, không phù hợp lịch lặp lại hoặc công việc cần chạy dù không có người mở app.",
+        "Cron đơn lẻ có thể gọi script, nhưng khó tái dùng service Python, retry/queue và tách tải; Celery dùng Redis broker đã có sẵn.",
+        "Tách worker giúp webhook trả lời nhanh và tránh email/PDF/job định kỳ làm chậm API người dùng."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "payOS + Cloudflare — điểm tin cậy của thanh toán",
+      "items": [
+        "YPGym tạo orderCode và số tiền từ PostgreSQL; client không được gửi giá hay tự xác nhận đã trả.",
+        "payOS cung cấp hosted VietQR/Napas 24/7; webhook đã ký mới được quyền chuyển pending → paid.",
+        "Cloudflare Tunnel đưa HTTPS ypgym.com.co vào backend localhost mà không mở trực tiếp cổng router và có TLS/domain ổn định cho payOS.",
+        "Trang return/cancel chỉ polling trạng thái local; sửa URL trình duyệt không thể kích hoạt membership hoặc ghế lớp.",
+        "Hạn chế: backend vẫn nằm trên máy local, nên sleep/mất mạng/tắt cloudflared làm webhook gián đoạn; production nên dùng host luôn bật và giám sát delivery."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Docker Compose + Alembic — vận hành nhất quán",
+      "items": [
+        "API, PostgreSQL, Redis, worker, beat và frontend tách container để lỗi/tải của một tiến trình không trộn lẫn toàn bộ hệ thống.",
+        "Health check và service dependency giảm lỗi khởi động sai thứ tự; volume giữ dữ liệu local.",
+        "Alembic biến thay đổi schema thành lịch sử nâng/hạ có thể kiểm tra; sửa bảng thủ công sẽ khiến môi trường lệch nhau.",
+        "Server cục bộ vẫn thuận tiện demo, còn Cloudflare chỉ là đường vào HTTPS—không thay thế backup, monitoring hay hạ tầng luôn sẵn sàng."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Các quyết định nghiệp vụ quan trọng",
+      "items": [
+        "Webhook payOS hợp lệ mới hoàn tất giao dịch; duplicate delivery trả thành công nhưng không tạo quyền lợi/hóa đơn lần hai.",
+        "Thanh toán tới muộn sau expire/cancel/fail chuyển paid_review; hệ thống không tự tạo lại quyền lợi đã mất hiệu lực.",
+        "Lớp học là sản phẩm trả phí độc lập với membership; lớp đầy chuyển sang waitlist theo thứ tự.",
+        "Ghế pending hết hạn được nhả và promote người đợi đầu tiên; refund payOS hiện được xử lý thủ công có audit.",
+        "Workout YPTrain chỉ cho ghi khi có check-in hợp lệ trong ngày và membership còn đủ điều kiện.",
+        "Freeze/cancel/revoke/manual close/config/export đều có phân quyền và audit; không chỉ ẩn nút ở frontend."
+      ]
+    }
+  ]
+}
