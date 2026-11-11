@@ -78,8 +78,10 @@ Choose a unique device ID, such as `front-door-1`, and a private API key contain
 
 ```powershell
 cd C:\Users\Admin\ypgym
-docker compose exec backend-api python -m app.cli.scanner_device provision front-door-1 "Front door scanner"
+docker compose exec backend-api python -m app.cli.scanner_device provision front-door-1 "Front door scanner" district-1
 ```
+
+The last argument is the gym slug, `district-1` or `district-11`. The scanner only accepts members of the gym it is provisioned to, and its screen shows that gym's name. Provisioning the same device ID again with a different slug moves the scanner to that gym.
 
 When prompted, type the API key twice. PowerShell will not display the characters while you type. Save the key temporarily in a secure password manager because the backend will not display it later.
 

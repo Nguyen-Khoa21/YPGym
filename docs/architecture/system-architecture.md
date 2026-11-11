@@ -9,19 +9,21 @@ Critical lifecycle rules are documented in [`state-transitions.md`](state-transi
 | Service | Responsibility |
 |---|---|
 | `frontend-web` | React web application for public, member, staff, manager, admin, and limited PT routes, with PWA metadata. |
-| `mobile` | Expo SDK57 member client using the same versioned FastAPI contracts and secure native token storage. |
+| `mobile` | Expo SDK58 member client using the same versioned FastAPI contracts and secure native token storage. |
+| `scanner-mobile` | Separate Expo SDK58 entrance scanner using camera QR input, per-device SecureStore credentials, and the device-authenticated attendance API. |
 | `backend-api` | Versioned FastAPI endpoints, authentication, RBAC, request validation, and orchestration. |
 | `postgres-db` | Source of truth for identity, membership, billing, notifications, audit, attendance, trainers, classes, bookings, and waitlists. |
-| `redis-cache` | Rotating QR JTI state, duplicate-scan guards, 30-second occupancy snapshot, configuration and 60-second analytics cache, sensitive-endpoint rate limits, and Celery transport. |
+| `redis-cache` | Rotating QR JTI state, duplicate-scan guards, 30-second occupancy snapshot, configuration and 60-second analytics cache, sensitive-endpoint rate limits, Celery transport, and non-durable attendance Pub/Sub invalidation. |
 | `celery-worker` | Membership-status synchronization, 7/3/1-day reminders, and attendance timeout closure. |
 | `celery-beat` | Recurring task schedule. |
 | `iot-simulator` | Optional scanner client using the same device-authenticated HTTP contract as future hardware. |
 
 ```text
 Web and Expo member clients ---------> FastAPI API
-Scanner/simulator -- device API key -> Attendance API
+Dedicated scanner/simulator -- device API key -> Attendance API
 FastAPI -> service -> repository ----> PostgreSQL
                  |-------------------> Redis
+Redis Pub/Sub -> authenticated attendance WebSocket -> web/member REST refetch
 Celery Beat -> Celery Worker --------> PostgreSQL + Redis
 Billing service ---------------------> immutable invoice PDF files
 Manager analytics -------------------> PostgreSQL aggregates -> bounded Redis response cache

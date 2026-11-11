@@ -2,11 +2,28 @@
 
 Updated October 12, 2026. These instructions use **Windows PowerShell** and your checkout at `C:\Users\Admin\ypgym`. Run one section at a time. Keep the backend running while using either client.
 
+The separate entrance scanner has its own setup because it uses per-device credentials and a second physical phone. Follow [`docs/runbooks/scanner-mobile.md`](docs/runbooks/scanner-mobile.md); never put its device key in an Expo environment variable.
+
+## Daily one-command start
+
+After completing the one-time Docker, Cloudflare Tunnel, backend environment, npm and scanner provisioning setup documented below, start the normal web stack, public API, member Expo tunnel and scanner Expo tunnel with:
+
+```powershell
+cd C:\Users\Admin\ypgym
+.\scripts\start-ypgym.ps1
+```
+
+The command uses `backend/.env`, starts the normal Compose stack, applies pending Alembic migrations, ensures the existing `cloudflared` Windows service is running, verifies the public HTTPS API configured by `OAUTH_CALLBACK_BASE_URL`, installs mobile dependencies when they are missing or their `package-lock.json` changed, and opens two visible Expo terminals. The member app uses port `8081`; the scanner uses `8082`. It seeds the development data (both gyms, their staff, managers and members, and the two scanner simulators) only when the multi-gym demo accounts are missing; the seed is repeatable and keeps existing passwords and history. Add `-Seed` to run it on demand. It never resets stored data.
+
+The script always builds the Docker images from the latest Dockerfiles and dependency files (Docker's layer cache keeps this fast when nothing changed), recreates containers whose image changed, and restarts the API, Celery worker, Celery beat and web containers so they run the latest backend and web source from the working folder. PostgreSQL and Redis data are never reset. Use `.\scripts\start-ypgym.ps1 -NoBuild` to skip the image build for a quick restart.
+
+Keep the two Expo terminals open while using Expo Go or development builds. Closing them stops Metro, while sleeping or shutting down the laptop also makes the local backend and Cloudflare Tunnel unavailable. Native Google/Facebook sign-in on iPhone requires a YPGym development/production build that owns the `ypgym://` scheme; Expo Go cannot complete that callback.
+
 ## 1. What you need
 
 - Docker Desktop installed and running with Linux containers.
 - Node.js and npm for host web builds and Expo. This checkout was checked with Node **22.20.0** and npm **11.12.1**.
-- Expo Go compatible with this project's **Expo SDK 57** for a phone or emulator.
+- Expo Go compatible with the member app's **Expo SDK 58** for a phone or emulator. The separate scanner app also uses SDK 58.
 - Android Studio with a started Android Virtual Device for emulator testing. Native Android compilation also requires the configured Android SDK and Java.
 
 Check your terminal:
@@ -89,13 +106,13 @@ If an existing account's password was changed, use that changed password. The se
 
 1. Sign in as `admin@ypgym.dev`, open `/admin/classes`, and create or edit a future session with a positive VND price.
 2. Sign out, register or use any verified member account, then open `/app/classes`. An active gym membership is not required.
-3. Check the session price, time, remaining seats, and refund terms. Select **Book & pay** once; YPGym holds the seat for the configured 15-minute VNPay transaction lifetime.
-4. Complete VNPay sandbox checkout. The return page waits for the authoritative IPN; the browser redirect itself does not confirm the seat.
+3. Check the session price, time, remaining seats, and refund terms. Select **Book & pay** once; YPGym holds the seat for the configured 15-minute payOS transaction lifetime.
+4. Complete payOS VietQR checkout. The return page waits for the authoritative signed webhook; the browser redirect itself does not confirm the seat.
 5. Check `/app/bookings` for booking/payment/refund state and `/app/billing` for the class receipt. As admin, use `/admin/billing` and filter **Class bookings** to inspect revenue, pending holds, and refund exceptions.
 
-Member cancellation is allowed before the class starts. A paid cancellation is labelled **Refund review** because YPGym does not claim an automatic VNPay refund. After completing the provider-side refund or other resolution, an admin can select **Mark resolved** in `/admin/billing`, enter a reason, and create the audit record. Cancelling the class itself flags all settled class purchases for the same review and cancels active holds/waitlists.
+Member cancellation is allowed before the class starts. A paid cancellation is labelled **Refund review** because YPGym does not claim an automatic payOS refund. After completing the provider-side refund or other resolution, an admin can select **Mark resolved** in `/admin/billing`, enter a reason, and create the audit record. Cancelling the class itself flags all settled class purchases for the same review and cancels active holds/waitlists.
 
-For a real sandbox callback, keep the Cloudflare tunnel running and update both the configured VNPay merchant IPN URL and `VNPAY_RETURN_URL` to the tunnel's current HTTPS hostname. Quick Tunnel hostnames change after restart. The final route contract and migration behavior are in `docs/api/paid-class-bookings.md`.
+payOS has no sandbox. For a local-only controlled test, return/cancel may use `http://localhost:5174`, but `PAYOS_WEBHOOK_URL` must use a public HTTPS tunnel that remains running and is registered in the payOS channel. Restarting a Quick Tunnel requires updating both the environment value and payOS registration. Production must use stable public HTTPS rather than a random Quick Tunnel hostname. See `docs/api/payos-payments.md`.
 
 ### Test an attendance-based membership renewal
 
@@ -103,7 +120,7 @@ For a real sandbox callback, keep the Cloudflare tunnel running and update both 
 2. Open `/memberships`, choose a plan, and continue to its checkout screen. Expo members use **Profile → Membership plan → Renew**.
 3. The screen shows distinct QR check-in days for the previous complete gym-local month, that month's actual day count, the percentage, plan discount, attendance discount and final amount.
 4. At 80% or more, the server offers 10% for the next renewal. It applies whichever is higher: the plan discount or 10%. The two discounts do not stack.
-5. Complete VNPay sandbox checkout. A failed/cancelled/expired payment releases the benefit; the first successful renewal consumes it. Verify the stored breakdown on the payment result and `/app/billing` or the Expo invoices screen.
+5. Complete payOS VietQR checkout only during an owner-approved real-money test. A cancelled/expired payment releases the benefit; the first verified successful renewal consumes it. Verify the stored breakdown on the payment result and `/app/billing` or the Expo invoices screen.
 
 Only `iot-simulator` QR check-ins count. Staff/manual attendance entries and repeated scans on the same local date do not increase the numerator. See `docs/api/attendance-renewal-benefit.md` for the exact contract and automated boundary/concurrency coverage.
 
@@ -197,7 +214,7 @@ Run `npm ci` again after the mobile lockfile changes. Choose **one** launch meth
 ### A. Run on your phone using Expo Go
 
 1. Put the computer and phone on the same Wi-Fi/LAN. Avoid guest-network isolation.
-2. Install an SDK57-compatible Expo Go.
+2. Install an SDK 58-compatible Expo Go.
 3. Find the computer's active Wi-Fi/Ethernet **IPv4** with `ipconfig`; avoid VPN/virtual-adapter addresses.
 
 ```powershell
@@ -404,7 +421,7 @@ For ordinary emulator networking return to section5B's `10.0.2.2` API URL. Adjus
 
 ## 9. What to try after logging in
 
-- **Member/web:** dashboard, valid QR countdown, independently paid class checkout/My Bookings, membership purchase, notifications, profile and invoice download. VNPay completion is confirmed by server IPN.
+- **Member/web:** dashboard, valid QR countdown, independently paid class checkout/My Bookings, membership purchase, notifications, profile and invoice download. payOS completion is confirmed only by the signed server webhook.
 - **Admin:** member CRM, product-filtered billing/CSV, class pricing, refund-resolution records, trainer assignments and audited actions.
 - **Manager:** staff account/shift reporting, attendance analytics, approvals, trainers, broadcast, audit and settings.
 - **Staff:** personal time clock plus attendance history/manual closure; manager/admin actions should be denied.
