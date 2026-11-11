@@ -11,7 +11,7 @@ from app.models.enums import ClassBookingStatus, ClassStatus, PaymentStatus, Ref
 from app.models.user import User
 from app.repositories.class_repository import ClassRepository
 from app.repositories.gym_repository import GymRepository
-from app.repositories.operations_repository import AuditRepository
+from app.repositories.audit_repository import AuditRepository
 from app.schemas.class_schema import (
     ClassCancel,
     ClassCreate,

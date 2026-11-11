@@ -1,6 +1,5 @@
 from datetime import UTC, date, datetime, time, timedelta
 from math import ceil
-from secrets import SystemRandom, choice
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -13,7 +12,7 @@ from app.models.enums import MemberTier
 from app.models.user import User
 from app.repositories.class_repository import ClassRepository
 from app.repositories.gym_repository import GymRepository
-from app.repositories.operations_repository import AuditRepository
+from app.repositories.audit_repository import AuditRepository
 from app.repositories.staff_repository import StaffRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.operations_schema import PageInfo
@@ -27,7 +26,7 @@ from app.schemas.staff_schema import (
     StaffShiftPage,
 )
 from app.services.gym_service import GymScopeService
-from app.utils.security import hash_password
+from app.utils.security import generate_temporary_password, hash_password
 
 
 class StaffOperationsService:
@@ -63,7 +62,7 @@ class StaffOperationsService:
                 422,
             )
         gym = await gym_scope.require_access(user=actor, requested_gym_id=gym_id)
-        temporary_password = self._temporary_password()
+        temporary_password = generate_temporary_password()
         try:
             user = await self.users.create(
                 name=payload.name,
@@ -248,14 +247,6 @@ class StaffOperationsService:
             ),
             gym_timezone=self.settings.GYM_TIMEZONE,
         )
-
-    @staticmethod
-    def _temporary_password() -> str:
-        characters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%*-_"
-        password = [choice("ABCDEFGHJKLMNPQRSTUVWXYZ"), choice("abcdefghijkmnopqrstuvwxyz"), choice("23456789"), choice("!@#$%*-_")]
-        password.extend(choice(characters) for _ in range(16))
-        SystemRandom().shuffle(password)
-        return "".join(password)
 
     async def _scope_gym_id(self, actor: User | None, gym_id: UUID | None) -> UUID | None:
         if actor is None:

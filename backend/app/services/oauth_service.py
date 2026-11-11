@@ -21,7 +21,8 @@ from app.models.enums import MemberTier, UserRole
 from app.models.identity import OAuthPendingLink
 from app.models.user import User
 from app.repositories.identity_repository import ExternalIdentityRepository, OAuthPendingLinkRepository
-from app.repositories.operations_repository import AuditRepository, NotificationRepository
+from app.repositories.audit_repository import AuditRepository
+from app.repositories.notification_repository import NotificationRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth_schema import LoginResponse, UserPublic
 from app.schemas.identity_schema import IdentityItem, IdentityListResponse, OAuthStartResponse, ProviderStatus

@@ -19,7 +19,7 @@ from app.models.gym import DISTRICT_1_GYM_ID, GymLocation
 from app.models.user import User
 from app.repositories.attendance_repository import AttendanceRepository
 from app.repositories.gym_repository import GymRepository
-from app.repositories.operations_repository import AuditRepository
+from app.repositories.audit_repository import AuditRepository
 from app.schemas.attendance_schema import (
     AttendanceEventItem,
     AttendancePage,

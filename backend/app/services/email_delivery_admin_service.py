@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import AppError, ResourceNotFoundError
 from app.models.user import User
 from app.repositories.email_delivery_repository import EmailDeliveryRepository
-from app.repositories.operations_repository import AuditRepository
+from app.repositories.audit_repository import AuditRepository
 from app.schemas.email_delivery_schema import EmailDeliveryItem, EmailDeliveryPage, EmailDeliveryRetryResponse
 
 

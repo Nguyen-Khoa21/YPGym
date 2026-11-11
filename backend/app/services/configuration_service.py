@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError, ResourceNotFoundError
 from app.models.user import User
-from app.repositories.operations_repository import AuditRepository, ConfigurationRepository
+from app.repositories.audit_repository import AuditRepository
+from app.repositories.configuration_repository import ConfigurationRepository
 from app.schemas.operations_schema import ConfigurationItem
 
 

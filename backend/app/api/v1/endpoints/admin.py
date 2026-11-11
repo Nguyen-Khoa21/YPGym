@@ -28,6 +28,7 @@ from app.schemas.operations_schema import (
     AuditLogPage,
     ConfigurationItem,
     ConfigurationUpdateRequest,
+    DeleteMemberRequest,
     FreezeDecision,
     MembershipApprovalPage,
     MembershipRequestItem,
@@ -162,6 +163,29 @@ async def member_detail(
     return await CrmService(session).member_detail(user_id, actor=current_user)
 
 
+@router.delete("/members/{user_id}", response_model=OperationMessage)
+async def delete_member(
+    user_id: UUID,
+    payload: DeleteMemberRequest,
+    current_user: Annotated[User, Depends(require_roles("admin"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> OperationMessage:
+    await rate_limits.enforce(
+        redis,
+        key=f"ypgym:rate:member-delete:{hash_token(str(current_user.id))}",
+        limit=5,
+        window_seconds=60,
+    )
+    return await CrmService(session).delete_member(
+        user_id=user_id,
+        actor=current_user,
+        confirmation_email=str(payload.confirmation_email),
+        reason=payload.reason,
+        redis=redis,
+    )
+
+
 @router.post("/members/{user_id}/membership", response_model=PurchaseMembershipResponse)
 async def manually_enroll_membership(
     user_id: UUID,
@@ -180,7 +204,6 @@ async def manually_enroll_membership(
             plan_id=payload.plan_id,
             gym_id=payload.gym_id,
             idempotency_key=payload.idempotency_key,
-            mock_payment_confirmed=True,
         ),
     )
 

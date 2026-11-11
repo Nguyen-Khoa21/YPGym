@@ -7,7 +7,7 @@ from app.models.gym import GymLocation
 from app.models.user import User
 from app.repositories.gym_repository import GymRepository
 from app.repositories.membership_repository import UserMembershipRepository
-from app.repositories.operations_repository import AuditRepository
+from app.repositories.audit_repository import AuditRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.gym_schema import (
     GymLocationCreate,

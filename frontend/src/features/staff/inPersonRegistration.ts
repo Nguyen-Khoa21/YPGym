@@ -3,21 +3,26 @@ export function isPaidStatus(status: string | undefined): boolean {
   return status === "paid" || status === "succeeded";
 }
 
+type PaymentTone = "wait" | "ok" | "bad";
+
+/** Single source for how each payment status reads and whether it ends polling. */
+const PAYMENT_STATUS: Record<string, { label: string; tone: PaymentTone; final: boolean }> = {
+  paid: { label: "Paid. Membership is active.", tone: "ok", final: true },
+  succeeded: { label: "Paid. Membership is active.", tone: "ok", final: true },
+  paid_review: { label: "Paid, but needs manager review before activation.", tone: "bad", final: true },
+  failed: { label: "Payment failed.", tone: "bad", final: true },
+  cancelled: { label: "Payment was cancelled.", tone: "bad", final: true },
+  expired: { label: "The QR code expired.", tone: "bad", final: true },
+};
+const WAITING = { label: "Waiting for the member to pay.", tone: "wait" as PaymentTone, final: false };
+
 /** A final status ends polling. */
 export function isFinalPaymentStatus(status: string): boolean {
-  return ["paid", "succeeded", "failed", "cancelled", "expired", "paid_review"].includes(status);
+  return (PAYMENT_STATUS[status] ?? WAITING).final;
 }
 
-export function paymentStatusLabel(status: string): { label: string; tone: "wait" | "ok" | "bad" } {
-  switch (status) {
-    case "paid":
-    case "succeeded": return { label: "Paid. Membership is active.", tone: "ok" };
-    case "paid_review": return { label: "Paid, but needs manager review before activation.", tone: "bad" };
-    case "failed": return { label: "Payment failed.", tone: "bad" };
-    case "cancelled": return { label: "Payment was cancelled.", tone: "bad" };
-    case "expired": return { label: "The QR code expired.", tone: "bad" };
-    default: return { label: "Waiting for the member to pay.", tone: "wait" };
-  }
+export function paymentStatusLabel(status: string): { label: string; tone: PaymentTone } {
+  return PAYMENT_STATUS[status] ?? WAITING;
 }
 
 /** payOS returns a bank QR payload; fall back to encoding the checkout link when it is absent. */

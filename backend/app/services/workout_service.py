@@ -12,7 +12,7 @@ from app.core.config import get_settings
 from app.core.exceptions import AppError, ResourceNotFoundError
 from app.models.training import WorkoutExercise, WorkoutSession, WorkoutSet
 from app.models.user import User
-from app.repositories.operations_repository import AuditRepository
+from app.repositories.audit_repository import AuditRepository
 from app.repositories.training_repository import TrainingRepository
 from app.schemas.operations_schema import PageInfo
 from app.schemas.training_schema import (

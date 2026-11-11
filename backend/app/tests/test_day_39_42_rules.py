@@ -10,7 +10,7 @@ from app.schemas.class_schema import TrainerCreate
 from app.schemas.attendance_schema import CrowdednessResponse
 from app.models.gym import DISTRICT_1_GYM_ID
 from app.schemas.class_schema import MemberBookings
-from app.repositories.operations_repository import NotificationRepository
+from app.repositories.notification_repository import NotificationRepository
 from app.services.class_service import BookingService, TrainerService, can_cancel_class_booking
 from app.services.dashboard_service import DashboardService
 from app.services.notification_service import NotificationService

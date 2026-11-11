@@ -62,7 +62,8 @@ class PurchaseMembershipRequest(BaseModel):
     plan_id: UUID
     gym_id: UUID | None = None
     idempotency_key: str = Field(min_length=8, max_length=120)
-    mock_payment_confirmed: bool
+    # Self-service demo confirmation; staff/admin purchases (cash or manual) do not send it.
+    mock_payment_confirmed: bool = False
 
 
 class AdminMembershipEnrollmentRequest(BaseModel):

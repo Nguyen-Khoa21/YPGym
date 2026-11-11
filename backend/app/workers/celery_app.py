@@ -13,7 +13,7 @@ from app.services.configuration_service import ConfigurationService
 from app.services.email_service import EmailDeliveryService
 from app.services.lifecycle_service import MembershipLifecycleService
 from app.services.notification_service import NotificationService
-from app.services.payment_service import PayOSPaymentService
+from app.services.payment_status_service import PaymentStatusService
 
 settings = get_settings()
 
@@ -158,7 +158,7 @@ def send_oauth_link_emails() -> int:
 
 async def _expire_payos_payments() -> int:
     async with AsyncSessionLocal() as session:
-        return await PayOSPaymentService(session).expire_pending()
+        return await PaymentStatusService(session).expire_pending()
 
 
 @celery_app.task(name="app.workers.expire_payos_payments")

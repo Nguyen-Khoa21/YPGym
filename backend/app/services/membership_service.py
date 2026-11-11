@@ -19,7 +19,8 @@ from app.repositories.membership_repository import (
     MembershipPlanRepository,
     UserMembershipRepository,
 )
-from app.repositories.operations_repository import AuditRepository, NotificationRepository
+from app.repositories.audit_repository import AuditRepository
+from app.repositories.notification_repository import NotificationRepository
 from app.schemas.membership_schema import (
     AttendanceBenefitQuote,
     InvoiceSummary,

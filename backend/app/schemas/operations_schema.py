@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.schemas.auth_schema import UserPublic
 
@@ -181,6 +181,11 @@ class FreezeDecision(BaseModel):
 
 
 class RevokeMembershipRequest(BaseModel):
+    reason: str = Field(min_length=10, max_length=1000)
+
+
+class DeleteMemberRequest(BaseModel):
+    confirmation_email: EmailStr
     reason: str = Field(min_length=10, max_length=1000)
 
 

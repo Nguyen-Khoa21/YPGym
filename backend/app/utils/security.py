@@ -1,7 +1,7 @@
 import hmac
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
-from secrets import randbelow, token_urlsafe
+from secrets import SystemRandom, choice, randbelow, token_urlsafe
 from typing import Any
 from uuid import UUID
 
@@ -16,6 +16,14 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
+
+
+def generate_temporary_password() -> str:
+    characters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%*-_"
+    password = [choice("ABCDEFGHJKLMNPQRSTUVWXYZ"), choice("abcdefghijkmnopqrstuvwxyz"), choice("23456789"), choice("!@#$%*-_")]
+    password.extend(choice(characters) for _ in range(16))
+    SystemRandom().shuffle(password)
+    return "".join(password)
 
 
 def verify_password(password: str, password_hash: str | None) -> bool:

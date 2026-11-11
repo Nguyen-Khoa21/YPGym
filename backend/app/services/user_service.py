@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import AppError
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
-from app.repositories.operations_repository import AuditRepository
+from app.repositories.audit_repository import AuditRepository
 from app.schemas.auth_schema import UserPublic
 from app.schemas.user_schema import UserProfileUpdateRequest
 from app.utils.security import hash_password, verify_password

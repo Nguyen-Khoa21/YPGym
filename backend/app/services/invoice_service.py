@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -9,6 +10,9 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from app.core.config import get_settings
+
+
+logger = logging.getLogger(__name__)
 
 
 def format_vnd(amount: Decimal | int) -> str:
@@ -23,6 +27,18 @@ class InvoicePdfService:
     def build_invoice_number(self, payment_id: UUID, created_at: datetime | None = None) -> str:
         date_part = (created_at or datetime.now(UTC)).strftime("%Y%m%d")
         return f"YPG-{date_part}-{str(payment_id)[:8].upper()}"
+
+    def remove_pdfs(self, pdf_paths: list[str]) -> None:
+        storage_dir = self.storage_dir.resolve()
+        for pdf_path in pdf_paths:
+            candidate = Path(pdf_path).resolve()
+            if candidate.parent != storage_dir:
+                logger.warning("invoice_cleanup_skipped reason=outside_storage")
+                continue
+            try:
+                candidate.unlink(missing_ok=True)
+            except OSError as exc:
+                logger.warning("invoice_cleanup_failed exception_type=%s", type(exc).__name__)
 
     def generate_pdf(
         self,

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -54,3 +54,7 @@ class UserRepository:
         self.session.add(user)
         await self.session.flush()
         return user
+
+    async def delete_by_id(self, user_id: UUID) -> bool:
+        result = await self.session.execute(delete(User).where(User.id == user_id))
+        return result.rowcount == 1

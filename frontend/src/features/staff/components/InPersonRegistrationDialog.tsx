@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BadgeCheck, Banknote, Copy, QrCode } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import { useForm } from "react-hook-form";
+import { useForm, type UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -97,53 +97,132 @@ export function InPersonRegistrationDialog({ scope, onClose }: { scope: Operatio
     <div className="ops-modal__body" aria-live="polite">
       {registered && step !== "done" ? <TemporaryPassword password={registered.temporary_password} /> : null}
 
-      {step === "details" ? <form className="grid gap-4" onSubmit={form.handleSubmit(submitDetails)} noValidate>
-        {scope.isOwner ? <Field><Label>Gym</Label><select value={ownerGymId} onChange={(event) => setOwnerGymId(event.target.value)} aria-label="Gym for the new member">{scope.gyms.map((gym) => <option key={gym.id} value={gym.id}>{gym.name}</option>)}</select></Field> : <p className="text-sm text-muted-foreground">Gym: <strong>{gymName ?? "Loading your gym"}</strong>. The new member is linked to this gym.</p>}
-        <Field><Label>Full name</Label><Input autoComplete="off" {...form.register("name")} /><FieldError message={form.formState.errors.name?.message} /></Field>
-        <Field><Label>Email</Label><Input type="email" autoComplete="off" {...form.register("email")} /><FieldError message={form.formState.errors.email?.message} /></Field>
-        <Field><Label>Phone</Label><Input type="tel" autoComplete="off" {...form.register("phone")} /><FieldError message={form.formState.errors.phone?.message} /></Field>
-        <p className="text-xs text-muted-foreground">No email verification is needed. The member receives a one-time temporary password and must change it on first sign-in. If the email already exists, ask the member to renew online or ask a manager.</p>
-        <div className="ops-modal__actions"><Button variant="outline" onClick={onClose}>Cancel</Button><Button type="submit" disabled={register.isPending || (scope.isOwner && !ownerGymId)}>{register.isPending ? "Registering..." : "Register member"}</Button></div>
-      </form> : null}
+      {step === "details" ? <DetailsStep
+        form={form}
+        scope={scope}
+        gymName={gymName}
+        ownerGymId={ownerGymId}
+        onOwnerGymChange={setOwnerGymId}
+        isPending={register.isPending}
+        onSubmit={submitDetails}
+        onClose={onClose}
+      /> : null}
 
-      {step === "plan" ? <div className="grid gap-3">
-        {plans.isLoading ? <p role="status" className="text-sm text-muted-foreground">Loading plans…</p> : null}
-        {plans.isError ? <div role="alert"><p className="text-sm text-destructive">{toUiError(plans.error).message}</p><Button variant="outline" onClick={() => void plans.refetch()}>Retry</Button></div> : null}
-        <fieldset className="grid gap-2"><legend className="mb-1 text-sm font-semibold">Plan for {registered?.member.name}</legend>
-          {plans.data?.filter((item) => item.is_active).map((item) => <label key={item.id} className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-3 ${plan?.id === item.id ? "border-primary bg-primary/5" : "border-border"}`}><span className="flex items-center gap-3"><input type="radio" name="plan" checked={plan?.id === item.id} onChange={() => setPlan(item)} /><span><strong className="block text-sm">{item.name}</strong><span className="text-xs text-muted-foreground">{item.duration_days} days</span></span></span><strong>{formatMoney(item.final_price)}</strong></label>)}
-        </fieldset>
-        <div className="ops-modal__actions"><Button variant="outline" onClick={onClose}>Decide later</Button><Button disabled={!plan} onClick={() => setStep("pay")}>Continue to payment</Button></div>
-      </div> : null}
+      {step === "plan" ? <PlanStep
+        memberName={registered?.member.name}
+        plans={plans}
+        selected={plan}
+        onSelect={setPlan}
+        onContinue={() => setStep("pay")}
+        onClose={onClose}
+      /> : null}
 
-      {step === "pay" && plan ? <div className="grid gap-4">
-        <p className="rounded-lg bg-muted p-3 text-sm"><strong>{plan.name}</strong> · {gymName} · <strong>{formatMoney(plan.final_price)}</strong></p>
-        {!qrCheckout && !confirmCash ? <div className="grid gap-3 sm:grid-cols-2">
-          <Button variant="outline" className="h-auto min-h-20 flex-col" onClick={() => setConfirmCash(true)}><Banknote className="size-5" aria-hidden />Pay with cash</Button>
-          <Button variant="outline" className="h-auto min-h-20 flex-col" disabled={qr.isPending} onClick={() => qr.mutate()}><QrCode className="size-5" aria-hidden />{qr.isPending ? "Creating QR…" : "Pay by QR"}</Button>
-        </div> : null}
-        {confirmCash ? <div role="group" aria-label="Confirm cash payment" className="grid gap-3 rounded-lg border border-border p-4">
-          <p className="text-sm font-semibold">Confirm you received {formatMoney(plan.final_price)} in cash.</p>
-          <p className="text-xs text-muted-foreground">This activates the membership and issues an invoice. It cannot be undone from this screen.</p>
-          <div className="ops-modal__actions"><Button variant="outline" disabled={cash.isPending} onClick={() => setConfirmCash(false)}>Back</Button><Button disabled={cash.isPending} onClick={() => cash.mutate()}>{cash.isPending ? "Recording…" : "Cash received"}</Button></div>
-        </div> : null}
-        {qrCheckout ? <div className="grid justify-items-center gap-3 text-center">
-          <div className="rounded-xl bg-white p-4"><QRCodeSVG value={qrValue(qrCheckout)} size={240} marginSize={2} title={`Payment QR for ${plan.name}`} /></div>
-          <p className="text-lg font-bold">{formatMoney(qrCheckout.amount_vnd)}</p>
-          <p className="text-xs text-muted-foreground">{plan.name} · {qrCheckout.gym_name}</p>
-          {(() => { const info = paymentStatusLabel(status.data?.status ?? "pending"); return <p role="status" className={`rounded-full px-3 py-1 text-xs font-bold ${info.tone === "ok" ? "bg-secondary/30" : info.tone === "bad" ? "bg-destructive/10 text-destructive" : "bg-muted"}`}>{info.tone === "ok" ? "✓ " : info.tone === "bad" ? "! " : "… "}{info.label}</p>; })()}
-          {status.isError ? <p role="alert" className="text-xs text-destructive">{toUiError(status.error).message}</p> : null}
-          {status.data && isFinalPaymentStatus(status.data.status) && !paid ? <Button variant="outline" onClick={() => { setOutcome(null); qr.reset(); setAttempt((value) => value + 1); }}>Back to payment options</Button> : null}
-        </div> : null}
-      </div> : null}
+      {step === "pay" && plan ? <PayStep
+        plan={plan}
+        gymName={gymName}
+        confirmCash={confirmCash}
+        onConfirmCash={setConfirmCash}
+        cashPending={cash.isPending}
+        onCash={() => cash.mutate()}
+        qrPending={qr.isPending}
+        onQr={() => qr.mutate()}
+        qrCheckout={qrCheckout}
+        statusQuery={status}
+        paid={paid}
+        onRetry={() => { setOutcome(null); qr.reset(); setAttempt((value) => value + 1); }}
+      /> : null}
 
-      {step === "done" && registered ? <div className="grid gap-4">
-        <p className="flex items-center gap-2 text-sm font-semibold"><BadgeCheck className="size-5 text-primary" aria-hidden />{registered.member.name} is registered{outcome ? ` and ${outcome.kind === "cash" ? "paid in cash" : "paid by QR"}` : " and has paid"} at {registered.member.gym_name}.</p>
-        <TemporaryPassword password={registered.temporary_password} emphasised />
-        <p className="text-sm">Member signs in with <strong>{registered.member.email}</strong> and the temporary password, then sets a new password.</p>
-        <div className="ops-modal__actions"><Button onClick={onClose}>Done</Button></div>
-      </div> : null}
+      {step === "done" && registered ? <DoneStep registered={registered} outcome={outcome} onClose={onClose} /> : null}
     </div>
   </Modal>;
+}
+
+const TONE_CLASS = { ok: "bg-secondary/30", bad: "bg-destructive/10 text-destructive", wait: "bg-muted" } as const;
+const TONE_MARK = { ok: "✓ ", bad: "! ", wait: "… " } as const;
+
+function DetailsStep({ form, scope, gymName, ownerGymId, onOwnerGymChange, isPending, onSubmit, onClose }: {
+  form: UseFormReturn<DetailsForm>;
+  scope: OperationsScope;
+  gymName: string | undefined;
+  ownerGymId: string;
+  onOwnerGymChange: (gymId: string) => void;
+  isPending: boolean;
+  onSubmit: (values: DetailsForm) => void;
+  onClose: () => void;
+}) {
+  const { errors } = form.formState;
+  return <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+    {scope.isOwner ? <Field><Label>Gym</Label><select value={ownerGymId} onChange={(event) => onOwnerGymChange(event.target.value)} aria-label="Gym for the new member">{scope.gyms.map((gym) => <option key={gym.id} value={gym.id}>{gym.name}</option>)}</select></Field> : <p className="text-sm text-muted-foreground">Gym: <strong>{gymName ?? "Loading your gym"}</strong>. The new member is linked to this gym.</p>}
+    <Field><Label>Full name</Label><Input autoComplete="off" {...form.register("name")} /><FieldError message={errors.name?.message} /></Field>
+    <Field><Label>Email</Label><Input type="email" autoComplete="off" {...form.register("email")} /><FieldError message={errors.email?.message} /></Field>
+    <Field><Label>Phone</Label><Input type="tel" autoComplete="off" {...form.register("phone")} /><FieldError message={errors.phone?.message} /></Field>
+    <p className="text-xs text-muted-foreground">No email verification is needed. The member receives a one-time temporary password and must change it on first sign-in. If the email already exists, ask the member to renew online or ask a manager.</p>
+    <div className="ops-modal__actions"><Button variant="outline" onClick={onClose}>Cancel</Button><Button type="submit" disabled={isPending || (scope.isOwner && !ownerGymId)}>{isPending ? "Registering..." : "Register member"}</Button></div>
+  </form>;
+}
+
+function PlanStep({ memberName, plans, selected, onSelect, onContinue, onClose }: {
+  memberName: string | undefined;
+  plans: UseQueryResult<MembershipPlan[]>;
+  selected: MembershipPlan | null;
+  onSelect: (plan: MembershipPlan) => void;
+  onContinue: () => void;
+  onClose: () => void;
+}) {
+  return <div className="grid gap-3">
+    {plans.isLoading ? <p role="status" className="text-sm text-muted-foreground">Loading plans…</p> : null}
+    {plans.isError ? <div role="alert"><p className="text-sm text-destructive">{toUiError(plans.error).message}</p><Button variant="outline" onClick={() => void plans.refetch()}>Retry</Button></div> : null}
+    <fieldset className="grid gap-2"><legend className="mb-1 text-sm font-semibold">Plan for {memberName}</legend>
+      {plans.data?.filter((item) => item.is_active).map((item) => <label key={item.id} className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-3 ${selected?.id === item.id ? "border-primary bg-primary/5" : "border-border"}`}><span className="flex items-center gap-3"><input type="radio" name="plan" checked={selected?.id === item.id} onChange={() => onSelect(item)} /><span><strong className="block text-sm">{item.name}</strong><span className="text-xs text-muted-foreground">{item.duration_days} days</span></span></span><strong>{formatMoney(item.final_price)}</strong></label>)}
+    </fieldset>
+    <div className="ops-modal__actions"><Button variant="outline" onClick={onClose}>Decide later</Button><Button disabled={!selected} onClick={onContinue}>Continue to payment</Button></div>
+  </div>;
+}
+
+function PayStep({ plan, gymName, confirmCash, onConfirmCash, cashPending, onCash, qrPending, onQr, qrCheckout, statusQuery, paid, onRetry }: {
+  plan: MembershipPlan;
+  gymName: string | undefined;
+  confirmCash: boolean;
+  onConfirmCash: (confirm: boolean) => void;
+  cashPending: boolean;
+  onCash: () => void;
+  qrPending: boolean;
+  onQr: () => void;
+  qrCheckout: PayOSCreateResponse | null;
+  statusQuery: UseQueryResult<StaffPaymentStatus>;
+  paid: boolean;
+  onRetry: () => void;
+}) {
+  const statusInfo = paymentStatusLabel(statusQuery.data?.status ?? "pending");
+  return <div className="grid gap-4">
+    <p className="rounded-lg bg-muted p-3 text-sm"><strong>{plan.name}</strong> · {gymName} · <strong>{formatMoney(plan.final_price)}</strong></p>
+    {!qrCheckout && !confirmCash ? <div className="grid gap-3 sm:grid-cols-2">
+      <Button variant="outline" className="h-auto min-h-20 flex-col" onClick={() => onConfirmCash(true)}><Banknote className="size-5" aria-hidden />Pay with cash</Button>
+      <Button variant="outline" className="h-auto min-h-20 flex-col" disabled={qrPending} onClick={onQr}><QrCode className="size-5" aria-hidden />{qrPending ? "Creating QR…" : "Pay by QR"}</Button>
+    </div> : null}
+    {confirmCash ? <div role="group" aria-label="Confirm cash payment" className="grid gap-3 rounded-lg border border-border p-4">
+      <p className="text-sm font-semibold">Confirm you received {formatMoney(plan.final_price)} in cash.</p>
+      <p className="text-xs text-muted-foreground">This activates the membership and issues an invoice. It cannot be undone from this screen.</p>
+      <div className="ops-modal__actions"><Button variant="outline" disabled={cashPending} onClick={() => onConfirmCash(false)}>Back</Button><Button disabled={cashPending} onClick={onCash}>{cashPending ? "Recording…" : "Cash received"}</Button></div>
+    </div> : null}
+    {qrCheckout ? <div className="grid justify-items-center gap-3 text-center">
+      <div className="rounded-xl bg-white p-4"><QRCodeSVG value={qrValue(qrCheckout)} size={240} marginSize={2} title={`Payment QR for ${plan.name}`} /></div>
+      <p className="text-lg font-bold">{formatMoney(qrCheckout.amount_vnd)}</p>
+      <p className="text-xs text-muted-foreground">{plan.name} · {qrCheckout.gym_name}</p>
+      <p role="status" className={`rounded-full px-3 py-1 text-xs font-bold ${TONE_CLASS[statusInfo.tone]}`}>{TONE_MARK[statusInfo.tone]}{statusInfo.label}</p>
+      {statusQuery.isError ? <p role="alert" className="text-xs text-destructive">{toUiError(statusQuery.error).message}</p> : null}
+      {statusQuery.data && isFinalPaymentStatus(statusQuery.data.status) && !paid ? <Button variant="outline" onClick={onRetry}>Back to payment options</Button> : null}
+    </div> : null}
+  </div>;
+}
+
+function DoneStep({ registered, outcome, onClose }: { registered: InPersonMemberRegistered; outcome: Outcome; onClose: () => void }) {
+  return <div className="grid gap-4">
+    <p className="flex items-center gap-2 text-sm font-semibold"><BadgeCheck className="size-5 text-primary" aria-hidden />{registered.member.name} is registered{outcome ? ` and ${outcome.kind === "cash" ? "paid in cash" : "paid by QR"}` : " and has paid"} at {registered.member.gym_name}.</p>
+    <TemporaryPassword password={registered.temporary_password} emphasised />
+    <p className="text-sm">Member signs in with <strong>{registered.member.email}</strong> and the temporary password, then sets a new password.</p>
+    <div className="ops-modal__actions"><Button onClick={onClose}>Done</Button></div>
+  </div>;
 }
 
 function TemporaryPassword({ password, emphasised = false }: { password: string; emphasised?: boolean }) {

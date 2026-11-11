@@ -15,7 +15,10 @@ from app.db.session import get_db_session
 from app.models.user import User
 from app.schemas.class_schema import BookingRefundResolution
 from app.schemas.payment_schema import PayOSCreateRequest, PayOSCreateResponse, PayOSWebhookResponse, PaymentStatusResponse
-from app.services.payment_service import PayOSPaymentService
+from app.services.class_payment_service import ClassPaymentService
+from app.services.payment_status_service import PaymentStatusService
+from app.services.payos_checkout_service import PayOSCheckoutService
+from app.services.payos_webhook_service import PayOSWebhookService
 from app.utils.security import hash_token
 
 logger = logging.getLogger(__name__)
@@ -35,7 +38,7 @@ async def create_payos_payment(
         limit=10,
         window_seconds=60,
     )
-    return await PayOSPaymentService(session).create_payment(user=current_user, payload=payload)
+    return await PayOSCheckoutService(session).create_payment(user=current_user, payload=payload)
 
 
 @router.post("/payos/webhook", response_model=PayOSWebhookResponse)
@@ -54,7 +57,7 @@ async def payos_webhook(
     if len(payload) > 65_536:
         raise AppError("PAYOS_WEBHOOK_TOO_LARGE", "Webhook payload is too large.", 413)
     try:
-        return await PayOSPaymentService(session).process_webhook(payload)
+        return await PayOSWebhookService(session).process_webhook(payload)
     except WebhookError as exc:
         await session.rollback()
         logger.warning("payos_webhook_rejected exception_type=%s", type(exc).__name__)
@@ -67,7 +70,7 @@ async def get_payos_payment_status(
     current_user: Annotated[User, Depends(require_roles("member"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> PaymentStatusResponse:
-    return await PayOSPaymentService(session).get_status_by_order_code(user=current_user, order_code=order_code)
+    return await PaymentStatusService(session).get_status_by_order_code(user=current_user, order_code=order_code)
 
 
 @router.get("/{payment_id}", response_model=PaymentStatusResponse)
@@ -76,7 +79,7 @@ async def get_payment_status(
     current_user: Annotated[User, Depends(require_roles("member"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> PaymentStatusResponse:
-    return await PayOSPaymentService(session).get_status(user=current_user, payment_id=payment_id)
+    return await PaymentStatusService(session).get_status(user=current_user, payment_id=payment_id)
 
 
 @router.post("/{payment_id}/resolve-class-refund", response_model=PaymentStatusResponse)
@@ -86,7 +89,7 @@ async def resolve_class_refund(
     current_user: Annotated[User, Depends(require_roles("admin"))],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> PaymentStatusResponse:
-    return await PayOSPaymentService(session).resolve_class_refund(
+    return await ClassPaymentService(session).resolve_refund(
         payment_id=payment_id,
         actor=current_user,
         reason=payload.reason,

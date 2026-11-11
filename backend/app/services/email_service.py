@@ -19,7 +19,7 @@ from app.models.operations import Notification
 from app.models.user import User
 from app.repositories.email_delivery_repository import EmailDeliveryRepository
 from app.repositories.identity_repository import OAuthPendingLinkRepository
-from app.repositories.operations_repository import NotificationRepository
+from app.repositories.notification_repository import NotificationRepository
 from app.services.invoice_service import format_vnd
 from app.utils.security import generate_url_token, hash_token
 

@@ -13,7 +13,7 @@ from app.core.exceptions import AppError, DependencyUnavailableError
 from app.models.enums import MemberTier, UserRole
 from app.models.user import User
 from app.repositories.auth_repository import AuthTokenRepository
-from app.repositories.operations_repository import NotificationRepository
+from app.repositories.notification_repository import NotificationRepository
 from app.repositories.user_repository import UserRepository
 from app.services.email_service import ConfiguredEmailTransport, EmailDeliveryService
 from app.schemas.auth_schema import (

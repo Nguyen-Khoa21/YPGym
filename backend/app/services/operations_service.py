@@ -4,16 +4,17 @@ from datetime import date, datetime
 from math import ceil
 from uuid import UUID
 
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import PermissionDeniedError, ResourceNotFoundError
+from app.core.exceptions import AppError, PermissionDeniedError, ResourceNotFoundError
 from app.models.user import User
-from app.repositories.operations_repository import (
-    AuditRepository,
-    BillingAdminRepository,
-    CrmRepository,
-    MembershipOperationsRepository,
-)
+from app.repositories.attendance_repository import AttendanceRepository
+from app.repositories.audit_repository import AuditRepository
+from app.repositories.billing_admin_repository import BillingAdminRepository
+from app.repositories.crm_repository import CrmRepository
+from app.repositories.membership_operations_repository import MembershipOperationsRepository
+from app.repositories.user_repository import UserRepository
 from app.schemas.auth_schema import UserPublic
 from app.schemas.operations_schema import (
     AdminBillingInvoiceItem,
@@ -33,9 +34,12 @@ from app.schemas.operations_schema import (
     MemberCrmSummary,
     MembershipRecord,
     MembershipRequestItem,
+    OperationMessage,
     PageInfo,
 )
+from app.services.attendance_service import CrowdednessService
 from app.services.gym_service import GymScopeService
+from app.services.invoice_service import InvoicePdfService
 from app.services.lifecycle_service import MembershipLifecycleService
 
 
@@ -66,6 +70,7 @@ class CrmService:
         self.crm = CrmRepository(session)
         self.operations = MembershipOperationsRepository(session)
         self.audit = AuditRepository(session)
+        self.users = UserRepository(session)
 
     async def list_members(
         self,
@@ -179,7 +184,7 @@ class CrmService:
             payments=[
                 AdminPaymentRecord(
                     id=item.id,
-                    plan_name=item.plan.name,
+                    plan_name=item.plan.name if item.plan else item.class_booking.gym_class.title,
                     amount=item.amount,
                     discount_amount=item.discount_amount,
                     status=item.status,
@@ -222,6 +227,47 @@ class CrmService:
             membership_requests=request_items,
             audit_logs=[self._audit_item(log, actor_name, user.name) for log, actor_name in audit_rows],
         )
+
+    async def delete_member(
+        self,
+        *,
+        user_id: UUID,
+        actor: User,
+        confirmation_email: str,
+        reason: str,
+        redis: Redis,
+    ) -> OperationMessage:
+        member = await self.users.get_by_id_for_update(user_id)
+        if not member or member.role != "member":
+            raise ResourceNotFoundError("Member was not found.")
+        if member.email.lower() != confirmation_email.lower():
+            raise AppError(
+                "MEMBER_DELETE_CONFIRMATION_MISMATCH",
+                "The confirmation email does not match this member.",
+                409,
+            )
+
+        invoice_paths = [invoice.pdf_path for invoice in await self.crm.list_invoices(user_id)]
+        open_session = await AttendanceRepository(self.session).get_active_session(user_id)
+        open_gym_id = open_session.gym_id if open_session else None
+        if not await self.users.delete_by_id(user_id):
+            raise ResourceNotFoundError("Member was not found.")
+        await self.audit.create(
+            actor_user_id=actor.id,
+            action="member.account.deleted",
+            entity_type="user",
+            entity_id=str(user_id),
+            reason=reason,
+            outcome="deleted",
+            summary="Admin permanently deleted a member account.",
+            before_data={"role": "member"},
+        )
+        await self.session.commit()
+
+        InvoicePdfService().remove_pdfs(invoice_paths)
+        if open_gym_id:
+            await CrowdednessService(self.session, redis).get(gym_id=open_gym_id, force_reconcile=True)
+        return OperationMessage(code="MEMBER_ACCOUNT_DELETED", message="Member account deleted successfully.")
 
     async def export_members_csv(
         self,

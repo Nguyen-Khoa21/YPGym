@@ -27,7 +27,7 @@ States without outgoing transitions are terminal. A repeated event is accepted o
 
 The transition functions validate state only. The existing services remain responsible for row locks and atomic side effects:
 
-- `backend/app/services/payment_service.py` locks payments, bookings, classes, and users during settlement.
+- `backend/app/services/payos_webhook_service.py` and `class_payment_service.py` lock payments, bookings, classes, and users during settlement.
 - `backend/app/services/class_service.py` locks classes, bookings, and waitlist rows during cancellation and promotion.
 - `backend/app/services/attendance_service.py` locks attendance sessions and relies on the unique active-session index.
 - `backend/app/services/lifecycle_service.py` locks approval requests and memberships before decisions.

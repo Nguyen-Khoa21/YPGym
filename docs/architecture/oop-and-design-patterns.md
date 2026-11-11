@@ -74,7 +74,7 @@ This improves testability and permits provider or presentation changes without r
 
 **Definition:** a service layer coordinates domain rules and transaction-level operations for an application use case.
 
-**YPGym use:** services under `backend/app/services/` coordinate membership, attendance, booking, payment, notification, OAuth, training, and administrative workflows. Examples include `BookingService` in `class_service.py` and `PayOSPaymentService` in `payment_service.py`.
+**YPGym use:** services under `backend/app/services/` coordinate membership, attendance, booking, payment, notification, OAuth, training, and administrative workflows. Examples include `BookingService` in `class_service.py` and `ClassPaymentService` in `class_payment_service.py`.
 
 **Benefit:** endpoints stay focused on HTTP concerns while high-impact state changes, audits, and related writes are kept together.
 

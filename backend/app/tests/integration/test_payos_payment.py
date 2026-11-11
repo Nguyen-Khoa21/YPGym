@@ -18,7 +18,7 @@ from app.models.gym import DISTRICT_1_GYM_ID, DISTRICT_11_GYM_ID, GymLocation
 from app.models.membership import MembershipPlan, UserMembership
 from app.models.operations import AuditLog
 from app.models.user import User
-from app.services.payment_service import PayOSPaymentService
+from app.services.payment_status_service import PaymentStatusService
 from app.services.payos_service import PayOSClient
 from app.utils.security import create_access_token
 
@@ -388,7 +388,7 @@ async def test_expired_payment_and_late_webhook_require_review(client, storage):
         payment.expires_at = datetime.now(UTC) - timedelta(seconds=1)
         await session.commit()
     async with sessions() as session:
-        assert await PayOSPaymentService(session).expire_pending() == 1
+        assert await PaymentStatusService(session).expire_pending() == 1
     assert (await client.post(
         "/api/v1/payments/payos/webhook",
         json=webhook(checkout["order_code"], checkout["amount_vnd"]),

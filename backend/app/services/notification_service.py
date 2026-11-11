@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.exceptions import AppError, PermissionDeniedError, ResourceNotFoundError
 from app.models.user import User
-from app.repositories.operations_repository import AuditRepository, NotificationRepository
+from app.repositories.audit_repository import AuditRepository
+from app.repositories.notification_repository import NotificationRepository
 from app.repositories.gym_repository import GymRepository
 from app.repositories.membership_repository import UserMembershipRepository
 from app.schemas.notification_schema import (

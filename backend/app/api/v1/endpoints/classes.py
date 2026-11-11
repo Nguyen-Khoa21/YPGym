@@ -31,7 +31,7 @@ from app.schemas.class_schema import (
     WaitlistItem,
 )
 from app.services.class_service import BookingService, ClassService, TrainerService
-from app.services.payment_service import PayOSPaymentService
+from app.services.class_payment_service import ClassPaymentService
 from app.core.rate_limit import rate_limits
 from app.utils.security import hash_token
 
@@ -86,7 +86,7 @@ async def checkout_class(
         limit=10,
         window_seconds=60,
     )
-    return await PayOSPaymentService(session).create_class_payment(
+    return await ClassPaymentService(session).create_class_payment(
         class_id=class_id,
         user=current_user,
         payload=payload,

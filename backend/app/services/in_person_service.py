@@ -15,7 +15,7 @@ from app.models.user import User
 from app.repositories.billing_repository import PaymentRepository
 from app.repositories.gym_repository import GymRepository
 from app.repositories.membership_repository import UserMembershipRepository
-from app.repositories.operations_repository import AuditRepository
+from app.repositories.audit_repository import AuditRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.membership_schema import PurchaseMembershipRequest, PurchaseMembershipResponse
 from app.schemas.payment_schema import PayOSCreateRequest, PayOSCreateResponse
@@ -29,12 +29,9 @@ from app.schemas.staff_schema import (
 from app.services.auth_service import AuthService
 from app.services.gym_service import GymScopeService
 from app.services.membership_service import MembershipService
-from app.services.payment_service import PayOSPaymentService
+from app.services.payos_checkout_service import STAFF_QR_KEY_PREFIX, PayOSCheckoutService
 from app.services.shift_guard import ShiftGuard
-from app.services.staff_service import StaffOperationsService
-from app.utils.security import hash_password
-
-STAFF_QR_KEY_PREFIX = "staff-qr:"
+from app.utils.security import generate_temporary_password, hash_password
 
 
 class InPersonMemberService:
@@ -54,7 +51,7 @@ class InPersonMemberService:
         phone = payload.phone.strip()
         await AuthService(self.session).ensure_identity_available(email=email, phone=phone)
 
-        temporary_password = StaffOperationsService._temporary_password()
+        temporary_password = generate_temporary_password()
         try:
             member = await self.users.create(
                 name=payload.name.strip(),
@@ -103,10 +100,11 @@ class InPersonMemberService:
     ) -> PayOSCreateResponse:
         await ShiftGuard(self.session).require_open_shift(actor)
         target = await self._serviceable_member(actor, user_id)
-        checkout = await PayOSPaymentService(self.session).create_payment(
+        checkout = await PayOSCheckoutService(self.session).create_payment(
             user=target,
             actor=actor,
             idempotency_key=payload.idempotency_key,
+            commit=False,
             payload=PayOSCreateRequest(
                 membership_plan_id=payload.plan_id,
                 gym_id=payload.gym_id,
@@ -141,7 +139,6 @@ class InPersonMemberService:
                 plan_id=payload.plan_id,
                 gym_id=gym.id,
                 idempotency_key=payload.idempotency_key,
-                mock_payment_confirmed=True,
             ),
         )
 

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import AppError, ResourceNotFoundError
 from app.models.training import TrainingExercise, TrainingExerciseImage
 from app.models.user import User
-from app.repositories.operations_repository import AuditRepository
+from app.repositories.audit_repository import AuditRepository
 from app.repositories.training_repository import TrainingRepository
 from app.schemas.operations_schema import PageInfo
 from app.schemas.training_schema import ExerciseItem, ExercisePage, ExerciseUpdate, ExerciseWrite

@@ -11,7 +11,8 @@ from app.models.enums import MembershipStatus, RequestStatus
 from app.models.membership import UserMembership
 from app.models.operations import MembershipCancellationRequest, MembershipFreezeRequest
 from app.models.user import User
-from app.repositories.operations_repository import AuditRepository, MembershipOperationsRepository
+from app.repositories.audit_repository import AuditRepository
+from app.repositories.membership_operations_repository import MembershipOperationsRepository
 from app.schemas.operations_schema import (
     CancellationRequestCreate,
     FreezeDecision,
