@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Ban, CalendarClock, CreditCard, ShieldAlert } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, Ban, CalendarClock, CreditCard, ShieldAlert, Trash2 } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { routePaths } from "@/app/routes";
@@ -21,6 +21,7 @@ type Decision = { request: MembershipRequest; approve: boolean; outcome?: string
 
 export function AdminMemberDetailPage() {
   const { id = "" } = useParams();
+  const navigate = useNavigate();
   const { token, user } = useAuth();
   const [decision, setDecision] = useState<Decision | null>(null);
   const [revokeOpen, setRevokeOpen] = useState(false);
@@ -29,6 +30,9 @@ export function AdminMemberDetailPage() {
   const [gymId, setGymId] = useState("");
   const [enrollReason, setEnrollReason] = useState("");
   const [reason, setReason] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const detail = useQuery({ queryKey: ["admin", "members", id], queryFn: ({ signal }) => apiRequest<AdminMemberDetail>(`/admin/members/${id}`, { token, signal }), enabled: Boolean(id) });
   const plans = useQuery({ queryKey: ["membership-plans"], queryFn: ({ signal }) => apiRequest<MembershipPlan[]>("/membership-plans", { signal }) });
   const gyms = useQuery({ queryKey: ["gyms", "active"], queryFn: ({ signal }) => apiRequest<GymLocation[]>("/gyms", { signal }), enabled: user?.role === "admin" });
@@ -42,6 +46,16 @@ export function AdminMemberDetailPage() {
     onSuccess: async () => { setEnrollOpen(false); setPlanId(""); setGymId(""); setEnrollReason(""); await queryClient.invalidateQueries({ queryKey: ["admin", "members"] }); toast.success("Membership enrolled and invoice issued"); },
     onError: (error) => toast.error(toUiError(error).message),
   });
+  const deleteAccount = useMutation({
+    mutationFn: () => apiRequest(`/admin/members/${id}`, { method: "DELETE", token, body: { confirmation_email: deleteConfirmation.trim(), reason: deleteReason.trim() } }),
+    onSuccess: async () => {
+      setDeleteOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["admin", "members"] });
+      toast.success("Member account deleted");
+      navigate(routePaths.adminMembers, { replace: true });
+    },
+    onError: (error) => toast.error(toUiError(error).message),
+  });
 
   if (detail.isLoading) return <AdminShell><LoadingState title="Loading member record" /></AdminShell>;
   if (detail.isError || !detail.data) return <AdminShell><ErrorState title={toUiError(detail.error).title} message={toUiError(detail.error).message} /></AdminShell>;
@@ -49,7 +63,7 @@ export function AdminMemberDetailPage() {
   const current = data.memberships[0];
   return <AdminShell><div className="mx-auto max-w-7xl">
     <Link className="mb-5 inline-flex items-center gap-2 text-xs font-extrabold text-muted-foreground hover:text-foreground" to={routePaths.adminMembers}><ArrowLeft className="size-4" /> Back to CRM</Link>
-    <OperationsHeader kicker="Member details" title={data.profile.name} description={`${data.profile.email} · ${data.profile.phone ?? "Phone not provided"}`} actions={<><Button variant="secondary" onClick={() => setEnrollOpen(true)}>Enroll membership</Button>{user?.role === "admin" ? <Button variant="danger" disabled={!current || current.status === "revoked"} onClick={() => setRevokeOpen(true)}><Ban className="size-4" /> Revoke access</Button> : null}</>} />
+    <OperationsHeader kicker="Member details" title={data.profile.name} description={`${data.profile.email} · ${data.profile.phone ?? "Phone not provided"}`} actions={<><Button variant="secondary" onClick={() => setEnrollOpen(true)}>Enroll membership</Button>{user?.role === "admin" ? <><Button variant="danger" disabled={!current || current.status === "revoked"} onClick={() => setRevokeOpen(true)}><Ban className="size-4" /> Revoke access</Button>{data.profile.role === "member" ? <Button variant="danger" onClick={() => setDeleteOpen(true)}><Trash2 className="size-4" /> Delete account</Button> : null}</> : null}</>} />
     <div className="ops-metrics"><MetricCard label="Membership" value={current?.status ?? "None"} tone="forest" detail={current?.plan_name} /><MetricCard label="Total visits" value={data.attendance_summary.total_visits} tone="lime" /><MetricCard label="Payments" value={data.payments.length} detail={data.payments[0] ? formatMoney(data.payments[0].amount) + " latest" : "No payments"} /><MetricCard label="Bookings" value={data.booking_summary.total} tone="coral" detail={`${data.booking_summary.waitlisted} waitlisted`} /></div>
     <div className="mt-5 grid gap-5 xl:grid-cols-[0.72fr_1.28fr]">
       <div><Panel title="Customer profile"><div className="grid gap-4 p-5 text-sm"><div className="grid size-16 place-items-center rounded-2xl bg-secondary text-2xl font-black">{data.profile.name[0]}</div><Info label="Role and tier" value={`${data.profile.role} · ${data.profile.tier}`} /><Info label="Email" value={data.profile.email} /><Info label="Phone" value={data.profile.phone ?? "Not provided"} /><Info label="Verification" value={data.profile.is_email_verified ? "Verified" : "Pending"} /></div></Panel>
@@ -61,6 +75,7 @@ export function AdminMemberDetailPage() {
     {decision ? <Modal error={(action).isError ? toUiError((action).error).message : undefined} title={`${decision.approve ? "Approve" : "Reject"} ${decision.request.request_type}`} description="This reason becomes part of the permanent audit record." onClose={() => { setDecision(null); setReason(""); }}><div className="ops-modal__body"><label>Decision reason<textarea value={reason} onChange={(event) => setReason(event.target.value)} /></label><div className="ops-modal__actions"><Button variant="outline" onClick={() => setDecision(null)}>Cancel</Button><Button variant={decision.approve ? "primary" : "danger"} disabled={reason.trim().length < 10 || action.isPending} onClick={() => action.mutate({ path: decision.request.request_type === "freeze" ? `/admin/freeze-requests/${decision.request.id}/decision` : `/admin/cancellation-requests/${decision.request.id}/decision`, body: { approve: decision.approve, decision_reason: reason, outcome: decision.outcome } })}>Confirm decision</Button></div></div></Modal> : null}
     {revokeOpen ? <Modal error={(action).isError ? toUiError((action).error).message : undefined} title="Revoke membership access" description="QR generation and class access will be blocked immediately." onClose={() => { setRevokeOpen(false); setReason(""); }}><div className="ops-modal__body"><div className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive"><ShieldAlert className="mb-2 size-5" /> Revocation is a sensitive action and cannot be silent.</div><label>Mandatory reason<textarea value={reason} onChange={(event) => setReason(event.target.value)} /></label><div className="ops-modal__actions"><Button variant="outline" onClick={() => setRevokeOpen(false)}>Cancel</Button><Button variant="danger" disabled={reason.trim().length < 10 || action.isPending} onClick={() => action.mutate({ path: `/admin/members/${id}/revoke`, body: { reason } })}>Revoke membership</Button></div></div></Modal> : null}
     {enrollOpen ? <Modal error={enroll.isError ? toUiError(enroll.error).message : undefined} title="Enroll membership" description="This creates the member coverage, payment record, invoice and audit entry in one transaction." onClose={() => { setEnrollOpen(false); setPlanId(""); setGymId(""); setEnrollReason(""); }}><div className="ops-modal__body"><label>Membership plan<select value={planId} onChange={(event) => setPlanId(event.target.value)}><option value="">Select a plan</option>{plans.data?.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} · {formatMoney(plan.final_price)}</option>)}</select></label>{plans.isError ? <p className="text-xs text-destructive">Could not load active plans: {toUiError(plans.error).message}</p> : null}{user?.role === "admin" ? <label>Gym location<select value={gymId} onChange={(event) => setGymId(event.target.value)}><option value="">Select a gym</option>{gyms.data?.map((gym) => <option key={gym.id} value={gym.id}>{gym.name} · {gym.district}</option>)}</select></label> : <p className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">The membership will use your assigned gym location.</p>}{gyms.isError ? <p className="text-xs text-destructive">Could not load active gyms: {toUiError(gyms.error).message}</p> : null}<label>Reason<textarea placeholder="e.g. Paid at reception on 24 September" value={enrollReason} onChange={(event) => setEnrollReason(event.target.value)} /></label><div className="ops-modal__actions"><Button variant="outline" onClick={() => setEnrollOpen(false)}>Cancel</Button><Button disabled={!planId || (user?.role === "admin" && !gymId) || enrollReason.trim().length < 10 || enroll.isPending} onClick={() => enroll.mutate()}>{enroll.isPending ? "Enrolling…" : "Confirm enrollment"}</Button></div></div></Modal> : null}
+    {deleteOpen ? <Modal error={deleteAccount.isError ? toUiError(deleteAccount.error).message : undefined} title="Delete member account" description="This permanently removes the member and their associated YPGym records. This action cannot be undone." onClose={() => { setDeleteOpen(false); setDeleteReason(""); setDeleteConfirmation(""); }}><div className="ops-modal__body"><div className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive"><ShieldAlert className="mb-2 size-5" /> Memberships, payments, invoices, attendance, bookings, notifications and sign-in methods will be deleted.</div><label>Type the member email to confirm<input autoComplete="off" value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} /></label><p className="-mt-2 text-xs text-muted-foreground">{data.profile.email}</p><label>Mandatory reason<textarea value={deleteReason} onChange={(event) => setDeleteReason(event.target.value)} /></label><div className="ops-modal__actions"><Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button><Button variant="danger" disabled={deleteConfirmation.trim().toLowerCase() !== data.profile.email.toLowerCase() || deleteReason.trim().length < 10 || deleteAccount.isPending} onClick={() => deleteAccount.mutate()}>{deleteAccount.isPending ? "Deleting…" : "Delete account permanently"}</Button></div></div></Modal> : null}
   </div></AdminShell>;
 }
 
