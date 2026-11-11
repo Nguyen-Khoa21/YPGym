@@ -62,7 +62,7 @@ export function MemberTrainingPage() {
 }
 
 function ExerciseVisual({ item, large = false }: { item: Exercise; large?: boolean }) {
-  return <div className={`flex w-full items-center justify-center bg-primary/10 ${large ? "aspect-[800/448] max-h-[448px]" : "h-36"}`}>{item.has_image ? <img className={large ? "max-h-[448px] w-full object-contain" : "h-full w-full object-cover"} src={apiUrl(exerciseImage(item))} alt={`${item.name} exercise guide`} /> : <div className="flex items-center gap-2 text-primary"><Dumbbell className="size-12" aria-hidden /><span className="text-sm font-semibold">Image pending</span></div>}</div>;
+  return <div className={`flex w-full items-center justify-center bg-primary/10 ${large ? "aspect-[800/448] max-h-[448px]" : "h-40"}`}>{item.has_image ? <img className={large ? "max-h-[448px] w-full object-contain" : "h-full w-full object-cover"} src={apiUrl(exerciseImage(item))} alt={`${item.name} exercise guide`} /> : <div className="flex items-center gap-2 text-primary"><Dumbbell className="size-12" aria-hidden /><span className="text-sm font-semibold">Image pending</span></div>}</div>;
 }
 
 type SetDraft = { reps: string; weight: string; unit: "kg" | "lb" };
