@@ -1,0 +1,27 @@
+stateDiagram-v2
+    direction LR
+    state "active" as active
+    state "expiring_soon" as expiring_soon
+    state "frozen" as frozen
+    state "expired" as expired
+
+    [*] --> active: purchase or confirmed VNPay [eligible] / create active membership
+    active --> expiring_soon: hourly sync [0..7 days remain] / persist expiring_soon
+    active --> expired: hourly sync [expiry passed] / persist expired
+    expiring_soon --> active: renewal [coverage extended beyond 7 days] / extend expiry
+    expiring_soon --> expired: hourly sync [expiry passed] / persist expired
+    active --> frozen: freeze effective [approved range contains today] / persist frozen
+    expiring_soon --> frozen: freeze effective [approved range contains today] / persist frozen
+    frozen --> active: hourly sync [freeze ended and >7 days remain] / persist active
+    frozen --> expiring_soon: hourly sync [freeze ended and <=7 days remain] / persist expiring_soon
+    frozen --> expired: hourly sync [expiry passed] / persist expired
+    expired --> active: FSM rule only [expired row] / no runtime renewal writer
+
+    note bottom of frozen
+        Derivation order is active freeze window, expired date,
+        0..7 days remaining, then active.
+    end note
+    note bottom of expired
+        Expired self-service purchase creates a new active row.
+        It does not mutate the old expired row back to active.
+    end note

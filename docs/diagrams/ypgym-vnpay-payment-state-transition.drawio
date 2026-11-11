@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mxfile host="Electron" version="30.4.1">
+  <diagram id="ypgym-vnpay-payment-state-transition.drawio" name="YPGym · VNPay payment lifecycle">
+    <mxGraphModel dx="1920" dy="1080" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0" background="#FFFDF7">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="YPGym · VNPay payment lifecycle" style="text;html=1;align=left;verticalAlign=middle;fontFamily=Inter;fontSize=28;fontStyle=1;fontColor=#123D2A;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="35" width="1300" height="42"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Verified callback transitions, compatibility state, idempotent callbacks, late-class review, and reconciliation limits." style="text;html=1;align=left;verticalAlign=top;fontFamily=Inter;fontSize=13;fontColor=#526159;strokeColor=none;fillColor=none;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="82" width="1600" height="48"/>
+        </mxCell>
+        <mxCell id="badge" value="CODE-VERIFIED · 4B75236" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;align=center;fontFamily=Inter;fontSize=12;fontStyle=1;fillColor=#123D2A;strokeColor=#123D2A;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1605" y="42" width="245" height="36"/>
+        </mxCell>
+        <mxCell id="pending" value="pending" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FFF1C7;strokeColor=#B7791F;fontColor=#6B420A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="270" y="280" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="paid" value="paid" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#DFF4E8;strokeColor=#166534;fontColor=#123D2A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="760" y="160" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="failed" value="failed" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FBE1DE;strokeColor=#C2413A;fontColor=#7A201B;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="760" y="360" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="cancelled" value="cancelled" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FBE1DE;strokeColor=#C2413A;fontColor=#7A201B;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="760" y="520" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="expired" value="expired" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FBE1DE;strokeColor=#C2413A;fontColor=#7A201B;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="760" y="680" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="paid_review" value="paid_review" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#EEE6F8;strokeColor=#7C3FA0;fontColor=#4E2468;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1280" y="430" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="succeeded" value="succeeded" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#EEF1EE;strokeColor=#6B766F;fontColor=#26332C;strokeWidth=2;shadow=0;spacing=8;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="270" y="690" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="initial" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="90" y="303" width="28" height="28"/>
+        </mxCell>
+        <mxCell id="edge-700" value="create checkout [validated product]&lt;br/&gt;&lt;font color='#526159'&gt;/ store pending payment&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="initial" target="pending">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-1" value="verified IPN [signature + merchant + amount + success]&lt;br/&gt;&lt;font color='#526159'&gt;/ fulfill + invoice&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="pending" target="paid">
+          <mxGeometry as="geometry" relative="1" x="0.2" y="-34">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-2" value="verified IPN [non-success, code ≠ 24]&lt;br/&gt;&lt;font color='#526159'&gt;/ audit failure&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="pending" target="failed">
+          <mxGeometry as="geometry" relative="1" x="-0.05" y="30">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-3" value="verified IPN [response code = 24]&lt;br/&gt;&lt;font color='#526159'&gt;/ audit cancellation&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="pending" target="cancelled">
+          <mxGeometry as="geometry" relative="1" x="0.05" y="-28">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="540" y="455"/>
+              <mxPoint x="650" y="455"/>
+              <mxPoint x="650" y="555"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-4" value="status/Celery [expires_at &lt;= now]&lt;br/&gt;&lt;font color='#526159'&gt;/ audit expiry&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="pending" target="expired">
+          <mxGeometry as="geometry" relative="1" x="0.1" y="30">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="520" y="615"/>
+              <mxPoint x="650" y="615"/>
+              <mxPoint x="650" y="715"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-5" value="class success [hold cannot be fulfilled]&lt;br/&gt;&lt;font color='#526159'&gt;/ require review&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="pending" target="paid_review">
+          <mxGeometry as="geometry" relative="1" x="0.45" y="-28">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="540" y="250"/>
+              <mxPoint x="1390" y="250"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-6" value="late class success [verified]&lt;br/&gt;&lt;font color='#526159'&gt;/ require review&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="failed" target="paid_review">
+          <mxGeometry as="geometry" relative="1" x="0.05" y="-28">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-7" value="late class success [verified]&lt;br/&gt;&lt;font color='#526159'&gt;/ require review&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="cancelled" target="paid_review">
+          <mxGeometry as="geometry" relative="1" x="0.05" y="-28">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-8" value="late class success [verified]&lt;br/&gt;&lt;font color='#526159'&gt;/ require review&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="expired" target="paid_review">
+          <mxGeometry as="geometry" relative="1" x="0.1" y="28">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="1100" y="717"/>
+              <mxPoint x="1100" y="580"/>
+              <mxPoint x="1500" y="580"/>
+              <mxPoint x="1500" y="505"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-9" value="mock/staff [confirmed]&lt;br/&gt;&lt;font color='#526159'&gt;/ invoice + membership&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="initial" target="succeeded">
+          <mxGeometry as="geometry" relative="1" x="0.65" y="34">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="150" y="740"/>
+              <mxPoint x="380" y="740"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note-1" value="&lt;b&gt;No state change&lt;/b&gt;&lt;br/&gt;Invalid signature/merchant → RspCode 97&lt;br/&gt;Amount mismatch → RspCode 04&lt;br/&gt;Duplicate terminal callback → RspCode 02" style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#FFF1C7;strokeColor=#B7791F;fontColor=#6B420A;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1190" y="130" width="590" height="100"/>
+        </mxCell>
+        <mxCell id="note-2" value="&lt;b&gt;Legacy compatibility&lt;/b&gt;&lt;br/&gt;&lt;font face='Consolas'&gt;succeeded&lt;/font&gt; is created by mock/staff purchase and remains terminal. Current VNPay success uses &lt;font face='Consolas'&gt;paid&lt;/font&gt;." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#EEF1EE;strokeColor=#6B766F;fontColor=#26332C;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="780" width="480" height="120"/>
+        </mxCell>
+        <mxCell id="note-3" value="&lt;b&gt;Manual resolution boundary&lt;/b&gt;&lt;br/&gt;&lt;font face='Consolas'&gt;paid_review&lt;/font&gt; records a class-payment exception. Admin resolution updates booking/refund state only; no VNPay query, reconciliation, or reversal API is called." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#EEE6F8;strokeColor=#7C3FA0;fontColor=#4E2468;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1190" y="640" width="590" height="170"/>
+        </mxCell>
+        <mxCell id="note-4" value="&lt;b&gt;Membership late-success gap&lt;/b&gt;&lt;br/&gt;Only late class success can enter review. A late successful membership callback stays terminal and returns RspCode 02." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#FFF1C7;strokeColor=#B7791F;fontColor=#6B420A;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1190" y="830" width="590" height="100"/>
+        </mxCell>
+        <mxCell id="final-1" value="" style="ellipse;html=1;aspect=fixed;fillColor=#FFFDF7;strokeColor=#123D2A;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1070" y="181" width="32" height="32"/>
+        </mxCell>
+        <mxCell id="final-inner-1" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1077" y="188" width="18" height="18"/>
+        </mxCell>
+        <mxCell id="edge-801" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="paid" target="final-1">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="final-2" value="" style="ellipse;html=1;aspect=fixed;fillColor=#FFFDF7;strokeColor=#123D2A;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1590" y="451" width="32" height="32"/>
+        </mxCell>
+        <mxCell id="final-inner-2" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1597" y="458" width="18" height="18"/>
+        </mxCell>
+        <mxCell id="edge-802" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="paid_review" target="final-2">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="final-3" value="" style="ellipse;html=1;aspect=fixed;fillColor=#FFFDF7;strokeColor=#123D2A;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="580" y="711" width="32" height="32"/>
+        </mxCell>
+        <mxCell id="final-inner-3" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="587" y="718" width="18" height="18"/>
+        </mxCell>
+        <mxCell id="edge-803" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="succeeded" target="final-3">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="footer" value="&lt;b&gt;Notation&lt;/b&gt;  state boxes use exact stored values · arrow = event [guard] / action · dashed = rule/limitation&lt;br/&gt;&lt;b&gt;Controlling sources&lt;/b&gt;  VNPayPaymentService.process_ipn/_finalize_class_payment/_expire_payment_if_due; PaymentRepository; payments endpoints" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=middle;fontFamily=Inter;fontSize=11;fontColor=#34443B;fillColor=#F2EFE4;strokeColor=#A7B1AA;spacingLeft=14;spacingRight=14;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="960" width="1780" height="78"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,36 @@
+stateDiagram-v2
+    direction LR
+    state "pending" as pending
+    state "paid" as paid
+    state "succeeded (legacy/mock)" as succeeded
+    state "failed" as failed
+    state "cancelled" as cancelled
+    state "expired" as expired
+    state "paid_review" as paid_review
+
+    [*] --> pending: create VNPay checkout [server price and unique reference] / store expiry
+    [*] --> succeeded: mock or staff purchase [confirmed locally] / invoice and membership
+    pending --> paid: verified IPN [signature, merchant, amount, success] / fulfill product and invoice
+    pending --> failed: verified IPN [non-success and response != 24] / audit failure
+    pending --> cancelled: verified IPN [response = 24] / audit cancellation
+    pending --> expired: status read or Celery expiry [expires_at <= now] / audit expiry
+    pending --> paid_review: verified class success [hold cannot be fulfilled] / require manual refund review
+    failed --> paid_review: verified late class success / require manual refund review
+    cancelled --> paid_review: verified late class success / require manual refund review
+    expired --> paid_review: verified late class success / require manual refund review
+    paid --> [*]
+    succeeded --> [*]
+    paid_review --> [*]
+    failed --> [*]
+    cancelled --> [*]
+    expired --> [*]
+
+    note bottom of pending
+        Invalid signature or merchant: RspCode 97, no state change.
+        Amount mismatch: RspCode 04, no state change.
+        Duplicate terminal callback: RspCode 02, no state change.
+    end note
+    note bottom of paid_review
+        resolved records an internal class-refund resolution only.
+        No VNPay reversal or reconciliation API is implemented.
+    end note

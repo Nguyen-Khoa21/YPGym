@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mxfile host="Electron" version="30.4.1">
+  <diagram id="ypgym-membership-terminal-state-transition.drawio" name="YPGym · Membership cancellation and revocation">
+    <mxGraphModel dx="1920" dy="1080" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0" background="#FFFDF7">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="YPGym · Membership cancellation and revocation" style="text;html=1;align=left;verticalAlign=middle;fontFamily=Inter;fontSize=28;fontStyle=1;fontColor=#123D2A;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="35" width="1300" height="42"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Approval-driven cancellation and reasoned admin revocation into immutable terminal states." style="text;html=1;align=left;verticalAlign=top;fontFamily=Inter;fontSize=13;fontColor=#526159;strokeColor=none;fillColor=none;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="82" width="1600" height="48"/>
+        </mxCell>
+        <mxCell id="badge" value="CODE-VERIFIED · 4B75236" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;align=center;fontFamily=Inter;fontSize=12;fontStyle=1;fillColor=#123D2A;strokeColor=#123D2A;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1605" y="42" width="245" height="36"/>
+        </mxCell>
+        <mxCell id="active_cancel" value="active" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#DFF4E8;strokeColor=#166534;fontColor=#123D2A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="260" y="180" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="expiring_cancel" value="expiring_soon" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FFF1C7;strokeColor=#B7791F;fontColor=#6B420A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="180" y="330" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="frozen_cancel" value="frozen" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#E4EFFA;strokeColor=#2563A6;fontColor=#17395C;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="180" y="480" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="cancelled" value="cancelled" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FBE1DE;strokeColor=#C2413A;fontColor=#7A201B;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="650" y="330" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="pending_revoke" value="pending_verification" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FFF1C7;strokeColor=#B7791F;fontColor=#6B420A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1050" y="150" width="260" height="74"/>
+        </mxCell>
+        <mxCell id="active_revoke" value="active" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#DFF4E8;strokeColor=#166534;fontColor=#123D2A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1050" y="280" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="expiring_revoke" value="expiring_soon" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FFF1C7;strokeColor=#B7791F;fontColor=#6B420A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1050" y="410" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="frozen_revoke" value="frozen" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#E4EFFA;strokeColor=#2563A6;fontColor=#17395C;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1050" y="540" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="expired_revoke" value="expired" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FBE1DE;strokeColor=#C2413A;fontColor=#7A201B;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1050" y="670" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="revoked" value="revoked" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FBE1DE;strokeColor=#C2413A;fontColor=#7A201B;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1570" y="410" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="initial" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="203" width="28" height="28"/>
+        </mxCell>
+        <mxCell id="edge-700" value="member request&lt;br/&gt;&lt;font color='#526159'&gt;/ create pending request&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="initial" target="active_cancel">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-1" value="approval [pending request]&lt;br/&gt;&lt;font color='#526159'&gt;/ cancelled_at + audit&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="active_cancel" target="cancelled">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-2" value="approval [pending request]&lt;br/&gt;&lt;font color='#526159'&gt;/ cancelled_at + audit&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="expiring_cancel" target="cancelled">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-3" value="approval [pending request]&lt;br/&gt;&lt;font color='#526159'&gt;/ cancelled_at + audit&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="frozen_cancel" target="cancelled">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-4" value="admin revoke [reason supplied]&lt;br/&gt;&lt;font color='#526159'&gt;/ actor + audit&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="pending_revoke" target="revoked">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-5" value="admin revoke [reason supplied]&lt;br/&gt;&lt;font color='#526159'&gt;/ actor + audit&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="active_revoke" target="revoked">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-6" value="admin revoke [reason supplied]&lt;br/&gt;&lt;font color='#526159'&gt;/ actor + audit&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="expiring_revoke" target="revoked">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-7" value="admin revoke [reason supplied]&lt;br/&gt;&lt;font color='#526159'&gt;/ actor + audit&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="frozen_revoke" target="revoked">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-8" value="admin revoke [reason supplied]&lt;br/&gt;&lt;font color='#526159'&gt;/ actor + audit&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="expired_revoke" target="revoked">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="note-1" value="&lt;b&gt;Request workflow&lt;/b&gt;&lt;br/&gt;&lt;font face='Consolas'&gt;pending → approved | rejected&lt;/font&gt;. Only an approved cancellation changes membership state; rejection preserves it." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#EEE6F8;strokeColor=#7C3FA0;fontColor=#4E2468;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="790" width="560" height="125"/>
+        </mxCell>
+        <mxCell id="note-2" value="&lt;b&gt;Authorization&lt;/b&gt;&lt;br/&gt;Manager/admin may decide requests. Membership revocation is admin-only and requires a reason." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#E4EFFA;strokeColor=#2563A6;fontColor=#17395C;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="680" y="790" width="500" height="125"/>
+        </mxCell>
+        <mxCell id="note-3" value="&lt;b&gt;Terminal states&lt;/b&gt;&lt;br/&gt;&lt;font face='Consolas'&gt;cancelled&lt;/font&gt; and &lt;font face='Consolas'&gt;revoked&lt;/font&gt; have no outgoing lifecycle transition." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#EEF1EE;strokeColor=#6B766F;fontColor=#26332C;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1230" y="790" width="540" height="125"/>
+        </mxCell>
+        <mxCell id="final-1" value="" style="ellipse;html=1;aspect=fixed;fillColor=#FFFDF7;strokeColor=#123D2A;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="960" y="351" width="32" height="32"/>
+        </mxCell>
+        <mxCell id="final-inner-1" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="967" y="358" width="18" height="18"/>
+        </mxCell>
+        <mxCell id="edge-801" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="cancelled" target="final-1">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="final-2" value="" style="ellipse;html=1;aspect=fixed;fillColor=#FFFDF7;strokeColor=#123D2A;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1880" y="431" width="32" height="32"/>
+        </mxCell>
+        <mxCell id="final-inner-2" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1887" y="438" width="18" height="18"/>
+        </mxCell>
+        <mxCell id="edge-802" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="revoked" target="final-2">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="footer" value="&lt;b&gt;Notation&lt;/b&gt;  state boxes use exact stored values · arrow = event [guard] / action · dashed = rule/limitation&lt;br/&gt;&lt;b&gt;Controlling sources&lt;/b&gt;  decide_cancellation_request; revoke_membership; REQUEST_TRANSITIONS; MEMBERSHIP_TRANSITIONS; AuditRepository" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=middle;fontFamily=Inter;fontSize=11;fontColor=#34443B;fillColor=#F2EFE4;strokeColor=#A7B1AA;spacingLeft=14;spacingRight=14;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="960" width="1780" height="78"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

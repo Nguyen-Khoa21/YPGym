@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mxfile host="Electron" version="30.4.1">
+  <diagram id="ypgym-attendance-session-state-transition.drawio" name="YPGym · Attendance session lifecycle">
+    <mxGraphModel dx="1920" dy="1080" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0" background="#FFFDF7">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="YPGym · Attendance session lifecycle" style="text;html=1;align=left;verticalAlign=middle;fontFamily=Inter;fontSize=28;fontStyle=1;fontColor=#123D2A;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="35" width="1300" height="42"/>
+        </mxCell>
+        <mxCell id="subtitle" value="PostgreSQL is authoritative; every terminal transition writes an immutable event and then reconciles occupancy." style="text;html=1;align=left;verticalAlign=top;fontFamily=Inter;fontSize=13;fontColor=#526159;strokeColor=none;fillColor=none;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="82" width="1600" height="48"/>
+        </mxCell>
+        <mxCell id="badge" value="CODE-VERIFIED · 4B75236" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;align=center;fontFamily=Inter;fontSize=12;fontStyle=1;fillColor=#123D2A;strokeColor=#123D2A;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1605" y="42" width="245" height="36"/>
+        </mxCell>
+        <mxCell id="active" value="active" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#DFF4E8;strokeColor=#166534;fontColor=#123D2A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="280" y="390" width="240" height="86"/>
+        </mxCell>
+        <mxCell id="checked_out" value="checked_out" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#E4EFFA;strokeColor=#2563A6;fontColor=#17395C;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="780" y="190" width="250" height="74"/>
+        </mxCell>
+        <mxCell id="timed_out" value="timed_out" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FFF1C7;strokeColor=#B7791F;fontColor=#6B420A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="780" y="390" width="250" height="74"/>
+        </mxCell>
+        <mxCell id="manual_closed" value="manual_closed" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#EEE6F8;strokeColor=#7C3FA0;fontColor=#4E2468;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="780" y="590" width="250" height="74"/>
+        </mxCell>
+        <mxCell id="initial" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="90" y="419" width="28" height="28"/>
+        </mxCell>
+        <mxCell id="edge-700" value="scanner check-in [all guards pass]&lt;br/&gt;&lt;font color='#526159'&gt;/ create session + check_in event&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="initial" target="active">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-1" value="scanner checkout [valid device + current QR]&lt;br/&gt;&lt;font color='#526159'&gt;/ close + event&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="active" target="checked_out">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="650" y="300"/>
+              <mxPoint x="905" y="300"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-2" value="Celery every 5m [checked_in_at &lt;= cutoff]&lt;br/&gt;&lt;font color='#526159'&gt;/ close + event&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="active" target="timed_out">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-3" value="staff close [active + reason]&lt;br/&gt;&lt;font color='#526159'&gt;/ actor + audit + event&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="active" target="manual_closed">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="650" y="590"/>
+              <mxPoint x="905" y="590"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note-1" value="&lt;b&gt;Check-in guards&lt;/b&gt;&lt;br/&gt;Authenticated and rate-limited device · current QR · eligible membership · duplicate key accepted · no active session." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#E4EFFA;strokeColor=#2563A6;fontColor=#17395C;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="650" width="540" height="145"/>
+        </mxCell>
+        <mxCell id="note-2" value="&lt;b&gt;Concurrency&lt;/b&gt;&lt;br/&gt;Row locks protect close operations. A PostgreSQL partial unique index enforces at most one &lt;font face='Consolas'&gt;active&lt;/font&gt; session per user." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#DFF4E8;strokeColor=#166534;fontColor=#123D2A;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="650" y="760" width="540" height="120"/>
+        </mxCell>
+        <mxCell id="note-3" value="&lt;b&gt;Idempotency&lt;/b&gt;&lt;br/&gt;Repeated timeout skips non-active rows. Repeated manual close returns the existing terminal session without another event or audit record." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#EEF1EE;strokeColor=#6B766F;fontColor=#26332C;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1230" y="650" width="560" height="145"/>
+        </mxCell>
+        <mxCell id="final-1" value="" style="ellipse;html=1;aspect=fixed;fillColor=#FFFDF7;strokeColor=#123D2A;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1120" y="211" width="32" height="32"/>
+        </mxCell>
+        <mxCell id="final-inner-1" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1127" y="218" width="18" height="18"/>
+        </mxCell>
+        <mxCell id="edge-801" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="checked_out" target="final-1">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="final-2" value="" style="ellipse;html=1;aspect=fixed;fillColor=#FFFDF7;strokeColor=#123D2A;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1120" y="411" width="32" height="32"/>
+        </mxCell>
+        <mxCell id="final-inner-2" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1127" y="418" width="18" height="18"/>
+        </mxCell>
+        <mxCell id="edge-802" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="timed_out" target="final-2">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="final-3" value="" style="ellipse;html=1;aspect=fixed;fillColor=#FFFDF7;strokeColor=#123D2A;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1120" y="611" width="32" height="32"/>
+        </mxCell>
+        <mxCell id="final-inner-3" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1127" y="618" width="18" height="18"/>
+        </mxCell>
+        <mxCell id="edge-803" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="manual_closed" target="final-3">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="footer" value="&lt;b&gt;Notation&lt;/b&gt;  state boxes use exact stored values · arrow = event [guard] / action · dashed = rule/limitation&lt;br/&gt;&lt;b&gt;Controlling sources&lt;/b&gt;  AttendanceService.check_in/check_out/manual_close/close_timed_out_sessions; AttendanceRepository; Celery timeout task" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=middle;fontFamily=Inter;fontSize=11;fontColor=#34443B;fillColor=#F2EFE4;strokeColor=#A7B1AA;spacingLeft=14;spacingRight=14;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="960" width="1780" height="78"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mxfile host="Electron" version="30.4.1">
+  <diagram id="ypgym-class-booking-payment-state-transition.drawio" name="YPGym · Class booking and payment hold">
+    <mxGraphModel dx="1920" dy="1080" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0" background="#FFFDF7">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="YPGym · Class booking and payment hold" style="text;html=1;align=left;verticalAlign=middle;fontFamily=Inter;fontSize=28;fontStyle=1;fontColor=#123D2A;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="35" width="1300" height="42"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Seat-hold, payment, cancellation, retry, and internal refund-resolution transitions." style="text;html=1;align=left;verticalAlign=top;fontFamily=Inter;fontSize=13;fontColor=#526159;strokeColor=none;fillColor=none;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="82" width="1600" height="48"/>
+        </mxCell>
+        <mxCell id="badge" value="CODE-VERIFIED · 4B75236" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;align=center;fontFamily=Inter;fontSize=12;fontStyle=1;fillColor=#123D2A;strokeColor=#123D2A;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1605" y="42" width="245" height="36"/>
+        </mxCell>
+        <mxCell id="pending_payment" value="pending_payment" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FFF1C7;strokeColor=#B7791F;fontColor=#6B420A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="260" y="300" width="240" height="74"/>
+        </mxCell>
+        <mxCell id="confirmed" value="confirmed" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#DFF4E8;strokeColor=#166534;fontColor=#123D2A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="730" y="150" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="payment_failed" value="payment_failed" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FBE1DE;strokeColor=#C2413A;fontColor=#7A201B;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="730" y="360" width="240" height="74"/>
+        </mxCell>
+        <mxCell id="expired" value="expired" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FBE1DE;strokeColor=#C2413A;fontColor=#7A201B;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="730" y="570" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="cancelled" value="cancelled" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FBE1DE;strokeColor=#C2413A;fontColor=#7A201B;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1180" y="270" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="refunded" value="refunded" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#EEE6F8;strokeColor=#7C3FA0;fontColor=#4E2468;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1540" y="490" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="initial" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="90" y="323" width="28" height="28"/>
+        </mxCell>
+        <mxCell id="edge-700" value="checkout/promotion [seat available]&lt;br/&gt;&lt;font color='#526159'&gt;/ reserve payment hold&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="initial" target="pending_payment">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-1" value="IPN success [current live hold + capacity]&lt;br/&gt;&lt;font color='#526159'&gt;/ confirm + invoice&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="pending_payment" target="confirmed">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-2" value="IPN non-success [current payment]&lt;br/&gt;&lt;font color='#526159'&gt;/ release + promote queue&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="pending_payment" target="payment_failed">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-3" value="status/Celery/cleanup [hold due]&lt;br/&gt;&lt;font color='#526159'&gt;/ release + promote queue&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="pending_payment" target="expired">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="550" y="520"/>
+              <mxPoint x="650" y="520"/>
+              <mxPoint x="650" y="605"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-4" value="member/class cancel [before start]&lt;br/&gt;&lt;font color='#526159'&gt;/ cancel payment + release seat&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="pending_payment" target="cancelled">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="550" y="260"/>
+              <mxPoint x="1290" y="260"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-5" value="member/class cancel [before start]&lt;br/&gt;&lt;font color='#526159'&gt;/ refund required if paid&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="confirmed" target="cancelled">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-6" value="retry checkout [capacity available]&lt;br/&gt;&lt;font color='#526159'&gt;/ attach new payment&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="payment_failed" target="pending_payment">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="850" y="470"/>
+              <mxPoint x="380" y="470"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-7" value="retry checkout [capacity available]&lt;br/&gt;&lt;font color='#526159'&gt;/ attach new payment&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="expired" target="pending_payment">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="840" y="700"/>
+              <mxPoint x="140" y="700"/>
+              <mxPoint x="140" y="337"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-8" value="retry/promotion [refund not required]&lt;br/&gt;&lt;font color='#526159'&gt;/ reserve new hold&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="cancelled" target="pending_payment">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1290" y="190"/>
+              <mxPoint x="380" y="190"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-9" value="admin resolves [refund_status = required]&lt;br/&gt;&lt;font color='#526159'&gt;/ mark resolved&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="cancelled" target="refunded">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-10" value="admin resolves [late paid + review required]&lt;br/&gt;&lt;font color='#526159'&gt;/ mark resolved&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="payment_failed" target="refunded">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="980" y="440"/>
+              <mxPoint x="1650" y="440"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-11" value="admin resolves [late paid + review required]&lt;br/&gt;&lt;font color='#526159'&gt;/ mark resolved&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="expired" target="refunded">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-12" value="new checkout [capacity available]&lt;br/&gt;&lt;font color='#526159'&gt;/ refund_status = none&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="refunded" target="pending_payment">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1650" y="760"/>
+              <mxPoint x="380" y="760"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note-1" value="&lt;b&gt;Capacity + locking&lt;/b&gt;&lt;br/&gt;Checkout locks class and booking rows. Occupancy counts &lt;font face='Consolas'&gt;confirmed&lt;/font&gt; plus unexpired &lt;font face='Consolas'&gt;pending_payment&lt;/font&gt; holds." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#E4EFFA;strokeColor=#2563A6;fontColor=#17395C;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="820" width="520" height="110"/>
+        </mxCell>
+        <mxCell id="note-2" value="&lt;b&gt;Queue fairness&lt;/b&gt;&lt;br/&gt;Failure, cancellation, expiry, cleanup and late-review release promote the earliest eligible waiting member in the same class-locked transaction." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#DFF4E8;strokeColor=#166534;fontColor=#123D2A;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="640" y="820" width="500" height="110"/>
+        </mxCell>
+        <mxCell id="note-3" value="&lt;b&gt;Refund meaning&lt;/b&gt;&lt;br/&gt;&lt;font face='Consolas'&gt;refunded&lt;/font&gt; means an admin recorded internal resolution; provider reversal is not confirmed." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#EEE6F8;strokeColor=#7C3FA0;fontColor=#4E2468;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1190" y="820" width="560" height="110"/>
+        </mxCell>
+        <mxCell id="footer" value="&lt;b&gt;Notation&lt;/b&gt;  state boxes use exact stored values · arrow = event [guard] / action · dashed = rule/limitation&lt;br/&gt;&lt;b&gt;Controlling sources&lt;/b&gt;  VNPayPaymentService create/process/finalize/expire; BookingService.cancel; WaitlistPromotionService.promote; BOOKING_TRANSITIONS" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=middle;fontFamily=Inter;fontSize=11;fontColor=#34443B;fillColor=#F2EFE4;strokeColor=#A7B1AA;spacingLeft=14;spacingRight=14;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="960" width="1780" height="78"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

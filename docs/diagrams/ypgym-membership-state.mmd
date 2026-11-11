@@ -1,0 +1,27 @@
+stateDiagram-v2
+    direction LR
+    state "pending_verification" as pending_verification
+    state "active" as active
+    state "expiring_soon" as expiring_soon
+    state "frozen" as frozen
+    state "expired" as expired
+
+    [*] --> active: purchase or confirmed VNPay [eligible] / create active membership
+    pending_verification --> active: lifecycle sync [verified and >7 days] / persist active
+    pending_verification --> expiring_soon: lifecycle sync [verified and <=7 days] / persist expiring_soon
+    pending_verification --> frozen: lifecycle sync [verified and freeze window active] / persist frozen
+    pending_verification --> expired: lifecycle sync [verified and expiry passed] / persist expired
+    active --> pending_verification: lifecycle sync [email unverified] / persist pending_verification
+    expiring_soon --> pending_verification: lifecycle sync [email unverified] / persist pending_verification
+    frozen --> pending_verification: lifecycle sync [email unverified] / persist pending_verification
+    expired --> pending_verification: lifecycle sync [email unverified] / persist pending_verification
+
+    note bottom of pending_verification
+        Derived by derive_membership_status when the account is unverified.
+        The FSM permits inbound reconciliation from active, expiring_soon,
+        frozen, and expired; the scheduled lifecycle sync persists it.
+    end note
+    note bottom of active
+        Verification reconciliation excludes cancelled and revoked because
+        both terminal states are immutable during lifecycle synchronization.
+    end note

@@ -49,13 +49,8 @@ backend/celerybeat-schedule*
 docs/diagrams/.*.drawio.bkp
 docs/diagrams/.*.drawio.dtmp
 
-# Local state-transition documentation package
+# Local diagram generator (the generated state-transition diagrams are versioned)
 docs/diagrams/generate_state_transition_drawio.py
-docs/diagrams/ypgym-*-state-transition.drawio
-docs/diagrams/ypgym-*-state-transition.drawio.png
-docs/diagrams/ypgym-*-state.mmd
-docs/diagrams/ypgym-qr-token-lifecycle.*
-docs/diagrams/ypgym-state-transition-*.md
 
 # Local database and Docker data
 data/

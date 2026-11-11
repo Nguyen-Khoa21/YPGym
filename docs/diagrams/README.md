@@ -13,13 +13,24 @@ Status styling is intentional:
 | Diagram | Editable source | Embedded preview |
 |---|---|---|
 | Whole-project architecture | `ypgym-architecture.drawio` | `ypgym-architecture.drawio.png` |
+| YPGym-branded architecture overview | `ypgym-architecture.html` | Standalone browser diagram |
 | Whole-project use cases | `ypgym-use-case.drawio` | `ypgym-use-case.drawio.png` |
-| Membership lifecycle state transition | `ypgym-membership-state-transition.drawio` | `ypgym-membership-state-transition.drawio.png` |
+| Membership verification reconciliation | `ypgym-membership-state-transition.drawio` | `ypgym-membership-state-transition.drawio.png` |
+| Membership coverage and freeze | `ypgym-membership-coverage-state-transition.drawio` | `ypgym-membership-coverage-state-transition.drawio.png` |
+| Membership cancellation and revocation | `ypgym-membership-terminal-state-transition.drawio` | `ypgym-membership-terminal-state-transition.drawio.png` |
+| Historical VNPay payment lifecycle (retired; see `docs/api/payos-payments.md` for the active contract) | `ypgym-vnpay-payment-state-transition.drawio` | `ypgym-vnpay-payment-state-transition.drawio.png` |
+| Class booking and payment hold | `ypgym-class-booking-payment-state-transition.drawio` | `ypgym-class-booking-payment-state-transition.drawio.png` |
+| Class, waitlist and refund | `ypgym-class-waitlist-refund-state-transition.drawio` | `ypgym-class-waitlist-refund-state-transition.drawio.png` |
+| Attendance session lifecycle | `ypgym-attendance-session-state-transition.drawio` | `ypgym-attendance-session-state-transition.drawio.png` |
+| QR token lifecycle | `ypgym-qr-token-lifecycle.drawio` | `ypgym-qr-token-lifecycle.drawio.png` |
+| Registration and email verification | `ypgym-registration-verification-state-transition.drawio` | `ypgym-registration-verification-state-transition.drawio.png` |
 | PostgreSQL ERD | `ypgym-erd.drawio` | `ypgym-erd.drawio.png` |
 | Domain relationships | `ypgym-domain-relationships.drawio` | `ypgym-domain-relationships.drawio.png` |
 | Backend UML class diagram | `ypgym-backend-uml.drawio` | `ypgym-backend-uml.drawio.png` |
 
 The PNG files contain embedded Draw.io XML. The `.drawio` files remain the clearest sources for manual editing and lecturer review.
+
+The state-transition package is indexed in `ypgym-state-transition-index.md`. Its verified transition tables are in `ypgym-state-transition-tables.md`, and its audit findings and limitations are in `ypgym-state-transition-audit.md`. Every state diagram also has a synchronized `.mmd` source rendered and syntax-checked with Pretty Mermaid.
 
 `architecture.mmd` and `use-cases.mmd` provide compact topology/use-case sketches. `backend-uml.mmd` is the authoring source for the representative UML subset: booking, trainer and attendance services/repositories plus their domain entities. The detailed ERD covers the complete durable schema. Use the named `ypgym-*.drawio` package above for editable review. Sources and embedded previews are versioned; only editor backups are ignored.
 
@@ -50,12 +61,12 @@ Start-Process .\docs\diagrams\ypgym-membership-state-transition.drawio
 4. Confirm the PT's own read-only profile/next-three assigned classes are implemented; chatbot and advanced PT programming remain deferred.
 5. Confirm scanner actions belong to the device-authenticated scanner actor; staff attendance-desk access does not grant scanner credentials.
 
-### Membership state transition
+### Membership state transitions
 
-1. Trace the main path: Pending Verification -> Active -> Expiring Soon -> Expired.
-2. Trace renewal, approved freeze, freeze-end, cancellation approval and revocation paths.
-3. Confirm every transition label names the triggering Member, Manager/Admin, Admin or Scheduled Worker.
-4. Confirm Cancellation Requested is documented as a logical request workflow state rather than a stored `MembershipStatus`.
+1. Trace verification reconciliation between Pending Verification and each dated non-terminal state.
+2. Trace date-driven coverage, renewal, approved freeze, freeze-end and expiry in the coverage diagram.
+3. Trace cancellation approval and admin revocation in the terminal-state diagram.
+4. Confirm Cancellation Requested is documented as a separate request workflow rather than a stored `MembershipStatus`.
 5. Confirm Active and Expiring Soon are the only access-eligible states, while Cancelled and Revoked are terminal during lifecycle synchronization.
 
 ## Source authority

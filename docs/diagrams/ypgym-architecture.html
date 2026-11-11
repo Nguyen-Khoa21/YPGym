@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YPGym · System architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;1,500&family=Geist+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      --paper: #f3f7f5;
+      --paper-2: #ffffff;
+      --ink: #141f19;
+      --muted: #526059;
+      --soft: #758078;
+      --rule: rgba(20, 31, 25, 0.12);
+      --accent: #0e4e2c;
+      --accent-tint: rgba(14, 78, 44, 0.10);
+      --link: #25714a;
+      --title: "Barlow Condensed", "Arial Narrow", sans-serif;
+      --sans: "Manrope", "Segoe UI", sans-serif;
+      --mono: "Geist Mono", ui-monospace, monospace;
+    }
+    html { background: var(--paper); }
+    body {
+      min-width: 320px;
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+    }
+    main { width: min(100%, 1680px); margin: 0 auto; padding: 32px; }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      font-family: var(--title);
+      font-size: clamp(40px, 5vw, 64px);
+      font-weight: 700;
+      letter-spacing: 0.015em;
+      line-height: 0.95;
+      text-transform: uppercase;
+    }
+    .intro {
+      max-width: 860px;
+      margin: 14px 0 28px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.65;
+    }
+    .diagram-shell { overflow-x: auto; }
+    svg { display: block; width: 100%; min-width: 960px; height: auto; }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 20px;
+      border-top: 1px solid var(--rule);
+      padding-top: 16px;
+      color: var(--soft);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+    }
+    @media (max-width: 720px) {
+      main { padding: 20px 16px; }
+      .footer { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">YPGym · Implemented release architecture</p>
+    <h1>One platform, three client surfaces.</h1>
+    <p class="intro">Web, Expo and device-authenticated scanners share one FastAPI domain layer. PostgreSQL remains the durable source of truth; Redis holds replaceable short-lived state and transports scheduled work.</p>
+
+    <div class="diagram-shell">
+      <svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ypgym-architecture-title ypgym-architecture-desc">
+        <title id="ypgym-architecture-title">YPGym system architecture</title>
+        <desc id="ypgym-architecture-desc">Architecture diagram showing React web, Expo mobile and the IoT scanner connecting to FastAPI, domain services, Celery, PostgreSQL, Redis, email and invoice storage.</desc>
+        <defs>
+          <marker id="ypgym-architecture-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+            <polygon points="0 0, 10 4, 0 8" fill="#526059"/>
+          </marker>
+          <marker id="ypgym-architecture-arrow-accent" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+            <polygon points="0 0, 10 4, 0 8" fill="#0e4e2c"/>
+          </marker>
+          <marker id="ypgym-architecture-arrow-link" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+            <polygon points="0 0, 10 4, 0 8" fill="#25714a"/>
+          </marker>
+        </defs>
+
+        <rect width="1600" height="900" fill="#f3f7f5"/>
+
+        <!-- Zones -->
+        <rect x="64" y="184" width="280" height="560" rx="8" fill="rgba(20,31,25,0.02)" stroke="rgba(20,31,25,0.12)" stroke-width="1" stroke-dasharray="5,4"/>
+        <rect x="88" y="176" width="112" height="20" rx="4" fill="#f3f7f5"/>
+        <text x="144" y="190" fill="#526059" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" text-anchor="middle" letter-spacing="0.16em">CLIENT SURFACES</text>
+
+        <rect x="424" y="184" width="660" height="560" rx="8" fill="rgba(20,31,25,0.02)" stroke="rgba(20,31,25,0.12)" stroke-width="1"/>
+        <rect x="448" y="176" width="144" height="20" rx="4" fill="#f3f7f5"/>
+        <text x="520" y="190" fill="#526059" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" text-anchor="middle" letter-spacing="0.16em">APPLICATION LAYER</text>
+
+        <rect x="1164" y="184" width="372" height="560" rx="8" fill="rgba(20,31,25,0.02)" stroke="rgba(20,31,25,0.12)" stroke-width="1"/>
+        <rect x="1188" y="176" width="152" height="20" rx="4" fill="#f3f7f5"/>
+        <text x="1264" y="190" fill="#526059" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" text-anchor="middle" letter-spacing="0.16em">DATA + OPERATIONS</text>
+
+        <!-- Connectors are drawn before nodes -->
+        <path d="M 312,292 H 364 Q 372,292 372,300 V 412 Q 372,420 380,420 H 456" fill="none" stroke="#25714a" stroke-width="2" marker-end="url(#ypgym-architecture-arrow-link)"/>
+        <line x1="312" y1="444" x2="456" y2="444" stroke="#25714a" stroke-width="2" marker-end="url(#ypgym-architecture-arrow-link)"/>
+        <path d="M 312,636 H 548 Q 556,636 556,628 V 492" fill="none" stroke="#25714a" stroke-width="2" marker-end="url(#ypgym-architecture-arrow-link)"/>
+        <line x1="656" y1="444" x2="748" y2="444" stroke="#0e4e2c" stroke-width="2.4" marker-end="url(#ypgym-architecture-arrow-accent)"/>
+        <path d="M 988,416 H 1092 Q 1100,416 1100,408 V 312 Q 1100,304 1108,304 H 1212" fill="none" stroke="#526059" stroke-width="2" marker-end="url(#ypgym-architecture-arrow)"/>
+        <line x1="988" y1="464" x2="1212" y2="464" stroke="#526059" stroke-width="2" marker-end="url(#ypgym-architecture-arrow)"/>
+        <line x1="868" y1="484" x2="868" y2="580" stroke="#526059" stroke-width="1.8" stroke-dasharray="6,5" marker-end="url(#ypgym-architecture-arrow)"/>
+        <path d="M 988,612 H 1132 Q 1140,612 1140,604 V 488 Q 1140,480 1148,480 H 1212" fill="none" stroke="#526059" stroke-width="1.8" stroke-dasharray="6,5" marker-end="url(#ypgym-architecture-arrow)"/>
+        <line x1="988" y1="636" x2="1212" y2="636" stroke="#526059" stroke-width="1.8" stroke-dasharray="6,5" marker-end="url(#ypgym-architecture-arrow)"/>
+
+        <!-- Connector labels, each masked away from its stroke -->
+        <rect x="316" y="260" width="112" height="18" rx="4" fill="#f3f7f5"/>
+        <text x="372" y="273" fill="#25714a" font-family="'Geist Mono', monospace" font-size="12" font-weight="500" text-anchor="middle">HTTPS · JWT</text>
+
+        <rect x="328" y="412" width="112" height="18" rx="4" fill="#f3f7f5"/>
+        <text x="384" y="425" fill="#25714a" font-family="'Geist Mono', monospace" font-size="12" font-weight="500" text-anchor="middle">HTTPS · JWT</text>
+
+        <rect x="360" y="606" width="136" height="18" rx="4" fill="#f3f7f5"/>
+        <text x="428" y="619" fill="#25714a" font-family="'Geist Mono', monospace" font-size="12" font-weight="500" text-anchor="middle">DEVICE AUTH</text>
+
+        <rect x="660" y="412" width="84" height="18" rx="4" fill="#f3f7f5"/>
+        <text x="702" y="425" fill="#0e4e2c" font-family="'Geist Mono', monospace" font-size="12" font-weight="600" text-anchor="middle">DISPATCH</text>
+
+        <rect x="1088" y="270" width="124" height="18" rx="4" fill="#f3f7f5"/>
+        <text x="1150" y="283" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" font-weight="500" text-anchor="middle">SQLALCHEMY</text>
+
+        <rect x="1016" y="432" width="168" height="18" rx="4" fill="#f3f7f5"/>
+        <text x="1100" y="445" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" font-weight="500" text-anchor="middle">QR · CACHE · OCCUPANCY</text>
+
+        <rect x="884" y="520" width="88" height="18" rx="4" fill="#f3f7f5"/>
+        <text x="928" y="533" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" font-weight="500" text-anchor="middle">ENQUEUE</text>
+
+        <rect x="1044" y="528" width="80" height="18" rx="4" fill="#f3f7f5"/>
+        <text x="1084" y="541" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" font-weight="500" text-anchor="middle">BROKER</text>
+
+        <rect x="1024" y="606" width="140" height="18" rx="4" fill="#f3f7f5"/>
+        <text x="1094" y="619" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" font-weight="500" text-anchor="middle">EMAIL · PDF</text>
+
+        <!-- Client nodes -->
+        <g>
+          <rect x="96" y="252" width="216" height="80" rx="8" fill="#ffffff" stroke="#758078" stroke-width="1.4"/>
+          <rect x="112" y="264" width="40" height="16" rx="4" fill="rgba(82,96,89,0.10)"/>
+          <text x="132" y="276" fill="#526059" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" text-anchor="middle" letter-spacing="0.12em">WEB</text>
+          <text x="204" y="296" fill="#141f19" font-family="'Manrope', sans-serif" font-size="16" font-weight="700" text-anchor="middle">React Web</text>
+          <text x="204" y="316" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" text-anchor="middle">Vite · TypeScript</text>
+        </g>
+
+        <g>
+          <rect x="96" y="404" width="216" height="80" rx="8" fill="#ffffff" stroke="#758078" stroke-width="1.4"/>
+          <rect x="112" y="416" width="56" height="16" rx="4" fill="rgba(82,96,89,0.10)"/>
+          <text x="140" y="428" fill="#526059" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" text-anchor="middle" letter-spacing="0.12em">MOBILE</text>
+          <text x="204" y="448" fill="#141f19" font-family="'Manrope', sans-serif" font-size="16" font-weight="700" text-anchor="middle">Expo Member App</text>
+          <text x="204" y="468" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" text-anchor="middle">Expo Router · SecureStore</text>
+        </g>
+
+        <g>
+          <rect x="96" y="596" width="216" height="80" rx="8" fill="rgba(82,96,89,0.08)" stroke="#758078" stroke-width="1.4"/>
+          <rect x="112" y="608" width="52" height="16" rx="4" fill="rgba(82,96,89,0.10)"/>
+          <text x="138" y="620" fill="#526059" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" text-anchor="middle" letter-spacing="0.12em">DEVICE</text>
+          <text x="204" y="640" fill="#141f19" font-family="'Manrope', sans-serif" font-size="16" font-weight="700" text-anchor="middle">IoT Scanner</text>
+          <text x="204" y="660" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" text-anchor="middle">Simulator · future hardware</text>
+        </g>
+
+        <!-- Application nodes -->
+        <g>
+          <rect x="456" y="396" width="200" height="96" rx="8" fill="rgba(14,78,44,0.10)" stroke="#0e4e2c" stroke-width="2"/>
+          <rect x="472" y="408" width="40" height="16" rx="4" fill="rgba(14,78,44,0.12)"/>
+          <text x="492" y="420" fill="#0e4e2c" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" text-anchor="middle" letter-spacing="0.12em">API</text>
+          <text x="556" y="446" fill="#141f19" font-family="'Manrope', sans-serif" font-size="16" font-weight="700" text-anchor="middle">FastAPI Gateway</text>
+          <text x="556" y="468" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" text-anchor="middle">JWT · RBAC · validation</text>
+        </g>
+
+        <g>
+          <rect x="748" y="396" width="240" height="88" rx="8" fill="#ffffff" stroke="#141f19" stroke-width="1.4"/>
+          <rect x="764" y="408" width="72" height="16" rx="4" fill="rgba(20,31,25,0.06)"/>
+          <text x="800" y="420" fill="#526059" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" text-anchor="middle" letter-spacing="0.12em">DOMAIN</text>
+          <text x="868" y="446" fill="#141f19" font-family="'Manrope', sans-serif" font-size="16" font-weight="700" text-anchor="middle">Services + Repositories</text>
+          <text x="868" y="468" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" text-anchor="middle">transactions · audit · policy</text>
+        </g>
+
+        <g>
+          <rect x="748" y="580" width="240" height="96" rx="8" fill="rgba(20,31,25,0.03)" stroke="#526059" stroke-width="1.4" stroke-dasharray="6,5"/>
+          <rect x="764" y="592" width="56" height="16" rx="4" fill="rgba(82,96,89,0.10)"/>
+          <text x="792" y="604" fill="#526059" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" text-anchor="middle" letter-spacing="0.12em">ASYNC</text>
+          <text x="868" y="630" fill="#141f19" font-family="'Manrope', sans-serif" font-size="16" font-weight="700" text-anchor="middle">Celery Worker + Beat</text>
+          <text x="868" y="652" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" text-anchor="middle">reminders · expiry · timeouts</text>
+        </g>
+
+        <!-- Data and output nodes -->
+        <g>
+          <rect x="1212" y="260" width="276" height="88" rx="8" fill="rgba(14,78,44,0.10)" stroke="#0e4e2c" stroke-width="2"/>
+          <rect x="1228" y="272" width="48" height="16" rx="4" fill="rgba(14,78,44,0.12)"/>
+          <text x="1252" y="284" fill="#0e4e2c" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" text-anchor="middle" letter-spacing="0.12em">TRUTH</text>
+          <text x="1350" y="308" fill="#141f19" font-family="'Manrope', sans-serif" font-size="16" font-weight="700" text-anchor="middle">PostgreSQL 16</text>
+          <text x="1350" y="330" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" text-anchor="middle">durable business records</text>
+        </g>
+
+        <g>
+          <rect x="1212" y="420" width="276" height="88" rx="8" fill="rgba(20,31,25,0.05)" stroke="#526059" stroke-width="1.4"/>
+          <rect x="1228" y="432" width="44" height="16" rx="4" fill="rgba(82,96,89,0.10)"/>
+          <text x="1250" y="444" fill="#526059" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" text-anchor="middle" letter-spacing="0.12em">STATE</text>
+          <text x="1350" y="468" fill="#141f19" font-family="'Manrope', sans-serif" font-size="16" font-weight="700" text-anchor="middle">Redis 7</text>
+          <text x="1350" y="490" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" text-anchor="middle">TTL state · cache · Celery broker</text>
+        </g>
+
+        <g>
+          <rect x="1212" y="580" width="276" height="88" rx="8" fill="rgba(20,31,25,0.02)" stroke="rgba(20,31,25,0.28)" stroke-width="1.4" stroke-dasharray="6,5"/>
+          <rect x="1228" y="592" width="56" height="16" rx="4" fill="rgba(82,96,89,0.08)"/>
+          <text x="1256" y="604" fill="#526059" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" text-anchor="middle" letter-spacing="0.12em">OUTPUT</text>
+          <text x="1350" y="628" fill="#141f19" font-family="'Manrope', sans-serif" font-size="16" font-weight="700" text-anchor="middle">Email + Invoice Files</text>
+          <text x="1350" y="650" fill="#526059" font-family="'Geist Mono', monospace" font-size="12" text-anchor="middle">Maildir / SMTP · PDF storage</text>
+        </g>
+
+        <!-- Legend strip -->
+        <line x1="64" y1="796" x2="1536" y2="796" stroke="rgba(20,31,25,0.12)" stroke-width="1"/>
+        <text x="64" y="824" fill="#526059" font-family="'Geist Mono', monospace" font-size="8" font-weight="600" letter-spacing="0.16em">LEGEND</text>
+
+        <rect x="64" y="844" width="20" height="14" rx="4" fill="rgba(14,78,44,0.10)" stroke="#0e4e2c" stroke-width="1.4"/>
+        <text x="96" y="856" fill="#526059" font-family="'Manrope', sans-serif" font-size="11">Focal boundary / source of truth</text>
+
+        <rect x="356" y="844" width="20" height="14" rx="4" fill="#ffffff" stroke="#141f19" stroke-width="1.4"/>
+        <text x="388" y="856" fill="#526059" font-family="'Manrope', sans-serif" font-size="11">Synchronous service</text>
+
+        <rect x="572" y="844" width="20" height="14" rx="4" fill="rgba(20,31,25,0.05)" stroke="#526059" stroke-width="1.4"/>
+        <text x="604" y="856" fill="#526059" font-family="'Manrope', sans-serif" font-size="11">State store</text>
+
+        <line x1="752" y1="852" x2="800" y2="852" stroke="#25714a" stroke-width="2" marker-end="url(#ypgym-architecture-arrow-link)"/>
+        <text x="816" y="856" fill="#526059" font-family="'Manrope', sans-serif" font-size="11">Authenticated API call</text>
+
+        <line x1="1040" y1="852" x2="1088" y2="852" stroke="#526059" stroke-width="1.8" stroke-dasharray="6,5" marker-end="url(#ypgym-architecture-arrow)"/>
+        <text x="1104" y="856" fill="#526059" font-family="'Manrope', sans-serif" font-size="11">Background / replaceable flow</text>
+      </svg>
+    </div>
+
+    <div class="footer">
+      <span>YPGym · architecture · balanced overview</span>
+      <span>Source: repository architecture, Docker Compose and current handoff</span>
+    </div>
+  </main>
+</body>
+</html>

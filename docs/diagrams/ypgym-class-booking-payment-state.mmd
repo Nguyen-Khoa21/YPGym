@@ -1,0 +1,31 @@
+stateDiagram-v2
+    direction LR
+    state "pending_payment" as pending_payment
+    state "confirmed" as confirmed
+    state "payment_failed" as payment_failed
+    state "expired" as expired
+    state "cancelled" as cancelled
+    state "refunded" as refunded
+
+    [*] --> pending_payment: checkout or waitlist promotion [seat available] / reserve until TTL or class start
+    pending_payment --> confirmed: verified VNPay success [current live hold and capacity] / invoice and notify
+    pending_payment --> payment_failed: verified non-success IPN / clear reservation and promote queue
+    pending_payment --> expired: Celery, status read, or checkout cleanup [hold due] / clear reservation and promote queue
+    pending_payment --> cancelled: member or class cancellation [before start] / cancel pending payment
+    confirmed --> cancelled: member or class cancellation [before start] / refund_status = required for paid seat
+    payment_failed --> pending_payment: retry checkout or promotion [capacity available] / create new payment or hold
+    expired --> pending_payment: retry checkout or promotion [capacity available] / create new payment or hold
+    cancelled --> pending_payment: retry checkout or promotion [refund not required] / create new payment or hold
+    refunded --> pending_payment: new checkout or promotion [capacity available] / refund_status = none
+    payment_failed --> refunded: admin resolves [refund_status = required] / refund_status = resolved
+    expired --> refunded: admin resolves [refund_status = required] / refund_status = resolved
+    cancelled --> refunded: admin resolves [refund_status = required] / refund_status = resolved
+
+    note bottom of payment_failed
+        Failed and expired holds release capacity and promote the earliest eligible
+        waiting member in the same class-locked transaction.
+    end note
+    note bottom of refunded
+        refunded means staff recorded an internal resolution.
+        It does not prove a VNPay provider reversal.
+    end note

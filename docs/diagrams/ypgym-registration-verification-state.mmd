@@ -1,0 +1,26 @@
+stateDiagram-v2
+    direction LR
+    state "no user row" as no_user
+    state "is_email_verified = false" as unverified
+    state "token unused + valid" as token_valid
+    state "token unused + expired" as token_expired
+    state "token used" as token_used
+    state "is_email_verified = true" as verified
+
+    [*] --> no_user
+    no_user --> unverified: POST register [unique email and phone] / hash password and create member
+    unverified --> token_valid: register transaction / store hashed token and expiry
+    token_valid --> verified: GET verify-email [hash found, unused, not expired] / set verified timestamp and used_at
+    token_valid --> token_expired: time passes [expires_at < now] / verification rejected
+    token_used --> verified: repeated verification / return already verified
+    verified --> [*]: login [password valid] / issue access token
+    unverified --> unverified: login / reject EMAIL_NOT_VERIFIED
+    no_user --> verified: verified OAuth or staff provisioning / create verified user directly
+
+    note bottom of token_valid
+        Only the token hash is stored. Verification lookup does not lock the token row.
+        Registration remains committed if email delivery fails.
+    end note
+    note bottom of token_expired
+        No resend-verification endpoint is implemented.
+    end note

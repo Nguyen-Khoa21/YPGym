@@ -1,0 +1,32 @@
+stateDiagram-v2
+    direction LR
+    state "issued + current" as current
+    state "valid use" as valid_use
+    state "duplicate_scan" as duplicate_scan
+    state "superseded" as superseded
+    state "expired" as expired
+    state "inactive / invalid" as inactive
+    state "state unavailable" as unavailable
+
+    [*] --> current: generate [eligible membership and Redis available] / sign JWT and store active JTI
+    current --> valid_use: validate [JWT valid and Redis JTI matches] / allow scanner flow
+    valid_use --> current: scanner succeeds / token remains reusable until replaced or expired
+    current --> duplicate_scan: check-in replay [same JTI inside duplicate window] / reject 409
+    duplicate_scan --> current: duplicate window expires [token still current] / validation may pass again
+    current --> superseded: generate newer token / delete old JTI and replace active pointer
+    current --> expired: JWT or Redis TTL expires / reject expired or inactive token
+    current --> inactive: Redis JTI missing, wrong subject, malformed JWT, or wrong type / reject
+    current --> unavailable: Redis read fails / reject 503
+    superseded --> [*]
+    expired --> [*]
+    inactive --> [*]
+    unavailable --> [*]
+
+    note bottom of valid_use
+        Tokens are rotating, not single-use. Duplicate protection is applied to
+        check-in only; check-out validates the same current token without the replay key.
+    end note
+    note bottom of superseded
+        Supersession is the only revocation-like operation represented in code.
+        There is no explicit revoke endpoint or durable token table.
+    end note

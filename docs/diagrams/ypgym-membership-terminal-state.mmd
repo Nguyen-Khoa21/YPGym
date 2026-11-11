@@ -1,0 +1,28 @@
+stateDiagram-v2
+    direction LR
+    state "pending_verification" as pending_verification
+    state "active" as active
+    state "expiring_soon" as expiring_soon
+    state "frozen" as frozen
+    state "expired" as expired
+    state "cancelled" as cancelled
+    state "revoked" as revoked
+
+    active --> cancelled: cancellation approval [pending request] / cancelled_at and audit
+    expiring_soon --> cancelled: cancellation approval [pending request] / cancelled_at and audit
+    frozen --> cancelled: cancellation approval [pending request] / cancelled_at and audit
+    pending_verification --> revoked: admin revoke [reason supplied] / actor and audit
+    active --> revoked: admin revoke [reason supplied] / actor and audit
+    expiring_soon --> revoked: admin revoke [reason supplied] / actor and audit
+    frozen --> revoked: admin revoke [reason supplied] / actor and audit
+    expired --> revoked: admin revoke [reason supplied] / actor and audit
+    cancelled --> [*]
+    revoked --> [*]
+
+    note bottom of cancelled
+        Cancellation requests are stored separately as pending, approved,
+        or rejected. Only approval changes the membership status.
+    end note
+    note bottom of revoked
+        Revocation is admin-only, requires a reason, and is terminal.
+    end note

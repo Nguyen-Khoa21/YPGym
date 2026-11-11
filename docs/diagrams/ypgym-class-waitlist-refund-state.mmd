@@ -1,0 +1,32 @@
+stateDiagram-v2
+    direction LR
+    state "scheduled" as scheduled
+    state "cancelled (class)" as class_cancelled
+    state "completed" as completed
+    state "waiting" as waiting
+    state "promoted" as promoted
+    state "cancelled (waitlist)" as waitlist_cancelled
+    state "none" as refund_none
+    state "required" as refund_required
+    state "resolved" as refund_resolved
+
+    [*] --> scheduled: class create / store schedule
+    scheduled --> class_cancelled: admin cancel / cancel live bookings and waiting entries
+    scheduled --> completed: Celery end-time sweep [end_at <= now] / complete and audit
+    scheduled --> completed: assigned PT confirms [start_at <= now] / complete and audit
+    [*] --> waiting: join waitlist [full class, verified, queue room] / allocate position
+    waiting --> promoted: cancellation or payment release [capacity opens and candidate eligible] / create pending_payment hold and notify
+    waiting --> waitlist_cancelled: leave, class cancel, or ineligible promotion candidate / release queue entry
+    promoted --> waiting: rejoin [eligible and full] / allocate new position
+    waitlist_cancelled --> waiting: rejoin [eligible and full] / allocate new position
+    refund_none --> refund_required: paid cancellation or late paid class success / flag staff review
+    refund_required --> refund_resolved: admin records resolution [reason supplied] / audit resolution
+    refund_resolved --> refund_none: new checkout or promotion / clear prior resolution marker
+
+    note bottom of promoted
+        Promotion creates a payment hold without a payment row.
+        The promoted member starts checkout, which attaches a new pending payment.
+    end note
+    note bottom of refund_resolved
+        Internal bookkeeping only; no provider reversal confirmation.
+    end note

@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mxfile host="Electron" version="30.4.1">
+  <diagram id="ypgym-registration-verification-state-transition.drawio" name="YPGym · Registration and email verification">
+    <mxGraphModel dx="1920" dy="1080" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0" background="#FFFDF7">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="YPGym · Registration and email verification" style="text;html=1;align=left;verticalAlign=middle;fontFamily=Inter;fontSize=28;fontStyle=1;fontColor=#123D2A;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="35" width="1300" height="42"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Persisted user boolean and verification-token timestamps, including alternate verified-account creation paths." style="text;html=1;align=left;verticalAlign=top;fontFamily=Inter;fontSize=13;fontColor=#526159;strokeColor=none;fillColor=none;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="82" width="1600" height="48"/>
+        </mxCell>
+        <mxCell id="badge" value="CODE-VERIFIED · 4B75236" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;align=center;fontFamily=Inter;fontSize=12;fontStyle=1;fillColor=#123D2A;strokeColor=#123D2A;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1605" y="42" width="245" height="36"/>
+        </mxCell>
+        <mxCell id="no_user" value="no user row" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#EEF1EE;strokeColor=#6B766F;fontColor=#26332C;strokeWidth=2;shadow=0;spacing=8;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="230" y="330" width="220" height="74"/>
+        </mxCell>
+        <mxCell id="unverified" value="is_email_verified = false" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FFF1C7;strokeColor=#B7791F;fontColor=#6B420A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="650" y="250" width="300" height="74"/>
+        </mxCell>
+        <mxCell id="token_valid" value="used_at IS NULL&#10;expires_at &gt;= now" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#E4EFFA;strokeColor=#2563A6;fontColor=#17395C;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="650" y="500" width="300" height="90"/>
+        </mxCell>
+        <mxCell id="verified" value="is_email_verified = true" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#DFF4E8;strokeColor=#166534;fontColor=#123D2A;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1190" y="250" width="300" height="74"/>
+        </mxCell>
+        <mxCell id="token_used" value="used_at IS NOT NULL" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#EEE6F8;strokeColor=#7C3FA0;fontColor=#4E2468;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1190" y="500" width="300" height="74"/>
+        </mxCell>
+        <mxCell id="token_expired" value="used_at IS NULL&#10;expires_at &lt; now" style="rounded=1;arcSize=18;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=16;fontStyle=1;fillColor=#FBE1DE;strokeColor=#C2413A;fontColor=#7A201B;strokeWidth=2;shadow=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1190" y="700" width="300" height="90"/>
+        </mxCell>
+        <mxCell id="initial" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="90" y="353" width="28" height="28"/>
+        </mxCell>
+        <mxCell id="edge-700" value="start [no account]&lt;br/&gt;&lt;font color='#526159'&gt;/ await registration path&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="initial" target="no_user">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-1" value="POST register [unique email + phone]&lt;br/&gt;&lt;font color='#526159'&gt;/ hash password + create member&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="no_user" target="unverified">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-2" value="registration transaction [token generated]&lt;br/&gt;&lt;font color='#526159'&gt;/ store hash + expiry&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="unverified" target="token_valid">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-3" value="verify [hash found + unused + not expired]&lt;br/&gt;&lt;font color='#526159'&gt;/ set boolean + timestamp&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="token_valid" target="verified">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="980" y="540"/>
+              <mxPoint x="1080" y="540"/>
+              <mxPoint x="1080" y="287"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-4" value="same commit [valid verification]&lt;br/&gt;&lt;font color='#526159'&gt;/ set used_at&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="token_valid" target="token_used">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-5" value="verify [expires_at &lt; now]&lt;br/&gt;&lt;font color='#526159'&gt;/ reject without mutation&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="token_valid" target="token_expired">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1050" y="660"/>
+              <mxPoint x="1340" y="660"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-6" value="repeat verify [token already used]&lt;br/&gt;&lt;font color='#526159'&gt;/ return already verified&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="token_used" target="verified">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="edge-7" value="login [credentials valid, email unverified]&lt;br/&gt;&lt;font color='#526159'&gt;/ reject 403&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="unverified" target="unverified">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="760" y="160"/>
+              <mxPoint x="650" y="160"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-8" value="OAuth/staff create [trusted verified path]&lt;br/&gt;&lt;font color='#526159'&gt;/ create verified user&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="no_user" target="verified">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="340" y="150"/>
+              <mxPoint x="1340" y="150"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note-1" value="&lt;b&gt;Token safety&lt;/b&gt;&lt;br/&gt;Only a token hash is stored. The endpoint is rate-limited by hashed token and IP. Token lookup does not use &lt;font face='Consolas'&gt;FOR UPDATE&lt;/font&gt;." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#E4EFFA;strokeColor=#2563A6;fontColor=#17395C;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="690" width="500" height="150"/>
+        </mxCell>
+        <mxCell id="note-2" value="&lt;b&gt;Delivery behavior&lt;/b&gt;&lt;br/&gt;Registration commits even when verification email delivery fails; the failure is logged without exposing the token." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#EEF1EE;strokeColor=#6B766F;fontColor=#26332C;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="620" y="760" width="500" height="120"/>
+        </mxCell>
+        <mxCell id="note-3" value="&lt;b&gt;Recovery gap&lt;/b&gt;&lt;br/&gt;No resend-verification endpoint is implemented, so an expired local-registration token has no self-service recovery path." style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fontFamily=Inter;fontSize=12;fillColor=#FFF1C7;strokeColor=#B7791F;fontColor=#6B420A;strokeWidth=1.5;size=18;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1160" y="850" width="600" height="85"/>
+        </mxCell>
+        <mxCell id="final-1" value="" style="ellipse;html=1;aspect=fixed;fillColor=#FFFDF7;strokeColor=#123D2A;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1580" y="271" width="32" height="32"/>
+        </mxCell>
+        <mxCell id="final-inner-1" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1587" y="278" width="18" height="18"/>
+        </mxCell>
+        <mxCell id="edge-801" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="verified" target="final-1">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="final-2" value="" style="ellipse;html=1;aspect=fixed;fillColor=#FFFDF7;strokeColor=#123D2A;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1580" y="721" width="32" height="32"/>
+        </mxCell>
+        <mxCell id="final-inner-2" value="" style="ellipse;html=1;aspect=fixed;fillColor=#123D2A;strokeColor=#123D2A;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1587" y="728" width="18" height="18"/>
+        </mxCell>
+        <mxCell id="edge-802" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;endSize=8;strokeColor=#3F5147;strokeWidth=1.5;fontFamily=Inter;fontSize=12;fontColor=#26332C;labelBackgroundColor=#FFFDF7;spacing=4;" edge="1" parent="1" source="token_expired" target="final-2">
+          <mxGeometry as="geometry" relative="1"/>
+        </mxCell>
+        <mxCell id="footer" value="&lt;b&gt;Notation&lt;/b&gt;  state boxes use exact stored values · arrow = event [guard] / action · dashed = rule/limitation&lt;br/&gt;&lt;b&gt;Controlling sources&lt;/b&gt;  AuthService.register/verify_email/login; AuthTokenRepository; auth endpoints; OAuthService; StaffService" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=middle;fontFamily=Inter;fontSize=11;fontColor=#34443B;fillColor=#F2EFE4;strokeColor=#A7B1AA;spacingLeft=14;spacingRight=14;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="960" width="1780" height="78"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

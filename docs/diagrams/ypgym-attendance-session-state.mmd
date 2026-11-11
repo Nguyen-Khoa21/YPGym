@@ -1,0 +1,19 @@
+stateDiagram-v2
+    direction LR
+    state "active" as active
+    state "checked_out" as checked_out
+    state "timed_out" as timed_out
+    state "manual_closed" as manual_closed
+
+    [*] --> active: scanner check-in [device, QR, membership, no active session] / create session and check_in event
+    active --> checked_out: scanner check-out [valid device and QR] / set closed_at and check_out event
+    active --> timed_out: Celery every 5 minutes [checked_in_at <= cutoff] / set closed_at and timeout event
+    active --> manual_closed: staff close [active row and reason] / set actor, reason, audit and event
+    checked_out --> [*]
+    timed_out --> [*]
+    manual_closed --> [*]
+
+    note bottom of active
+        PostgreSQL partial unique index allows at most one active session per user.
+        Row locks and one transaction protect closure; occupancy is then reconciled.
+    end note
