@@ -55,13 +55,6 @@ class StaffRepository:
         ).all()
         return [(row[0], row[1], row[2], row[3]) for row in rows], total
 
-    async def trainer_id_for_user(self, user_id: UUID) -> UUID | None:
-        return (
-            await self.session.execute(
-                select(PersonalTrainer.id).where(PersonalTrainer.user_id == user_id),
-            )
-        ).scalar_one_or_none()
-
     async def create_shift(self, *, user_id: UUID, gym_id: UUID, clocked_in_at: datetime) -> StaffShift:
         shift = StaffShift(user_id=user_id, gym_id=gym_id, clocked_in_at=clocked_in_at)
         self.session.add(shift)

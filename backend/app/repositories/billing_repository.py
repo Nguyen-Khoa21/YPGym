@@ -107,22 +107,6 @@ class PaymentRepository:
             )
         ).scalar_one_or_none()
 
-    async def get_by_txn_ref(self, txn_ref: str, *, for_update: bool = False) -> Payment | None:
-        query = (
-            select(Payment)
-            .options(
-                selectinload(Payment.gym),
-                selectinload(Payment.plan),
-                selectinload(Payment.membership),
-                selectinload(Payment.invoice),
-                selectinload(Payment.class_booking).selectinload(ClassBooking.gym_class),
-            )
-            .where(Payment.txn_ref == txn_ref)
-        )
-        if for_update:
-            query = query.with_for_update()
-        return (await self.session.execute(query)).scalar_one_or_none()
-
     async def get_by_payos_order_code(self, order_code: int, *, for_update: bool = False) -> Payment | None:
         query = (
             select(Payment)

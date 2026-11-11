@@ -2,7 +2,7 @@
 
 YPGym is a PostgreSQL/FastAPI/React gym-operations application. The connected web scope covers authentication and billing, membership lifecycle decisions, CRM, notifications, audited exports, system configuration, rotating QR attendance, occupancy and manager analytics, individual workforce accounts and shifts, trainer profiles, transaction-safe class booking/waitlists, and YPTrain exercise/workout tracking. The Expo member app uses the same backend contracts for member operations and YPTrain; its documented Android emulator rehearsal covers the member journeys and session/error states listed in `docs/design/evidence/day-47-mobile/README.md`.
 
-The implementation follows `YPGym_60_Day_Development_Plan_Revised_PostgreSQL (1).md`. Detailed recovery evidence is in `docs/recovery/day-22-38-recovery-audit.md`; the current continuation contract is in `docs/HANDOFF.md`.
+Detailed recovery evidence is in `docs/recovery/day-22-38-recovery-audit.md`; the current continuation contract is in `docs/HANDOFF.md`.
 
 The former YPFood proposal was cancelled and replaced by YPTrain. The verified feature, commit, API, migration and limitation record is [docs/release/yptrain-release-checkpoint.md](docs/release/yptrain-release-checkpoint.md).
 

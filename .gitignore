@@ -114,3 +114,9 @@ YPGym vault/.obsidian/workspaces.json
 .archify/**/*.finalize-summary.json
 .archify/**/*.browser-check.json
 .archify/**/*.delivery.json
+
+# Local scratch, Word lock files and unrelated projects
+~$*
+tmp/
+MiroFish/
+notes25/

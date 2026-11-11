@@ -14,12 +14,6 @@ class MembershipPlanRepository:
     async def get_by_id(self, plan_id: UUID) -> MembershipPlan | None:
         return await self.session.get(MembershipPlan, plan_id)
 
-    async def get_by_name(self, name: str) -> MembershipPlan | None:
-        result = await self.session.execute(
-            select(MembershipPlan).where(MembershipPlan.name == name),
-        )
-        return result.scalar_one_or_none()
-
     async def list_active(self) -> list[MembershipPlan]:
         result = await self.session.execute(
             select(MembershipPlan)

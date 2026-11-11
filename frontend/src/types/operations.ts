@@ -198,15 +198,6 @@ export type AttendancePage = { items: AttendanceSession[]; page: PageInfo };
 
 export type QrToken = { token: string; issued_at: string; expires_at: string; ttl_seconds: number; membership_status: string };
 
-export type PeakHours = {
-  cells: { weekday: number; weekday_label: string; hour: number; visits: number }[];
-  occupancy: Crowdedness;
-  visits_today: number;
-  busiest_hour: string | null;
-  date_from: string;
-  date_to: string;
-};
-
 export type TrafficWindow = {
   start_hour: number;
   end_hour: number;

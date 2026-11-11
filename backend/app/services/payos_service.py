@@ -33,9 +33,3 @@ class PayOSClient:
 
     async def verify_webhook(self, payload: bytes):
         return await self.client.webhooks.verify(payload)
-
-    async def get_payment_link(self, order_code: int):
-        try:
-            return await self.client.payment_requests.get(order_code)
-        except (APIError, PayOSError, OSError) as exc:
-            raise AppError("PAYOS_UNAVAILABLE", "Payment status reconciliation is temporarily unavailable.", 503) from exc

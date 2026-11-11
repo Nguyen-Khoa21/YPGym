@@ -1,11 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
-from app.schemas.auth_schema import UserPublic
-
-
-class UserProfileResponse(UserPublic):
-    pass
-
 
 class UserProfileUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=160)

@@ -38,8 +38,7 @@ Before writing code:
 Before modifying code:
 
 - Read this `AGENTS.md` file.
-- Read the current `README.md`, `docs/HANDOFF.md`, relevant architecture or policy documents, and the applicable section of `YPGym_60_Day_Development_Plan_Revised_PostgreSQL (1).md`.
-- Treat the root `handoff.md` as historical context where it differs from the newer `docs/HANDOFF.md`.
+- Read the current `README.md`, `docs/HANDOFF.md`, and relevant architecture or policy documents.
 - Run `git status` and inspect current uncommitted changes.
 - Review the affected existing implementation.
 - Identify the exact requirement being addressed.

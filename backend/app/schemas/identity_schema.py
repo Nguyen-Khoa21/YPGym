@@ -3,8 +3,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.auth_schema import LoginResponse
-
 
 ProviderName = Literal["google", "facebook"]
 
@@ -44,10 +42,6 @@ class PendingLinkStatus(BaseModel):
 
 class PendingLinkEmailResponse(BaseModel):
     message: str
-
-
-class OAuthExchangeResponse(LoginResponse):
-    pass
 
 
 class IdentityItem(BaseModel):

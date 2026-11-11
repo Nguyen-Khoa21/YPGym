@@ -53,8 +53,6 @@ export const routePaths = {
   ptAlias: "/pt",
 } as const;
 
-export type RoutePath = (typeof routePaths)[keyof typeof routePaths];
-
 export const routeFor = {
   membershipPurchase: (planId: string) => `/memberships/buy/${encodeURIComponent(planId)}`,
   memberTrainingDetail: (exerciseId: string) => `/app/train/${encodeURIComponent(exerciseId)}`,

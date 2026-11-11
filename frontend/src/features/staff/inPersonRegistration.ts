@@ -1,5 +1,3 @@
-export type StaffPaymentState = "pending" | "paid" | "succeeded" | "failed" | "cancelled" | "expired" | "paid_review";
-
 /** The server marks a verified payOS payment `paid` and never moves it on; `succeeded` is the legacy equivalent. */
 export function isPaidStatus(status: string | undefined): boolean {
   return status === "paid" || status === "succeeded";
