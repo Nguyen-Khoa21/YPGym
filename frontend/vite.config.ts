@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+const hmrClientPort = Number(process.env.HMR_CLIENT_PORT);
 const sensitiveApiPattern = /^https?:\/\/[^/]+\/api(?:\/|$)/i;
 const sensitiveApiMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 
@@ -35,5 +36,8 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
+    hmr: Number.isInteger(hmrClientPort) && hmrClientPort > 0
+      ? { clientPort: hmrClientPort }
+      : undefined,
   },
 });
