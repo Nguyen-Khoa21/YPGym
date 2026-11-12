@@ -135,6 +135,31 @@ Only `iot-simulator` QR check-ins count. Staff/manual attendance entries and rep
 
 PT provisioning also creates the linked trainer profile. Complete member-facing biography/specialty details under `/admin/pt-assignments`. The default `ypgym.dev` namespace is for local sign-in demonstrations and is not a claimed email mailbox domain; set an owned domain before implementing workforce email delivery. See `docs/api/staff-operations.md` for the exact security and concurrency contract.
 
+### Simulate low, moderate and high gym occupancy
+
+Occupancy is the number of active attendance sessions divided by the branch capacity (150 in the seed). The app labels it **Low** up to 30%, **Moderate** up to 60%, **Busy** up to 85% and **Very Crowded** above that. To see each state without scanning dozens of QR codes, run the occupancy simulator against the running stack:
+
+```powershell
+cd C:\Users\Admin\ypgym
+$run = "docker compose --env-file backend/.env exec -T backend-api python -m scripts.simulate_occupancy"
+Invoke-Expression "$run --list"                           # current occupancy for every branch
+Invoke-Expression "$run --gym district-1 --level low"     # 30 people, 20%
+Invoke-Expression "$run --gym district-1 --level medium"  # 75 people, 50%
+Invoke-Expression "$run --gym district-1 --level busy"    # 113 people, 75%
+Invoke-Expression "$run --gym district-1 --level high"    # 143 people, 95%
+Invoke-Expression "$run --gym district-11 --percent 70"   # any percent of capacity
+Invoke-Expression "$run --gym district-1 --count 40"      # an exact head count
+Invoke-Expression "$run --clear"                          # remove every simulated member and session
+```
+
+1. Sign in as a member of the branch (for example `member@ypgym.dev` for District 1) and open `/app/dashboard`. Open `/admin/attendance` as the manager in another window.
+2. Run one level at a time. Both pages refresh within a few seconds because the script clears the cached occupancy and publishes a realtime event. Reload the page if a tab was already disconnected.
+3. Check the percentage, the status label, the colour-independent text and the traffic panel at each level, then run `--clear`.
+
+The simulator creates members named `Occupancy Sim NNN` (`occsim-<branch>-NNNN@ypgym.sim`, no password, so nobody can sign in as them) and gives each an active session with source `occupancy_sim`. It adds only the difference between the target and the real members already checked in, replaces its own earlier sessions for the same branch, never edits real users or sessions, and refuses to run when `ENVIRONMENT=production`.
+
+While simulated data exists, current-month traffic figures and the admin member list include the `Occupancy Sim` accounts. Run `--clear` before demonstrations or screenshots. The previous-month traffic summary is not affected. Check-in times are spread over the last 50 minutes and the timeout worker closes active sessions after `attendance_timeout_minutes` (180 by default), so run the command again to refresh them.
+
 ## 4. Web development and production build on the host
 
 The Docker web portal already works after section 2. Use this section when you want the web dev server/build in your own terminal. Stop only the Docker frontend to free port 5174; keep the API/database/cache running.
