@@ -1,26 +1,33 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Clipboard, Plus, UsersRound } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
 
-import { QueryState } from "@/components/common/QueryState";
 import { AdminShell } from "@/components/layout/AdminShell";
-import {
-  Modal,
-  OperationsHeader,
-  Pagination,
-  Panel,
-  StatusBadge,
-} from "@/components/operations/OperationsUi";
+import { OperationsHeader } from "@/components/operations/OperationsUi";
 import { Button } from "@/components/ui/Button";
-import { Field, FieldError, Input, Label } from "@/components/ui/Form";
+import { AccountsPanel } from "@/features/admin/staff/components/AccountsPanel";
+import { CreateStaffDialog } from "@/features/admin/staff/components/CreateStaffDialog";
+import { ShiftsPanel } from "@/features/admin/staff/components/ShiftsPanel";
+import { StaffFilterBar } from "@/features/admin/staff/components/StaffFilterBar";
+import { TemporaryCredentialsDialog } from "@/features/admin/staff/components/TemporaryCredentialsDialog";
+import {
+  accountListParams,
+  initialStaffFilters,
+  shiftListParams,
+  type StaffFilters,
+} from "@/features/admin/staff/staffFilters";
+import {
+  emptyStaffAccountForm,
+  staffAccountSchema,
+  toStaffAccountPayload,
+  type StaffAccountForm,
+} from "@/features/admin/staff/staffForm";
 import { useAuth } from "@/features/auth/AuthContext";
 import { apiRequest } from "@/lib/apiClient";
 import { toUiError } from "@/lib/apiErrors";
-import { formatDateTime } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
 import type {
   GymLocation,
@@ -29,59 +36,35 @@ import type {
   StaffShiftPage,
 } from "@/types/operations";
 
-const accountSchema = z.object({
-  name: z.string().min(2, "Use at least 2 characters.").max(160),
-  login_name: z
-    .string()
-    .min(3)
-    .max(64)
-    .regex(
-      /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/,
-      "Use letters, numbers, periods, hyphens or underscores.",
-    ),
-  role: z.enum(["staff", "pt"]),
-  phone: z
-    .string()
-    .refine((value) => value.length === 0 || value.length >= 7, "Use at least 7 characters."),
-  gym_id: z.string(),
-});
-type AccountForm = z.infer<typeof accountSchema>;
-
-function durationLabel(minutes: number) {
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-}
-
 export function AdminStaffPage() {
   const { token, user } = useAuth();
   const [accountPage, setAccountPage] = useState(1);
   const [shiftPage, setShiftPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [role, setRole] = useState("");
-  const [status, setStatus] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [filters, setFilters] = useState(initialStaffFilters);
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState<StaffAccountCreated | null>(null);
-  const form = useForm<AccountForm>({
-    resolver: zodResolver(accountSchema),
-    defaultValues: { name: "", login_name: "", role: "staff", phone: "", gym_id: "" },
+  const form = useForm<StaffAccountForm>({
+    resolver: zodResolver(staffAccountSchema),
+    defaultValues: emptyStaffAccountForm(),
   });
-  const accountParams = new URLSearchParams({ page: String(accountPage), page_size: "20" });
-  if (search) accountParams.set("search", search);
-  if (role) accountParams.set("role", role);
-  const shiftParams = new URLSearchParams({ page: String(shiftPage), page_size: "20" });
-  if (search) shiftParams.set("search", search);
-  if (role) shiftParams.set("role", role);
-  if (status) shiftParams.set("status", status);
-  if (dateFrom) shiftParams.set("date_from", dateFrom);
-  if (dateTo) shiftParams.set("date_to", dateTo);
+  const accountParams = accountListParams(filters, accountPage);
+  const shiftParams = shiftListParams(filters, shiftPage);
   const accounts = useQuery({
-    queryKey: ["admin", "staff-accounts", accountPage, search, role],
+    queryKey: ["admin", "staff-accounts", accountPage, filters.search, filters.role],
     queryFn: ({ signal }) =>
       apiRequest<StaffAccountPage>(`/admin/staff-accounts?${accountParams}`, { token, signal }),
   });
   const shifts = useQuery({
-    queryKey: ["admin", "staff-shifts", shiftPage, search, role, status, dateFrom, dateTo],
+    queryKey: [
+      "admin",
+      "staff-shifts",
+      shiftPage,
+      filters.search,
+      filters.role,
+      filters.status,
+      filters.dateFrom,
+      filters.dateTo,
+    ],
     queryFn: ({ signal }) =>
       apiRequest<StaffShiftPage>(`/admin/staff-shifts?${shiftParams}`, { token, signal }),
   });
@@ -91,11 +74,11 @@ export function AdminStaffPage() {
     enabled: user?.role === "admin",
   });
   const create = useMutation({
-    mutationFn: (values: AccountForm) =>
+    mutationFn: (values: StaffAccountForm) =>
       apiRequest<StaffAccountCreated>("/admin/staff-accounts", {
         method: "POST",
         token,
-        body: { ...values, phone: values.phone || null, gym_id: values.gym_id || null },
+        body: toStaffAccountPayload(values),
       }),
     onSuccess: async (result) => {
       setCreating(false);
@@ -111,6 +94,18 @@ export function AdminStaffPage() {
     onError: (error) => toast.error(toUiError(error).message),
   });
 
+  /** Search and role narrow both lists; the other filters only narrow shifts. */
+  function changeFilters(patch: Partial<StaffFilters>) {
+    setFilters((current) => ({ ...current, ...patch }));
+    if ("search" in patch || "role" in patch) setAccountPage(1);
+    setShiftPage(1);
+  }
+  function openCreate() {
+    create.reset();
+    form.reset(emptyStaffAccountForm(locations.data?.[0]?.id));
+    setCreating(true);
+  }
+
   return (
     <AdminShell>
       <div className="mx-auto max-w-7xl">
@@ -119,352 +114,33 @@ export function AdminStaffPage() {
           title="Individual accounts and shifts."
           description="Provision staff or PT sign-ins, reveal each temporary password once, and review server-recorded shifts."
           actions={
-            <Button
-              onClick={() => {
-                create.reset();
-                form.reset({
-                  name: "",
-                  login_name: "",
-                  role: "staff",
-                  phone: "",
-                  gym_id: locations.data?.[0]?.id ?? "",
-                });
-                setCreating(true);
-              }}
-            >
+            <Button onClick={openCreate}>
               <Plus className="size-4" /> Create account
             </Button>
           }
         />
-        <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Field className="lg:col-span-2">
-            <Label htmlFor="staff-search">Name or login</Label>
-            <Input
-              id="staff-search"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setAccountPage(1);
-                setShiftPage(1);
-              }}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="staff-role">Role</Label>
-            <select
-              id="staff-role"
-              className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm"
-              value={role}
-              onChange={(event) => {
-                setRole(event.target.value);
-                setAccountPage(1);
-                setShiftPage(1);
-              }}
-            >
-              <option value="">All roles</option>
-              <option value="staff">Staff</option>
-              <option value="pt">PT</option>
-            </select>
-          </Field>
-          <Field>
-            <Label htmlFor="shift-status">Shift status</Label>
-            <select
-              id="shift-status"
-              className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm"
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value);
-                setShiftPage(1);
-              }}
-            >
-              <option value="">All shifts</option>
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
-            </select>
-          </Field>
-          <div className="flex items-end">
-            <Button
-              className="w-full"
-              variant="outline"
-              onClick={() => {
-                setSearch("");
-                setRole("");
-                setStatus("");
-                setDateFrom("");
-                setDateTo("");
-              }}
-            >
-              Clear filters
-            </Button>
-          </div>
-        </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <Field>
-            <Label htmlFor="shift-from">Shift date from</Label>
-            <Input
-              id="shift-from"
-              type="date"
-              value={dateFrom}
-              onChange={(event) => {
-                setDateFrom(event.target.value);
-                setShiftPage(1);
-              }}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="shift-to">Shift date to</Label>
-            <Input
-              id="shift-to"
-              type="date"
-              value={dateTo}
-              min={dateFrom || undefined}
-              onChange={(event) => {
-                setDateTo(event.target.value);
-                setShiftPage(1);
-              }}
-            />
-          </Field>
-        </div>
+        <StaffFilterBar
+          filters={filters}
+          onChange={changeFilters}
+          onClear={() => setFilters(initialStaffFilters)}
+        />
         <div className="mt-7 grid items-start gap-6 xl:grid-cols-2">
-          <Panel
-            title="Workforce accounts"
-            detail={
-              accounts.data
-                ? `Internal sign-ins use @${accounts.data.internal_email_domain}. This is not a claimed mailbox domain.`
-                : "Distinct staff and PT credentials."
-            }
-          >
-            <QueryState
-              query={accounts}
-              className="m-4"
-              loading={{ title: "Loading accounts" }}
-              retry
-              empty={{
-                title: "No workforce accounts",
-                message: "Create the first individual staff or PT account.",
-              }}
-              isEmpty={(data) => data.items.length === 0}
-            >
-              {(data) => (
-                <div className="divide-y divide-border">
-                  {data.items.map((account) => (
-                    <article
-                      className="flex flex-wrap items-start justify-between gap-4 p-4"
-                      key={account.id}
-                    >
-                      <div>
-                        <strong>{account.name}</strong>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {account.email}
-                          {account.phone ? ` · ${account.phone}` : ""}
-                        </p>
-                        <p className="mt-2 text-xs font-semibold">
-                          {account.gym_name ? `Gym: ${account.gym_name}` : "No gym assigned"}
-                        </p>
-                        <p className="mt-1 text-xs">
-                          {account.trainer_profile_id
-                            ? "Linked PT profile"
-                            : account.role === "staff"
-                              ? "Staff operations access"
-                              : "PT profile pending"}
-                        </p>
-                      </div>
-                      <div className="grid justify-items-end gap-2">
-                        <StatusBadge value={account.role} />
-                        <StatusBadge
-                          value={
-                            account.must_change_password ? "password change required" : "active"
-                          }
-                        />
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </QueryState>
-            {accounts.data ? (
-              <Pagination
-                page={accountPage}
-                pages={accounts.data.page.pages}
-                total={accounts.data.page.total}
-                onPage={setAccountPage}
-              />
-            ) : null}
-          </Panel>
-          <Panel
-            title="Shift report"
-            detail={
-              shifts.data
-                ? `Displayed in ${shifts.data.gym_timezone}`
-                : "UTC records rendered in gym local time."
-            }
-          >
-            <QueryState
-              query={shifts}
-              className="m-4"
-              loading={{ title: "Loading shifts" }}
-              retry
-              empty={{
-                title: "No matching shifts",
-                message: "Shift records appear after staff or PT users clock in.",
-              }}
-              isEmpty={(data) => data.items.length === 0}
-            >
-              {(data) => (
-                <div className="divide-y divide-border">
-                  {data.items.map((shift) => (
-                    <article className="p-4" key={shift.id}>
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <strong>{shift.staff_name}</strong>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {shift.staff_email} · {shift.role.toUpperCase()}
-                          </p>
-                        </div>
-                        <StatusBadge value={shift.status} />
-                      </div>
-                      <p className="mt-3 text-sm">
-                        {formatDateTime(shift.clocked_in_at, data.gym_timezone)} →{" "}
-                        {shift.clocked_out_at
-                          ? formatDateTime(shift.clocked_out_at, data.gym_timezone)
-                          : "Open"}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Duration {durationLabel(shift.duration_minutes)}
-                      </p>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </QueryState>
-            {shifts.data ? (
-              <Pagination
-                page={shiftPage}
-                pages={shifts.data.page.pages}
-                total={shifts.data.page.total}
-                onPage={setShiftPage}
-              />
-            ) : null}
-          </Panel>
+          <AccountsPanel query={accounts} page={accountPage} onPage={setAccountPage} />
+          <ShiftsPanel query={shifts} page={shiftPage} onPage={setShiftPage} />
         </div>
         {creating ? (
-          <Modal
-            title="Create workforce account"
-            description="Managers can create staff and PT accounts only. Admin roles cannot be provisioned here."
+          <CreateStaffDialog
+            form={form}
+            isAdmin={user?.role === "admin"}
+            gyms={locations.data}
             error={create.isError ? toUiError(create.error).message : undefined}
+            isPending={create.isPending}
+            onSubmit={(values) => create.mutate(values)}
             onClose={() => setCreating(false)}
-          >
-            <form
-              className="ops-modal__body"
-              onSubmit={form.handleSubmit((values) => create.mutate(values))}
-            >
-              <div className="grid gap-4">
-                <Field>
-                  <Label htmlFor="staff-name">Full name</Label>
-                  <Input id="staff-name" autoComplete="name" {...form.register("name")} />
-                  <FieldError message={form.formState.errors.name?.message} />
-                </Field>
-                <Field>
-                  <Label htmlFor="staff-login">Login name</Label>
-                  <Input
-                    id="staff-login"
-                    autoCapitalize="none"
-                    placeholder="alex.nguyen"
-                    {...form.register("login_name")}
-                  />
-                  <FieldError message={form.formState.errors.login_name?.message} />
-                </Field>
-                <Field>
-                  <Label htmlFor="staff-account-role">Role</Label>
-                  <select
-                    id="staff-account-role"
-                    className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm"
-                    {...form.register("role")}
-                  >
-                    <option value="staff">Staff</option>
-                    <option value="pt">Personal trainer</option>
-                  </select>
-                </Field>
-                {user?.role === "admin" ? (
-                  <Field>
-                    <Label htmlFor="staff-gym">Gym location</Label>
-                    <select
-                      id="staff-gym"
-                      required
-                      className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm"
-                      {...form.register("gym_id")}
-                    >
-                      <option value="">Select a gym</option>
-                      {locations.data?.map((gym) => (
-                        <option key={gym.id} value={gym.id}>
-                          {gym.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                ) : null}
-                <Field>
-                  <Label htmlFor="staff-phone">Phone (optional)</Label>
-                  <Input id="staff-phone" autoComplete="tel" {...form.register("phone")} />
-                  <FieldError message={form.formState.errors.phone?.message} />
-                </Field>
-              </div>
-              <div className="ops-modal__actions">
-                <Button variant="outline" onClick={() => setCreating(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={create.isPending || (user?.role === "admin" && !locations.data?.length)}
-                >
-                  {create.isPending ? "Creating..." : "Create account"}
-                </Button>
-              </div>
-            </form>
-          </Modal>
+          />
         ) : null}
         {created ? (
-          <Modal
-            title="Copy temporary credentials"
-            description={created.message}
-            onClose={() => setCreated(null)}
-          >
-            <div className="ops-modal__body">
-              <div className="rounded-xl border border-border bg-muted/40 p-4">
-                <p className="text-xs font-black uppercase tracking-wider text-muted-foreground">
-                  Login
-                </p>
-                <code className="mt-1 block break-all text-sm font-bold">
-                  {created.account.email}
-                </code>
-                <p className="mt-4 text-xs font-black uppercase tracking-wider text-muted-foreground">
-                  Temporary password
-                </p>
-                <code className="mt-1 block break-all text-sm font-bold">
-                  {created.temporary_password}
-                </code>
-              </div>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Share these credentials privately. The user must replace the password at first
-                login. This internal login domain is not presented as a deliverable email inbox.
-              </p>
-              <div className="ops-modal__actions">
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    void navigator.clipboard
-                      .writeText(`${created.account.email}\n${created.temporary_password}`)
-                      .then(() => toast.success("Credentials copied"))
-                  }
-                >
-                  <Clipboard className="size-4" /> Copy
-                </Button>
-                <Button onClick={() => setCreated(null)}>
-                  <UsersRound className="size-4" /> Done
-                </Button>
-              </div>
-            </div>
-          </Modal>
+          <TemporaryCredentialsDialog created={created} onClose={() => setCreated(null)} />
         ) : null}
       </div>
     </AdminShell>
