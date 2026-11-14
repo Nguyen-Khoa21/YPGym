@@ -19,12 +19,7 @@ const buttonClasses = {
     "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 disabled:bg-destructive/60",
 };
 
-export function Button({
-  className,
-  variant = "primary",
-  type = "button",
-  ...props
-}: ButtonProps) {
+export function Button({ className, variant = "primary", type = "button", ...props }: ButtonProps) {
   return (
     <button
       type={type}
@@ -45,12 +40,7 @@ type ButtonLinkProps = PropsWithChildren<
   }
 >;
 
-export function ButtonLink({
-  asChild,
-  className,
-  variant = "primary",
-  ...props
-}: ButtonLinkProps) {
+export function ButtonLink({ asChild, className, variant = "primary", ...props }: ButtonLinkProps) {
   const Component = asChild ? Slot : "a";
   return (
     <Component

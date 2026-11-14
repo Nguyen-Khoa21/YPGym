@@ -9,7 +9,10 @@ import { queryClient } from "@/lib/queryClient";
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider><AttendanceRealtime />{children}</AuthProvider>
+      <AuthProvider>
+        <AttendanceRealtime />
+        {children}
+      </AuthProvider>
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
   );

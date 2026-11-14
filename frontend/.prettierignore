@@ -1,0 +1,7 @@
+dist
+node_modules
+coverage
+public
+package-lock.json
+# tests/lazyRoutes.test.mjs matches exact JSX strings in this file
+src/app/router.tsx

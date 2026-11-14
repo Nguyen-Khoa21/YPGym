@@ -28,7 +28,13 @@ export type AdminMember = {
 export type AdminMemberPage = {
   items: AdminMember[];
   page: PageInfo;
-  summary: { total: number; active: number; expiring_soon: number; frozen: number; expired_or_inactive: number };
+  summary: {
+    total: number;
+    active: number;
+    expiring_soon: number;
+    frozen: number;
+    expired_or_inactive: number;
+  };
 };
 
 export type MembershipRequest = {
@@ -69,11 +75,37 @@ export type AuditItem = {
 };
 
 export type AdminMemberDetail = {
-  profile: { id: string; name: string; email: string; phone: string | null; role: string; tier: string; is_email_verified: boolean };
+  profile: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    role: string;
+    tier: string;
+    is_email_verified: boolean;
+  };
   memberships: MembershipRecord[];
-  payments: { id: string; plan_name: string; amount: string; discount_amount: string; status: string; reference: string; created_at: string }[];
-  invoices: { id: string; invoice_number: string; plan_name: string; amount: string; transaction_date: string }[];
-  attendance_summary: { total_visits: number; active_sessions: number; last_check_in_at: string | null };
+  payments: {
+    id: string;
+    plan_name: string;
+    amount: string;
+    discount_amount: string;
+    status: string;
+    reference: string;
+    created_at: string;
+  }[];
+  invoices: {
+    id: string;
+    invoice_number: string;
+    plan_name: string;
+    amount: string;
+    transaction_date: string;
+  }[];
+  attendance_summary: {
+    total_visits: number;
+    active_sessions: number;
+    last_check_in_at: string | null;
+  };
   attendance_history: AttendanceSession[];
   booking_summary: { total: number; upcoming: number; waitlisted: number };
   membership_requests: MembershipRequest[];
@@ -127,7 +159,12 @@ export type BillingInvoice = {
 export type BillingPage<T> = { items: T[]; page: PageInfo; total_amount: string };
 export type AuditPage = { items: AuditItem[]; page: PageInfo };
 
-export type ConfigurationItem = { key: string; value: number; description: string | null; updated_at: string };
+export type ConfigurationItem = {
+  key: string;
+  value: number;
+  description: string | null;
+  updated_at: string;
+};
 
 export type NotificationPreference = {
   email_enabled: boolean;
@@ -177,7 +214,14 @@ export type Crowdedness = {
   calculated_at: string;
 };
 
-export type AttendanceEvent = { id: string; gym_id: string; event_type: string; event_at: string; source: string; device_id: string | null };
+export type AttendanceEvent = {
+  id: string;
+  gym_id: string;
+  event_type: string;
+  event_at: string;
+  source: string;
+  device_id: string | null;
+};
 
 export type AttendanceSession = {
   id: string;
@@ -196,7 +240,13 @@ export type AttendanceSession = {
 
 export type AttendancePage = { items: AttendanceSession[]; page: PageInfo };
 
-export type QrToken = { token: string; issued_at: string; expires_at: string; ttl_seconds: number; membership_status: string };
+export type QrToken = {
+  token: string;
+  issued_at: string;
+  expires_at: string;
+  ttl_seconds: number;
+  membership_status: string;
+};
 
 export type TrafficWindow = {
   start_hour: number;
@@ -317,7 +367,12 @@ export type GymClass = {
   updated_at: string;
 };
 
-export type ClassPage = { items: GymClass[]; page: PageInfo; scheduled_count: number; cancelled_count: number };
+export type ClassPage = {
+  items: GymClass[];
+  page: PageInfo;
+  scheduled_count: number;
+  cancelled_count: number;
+};
 
 export type MemberClass = {
   id: string;
@@ -338,7 +393,14 @@ export type MemberClass = {
   member_booking_status: string | null;
   member_waitlist_status: string | null;
   waitlist_position: number | null;
-  member_state: "available" | "confirmed" | "pending_payment" | "full" | "waitlisted" | "cancelled" | "ineligible";
+  member_state:
+    | "available"
+    | "confirmed"
+    | "pending_payment"
+    | "full"
+    | "waitlisted"
+    | "cancelled"
+    | "ineligible";
 };
 
 export type MemberClassList = {
@@ -415,7 +477,13 @@ export type MemberDashboardPayload = {
   unread_notification_count: number;
   recent_notifications: NotificationItem[];
   active_broadcasts: Broadcast[];
-  quick_actions: { key: string; label: string; target: string; enabled: boolean; reason: string | null }[];
+  quick_actions: {
+    key: string;
+    label: string;
+    target: string;
+    enabled: boolean;
+    reason: string | null;
+  }[];
 };
 
 export type StaffAccount = {
@@ -493,7 +561,14 @@ export type WorkforceGymAssignment = {
 };
 
 export type InPersonMemberRegistered = {
-  member: { id: string; name: string; email: string; phone: string | null; gym_id: string; gym_name: string };
+  member: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    gym_id: string;
+    gym_name: string;
+  };
   temporary_password: string;
   message: string;
 };

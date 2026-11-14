@@ -2,7 +2,10 @@ import type { QueryClient } from "@tanstack/react-query";
 
 export type ManagementMutationScope = "broadcasts" | "classes" | "configuration" | "trainers";
 
-export const managementMutationQueryKeys: Record<ManagementMutationScope, readonly (readonly string[])[]> = {
+export const managementMutationQueryKeys: Record<
+  ManagementMutationScope,
+  readonly (readonly string[])[]
+> = {
   broadcasts: [["admin", "broadcasts"], ["dashboard"]],
   classes: [
     ["admin", "classes"],
@@ -61,6 +64,7 @@ export function configurationDraftState(
   maximum: number,
 ) {
   const value = Number(rawValue);
-  const valid = rawValue.trim() !== "" && Number.isInteger(value) && value >= minimum && value <= maximum;
+  const valid =
+    rawValue.trim() !== "" && Number.isInteger(value) && value >= minimum && value <= maximum;
   return { value, valid, changed: valid && value !== currentValue };
 }

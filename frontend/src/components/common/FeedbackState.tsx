@@ -25,12 +25,7 @@ export function LoadingState({
   );
 }
 
-export function EmptyState({
-  title,
-  message,
-  action,
-  className,
-}: FeedbackStateProps) {
+export function EmptyState({ title, message, action, className }: FeedbackStateProps) {
   return (
     <StateShell
       icon={<SearchX className="size-5" aria-hidden />}
@@ -42,12 +37,7 @@ export function EmptyState({
   );
 }
 
-export function ErrorState({
-  title,
-  message,
-  action,
-  className,
-}: FeedbackStateProps) {
+export function ErrorState({ title, message, action, className }: FeedbackStateProps) {
   return (
     <StateShell
       icon={<AlertCircle className="size-5" aria-hidden />}
@@ -114,9 +104,7 @@ function StateShell({
         <div className="min-w-0">
           <h2 className="text-base font-semibold">{title}</h2>
           {message ? (
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              {message}
-            </p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">{message}</p>
           ) : null}
           {action ? <div className="mt-4">{action}</div> : null}
         </div>

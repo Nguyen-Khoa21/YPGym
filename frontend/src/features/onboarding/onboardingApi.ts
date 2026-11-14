@@ -20,7 +20,14 @@ export type OnboardingState = Partial<OnboardingAnswers> & { status: OnboardingS
 
 export type Recommendations = {
   recommended_gym?: { id: string; name: string; slug: string; district: string };
-  quiet_hours?: { gym_id: string; gym_name: string; label: string; start_hour: number; end_hour: number; average_capacity_percentage: number };
+  quiet_hours?: {
+    gym_id: string;
+    gym_name: string;
+    label: string;
+    start_hour: number;
+    end_hour: number;
+    average_capacity_percentage: number;
+  };
   quiet_hours_reason?: "not_enough_data";
 };
 
@@ -61,6 +68,7 @@ export function useRecommendations(enabled = true) {
     queryKey: ["recommendations", "me"],
     enabled: enabled && Boolean(token),
     staleTime: 300_000,
-    queryFn: ({ signal }) => apiRequest<Recommendations>("/users/me/recommendations", { token, signal }),
+    queryFn: ({ signal }) =>
+      apiRequest<Recommendations>("/users/me/recommendations", { token, signal }),
   });
 }

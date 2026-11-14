@@ -1,7 +1,16 @@
 import { useEffect, useSyncExternalStore } from "react";
 
 import { useAuth } from "@/features/auth/AuthContext";
-import { attendanceAuthFrame, attendanceCloseDisposition, attendanceEventGymId, attendanceRealtimeUrl, attendanceReconnectDelay, closeAttendanceSocket, invalidateAttendanceQueries, isAttendanceRefreshMessage } from "@/lib/attendanceRealtime";
+import {
+  attendanceAuthFrame,
+  attendanceCloseDisposition,
+  attendanceEventGymId,
+  attendanceRealtimeUrl,
+  attendanceReconnectDelay,
+  closeAttendanceSocket,
+  invalidateAttendanceQueries,
+  isAttendanceRefreshMessage,
+} from "@/lib/attendanceRealtime";
 import { realtimeGymStore } from "@/features/operations/gymScope";
 import { queryClient } from "@/lib/queryClient";
 
@@ -29,18 +38,29 @@ export function AttendanceRealtime() {
       });
       socket.addEventListener("message", (message) => {
         let payload: unknown;
-        try { payload = JSON.parse(String(message.data)); } catch { return; }
+        try {
+          payload = JSON.parse(String(message.data));
+        } catch {
+          return;
+        }
         if ((payload as { type?: string })?.type === "ping") {
           socket?.send(JSON.stringify({ type: "pong" }));
         } else if (isAttendanceRefreshMessage(payload)) {
           if (refreshTimer) window.clearTimeout(refreshTimer);
           const eventGymId = attendanceEventGymId(payload);
-          refreshTimer = window.setTimeout(() => void invalidateAttendanceQueries(queryClient, eventGymId), 50);
+          refreshTimer = window.setTimeout(
+            () => void invalidateAttendanceQueries(queryClient, eventGymId),
+            50,
+          );
         }
       });
       socket.addEventListener("close", (event) => {
         socket = undefined;
-        const disposition = attendanceCloseDisposition(event.code, document.visibilityState === "visible", stopped);
+        const disposition = attendanceCloseDisposition(
+          event.code,
+          document.visibilityState === "visible",
+          stopped,
+        );
         if (disposition === "stop") return;
         if (disposition === "logout") {
           window.dispatchEvent(new Event("ypgym:unauthorized"));
@@ -51,7 +71,11 @@ export function AttendanceRealtime() {
       });
     };
     const onVisibility = () => {
-      if (document.visibilityState === "visible" && (!socket || socket.readyState >= WebSocket.CLOSING)) connect();
+      if (
+        document.visibilityState === "visible" &&
+        (!socket || socket.readyState >= WebSocket.CLOSING)
+      )
+        connect();
       if (document.visibilityState === "hidden") closeAttendanceSocket(socket, "Page hidden");
     };
     document.addEventListener("visibilitychange", onVisibility);

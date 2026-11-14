@@ -25,7 +25,9 @@ export function useRotatingQr(enabled = true) {
   useEffect(() => {
     if (!expiresAt) return;
     const refreshIn = Math.max(1_000, new Date(expiresAt).getTime() - Date.now() - 5_000);
-    const timer = window.setTimeout(() => { void refetch(); }, refreshIn);
+    const timer = window.setTimeout(() => {
+      void refetch();
+    }, refreshIn);
     return () => window.clearTimeout(timer);
   }, [expiresAt, refetch]);
 
@@ -37,7 +39,8 @@ export function useTrafficSummary(enabled = true) {
   const { token } = useAuth();
   return useQuery({
     queryKey: ["attendance", "traffic-summary", "me"],
-    queryFn: ({ signal }) => apiRequest<TrafficSummary>("/attendance/traffic-summary", { token, signal }),
+    queryFn: ({ signal }) =>
+      apiRequest<TrafficSummary>("/attendance/traffic-summary", { token, signal }),
     enabled,
     staleTime: 300_000,
   });

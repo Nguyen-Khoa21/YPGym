@@ -1,6 +1,9 @@
 /** Safe, predictable file name for a downloaded invoice (never trusts server-provided names). */
 export function invoiceFileName(invoiceNumber: string): string {
-  const safe = invoiceNumber.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^[-.]+|[-.]+$/g, "").slice(0, 80);
+  const safe = invoiceNumber
+    .replace(/[^A-Za-z0-9._-]+/g, "-")
+    .replace(/^[-.]+|[-.]+$/g, "")
+    .slice(0, 80);
   return `${safe || "invoice"}.pdf`;
 }
 

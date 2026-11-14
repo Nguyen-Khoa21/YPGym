@@ -34,7 +34,9 @@ function createFieldContext(controlId: string): FieldContextValue {
     errorId: `${controlId}-error`,
     subscribe(listener) {
       listeners.add(listener);
-      return () => { listeners.delete(listener); };
+      return () => {
+        listeners.delete(listener);
+      };
     },
     hasError: () => error,
     setHasError(value) {
@@ -55,11 +57,7 @@ export function Field({ children, className }: PropsWithChildren<HTMLAttributes<
   );
 }
 
-export function Label({
-  className,
-  htmlFor,
-  ...props
-}: LabelHTMLAttributes<HTMLLabelElement>) {
+export function Label({ className, htmlFor, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
   const field = useContext(FieldContext);
   return (
     <label
@@ -72,11 +70,16 @@ export function Label({
 
 function useControlA11y(id: string | undefined, describedBy: string | undefined) {
   const field = useContext(FieldContext);
-  const invalid = useSyncExternalStore(field?.subscribe ?? noopSubscribe, field?.hasError ?? never, never);
+  const invalid = useSyncExternalStore(
+    field?.subscribe ?? noopSubscribe,
+    field?.hasError ?? never,
+    never,
+  );
   return {
     id: id ?? field?.controlId,
     "aria-invalid": invalid || undefined,
-    "aria-describedby": [describedBy, invalid ? field?.errorId : undefined].filter(Boolean).join(" ") || undefined,
+    "aria-describedby":
+      [describedBy, invalid ? field?.errorId : undefined].filter(Boolean).join(" ") || undefined,
   };
 }
 
@@ -100,7 +103,13 @@ export function Textarea({
   ...props
 }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const a11y = useControlA11y(id, describedBy);
-  return <textarea className={cn("min-h-28 resize-y py-2.5", controlClasses, className)} {...a11y} {...props} />;
+  return (
+    <textarea
+      className={cn("min-h-28 resize-y py-2.5", controlClasses, className)}
+      {...a11y}
+      {...props}
+    />
+  );
 }
 
 export function FieldError({ message }: { message?: string }) {
@@ -114,5 +123,9 @@ export function FieldError({ message }: { message?: string }) {
   if (!message) {
     return null;
   }
-  return <p id={field?.errorId} role="alert" className="text-sm font-medium text-destructive">{message}</p>;
+  return (
+    <p id={field?.errorId} role="alert" className="text-sm font-medium text-destructive">
+      {message}
+    </p>
+  );
 }

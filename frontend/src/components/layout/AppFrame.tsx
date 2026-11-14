@@ -22,7 +22,15 @@ function WorkforceGymChip() {
     queryFn: ({ signal }) => apiRequest<GymLocation>("/gyms/me", { token, signal }),
   });
   if (!isWorkforce || !gym.data) return null;
-  return <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-extrabold text-foreground" data-testid="workforce-gym"><MapPin className="size-3.5" aria-hidden />{gym.data.name}</span>;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-extrabold text-foreground"
+      data-testid="workforce-gym"
+    >
+      <MapPin className="size-3.5" aria-hidden />
+      {gym.data.name}
+    </span>
+  );
 }
 
 type AppFrameProps = PropsWithChildren<{
@@ -71,7 +79,11 @@ export function AppFrame({ children, compact = false, navigation }: AppFrameProp
                   <LayoutDashboard className="size-4" aria-hidden />
                   Workspace
                 </Link>
-                <Link className="identity-chip" to={routePaths.memberProfile} aria-label="Your profile">
+                <Link
+                  className="identity-chip"
+                  to={routePaths.memberProfile}
+                  aria-label="Your profile"
+                >
                   <span className="identity-chip__avatar" aria-hidden>
                     {user.name.slice(0, 1).toUpperCase()}
                   </span>
@@ -102,10 +114,38 @@ export function AppFrame({ children, compact = false, navigation }: AppFrameProp
               </>
             )}
             <details className="site-header__menu relative">
-              <summary className="grid size-9 cursor-pointer list-none place-items-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" aria-label="Navigation menu"><Menu className="size-5" aria-hidden /></summary>
-              <nav aria-label="Mobile main navigation" className="absolute right-0 top-11 z-50 grid max-h-[75dvh] min-w-48 gap-1 overflow-y-auto rounded-xl border border-border bg-card p-2 shadow-lg">
-                {(navigation ?? publicNavigation).map((item) => <Link key={item.to} to={item.to} className="rounded-md px-3 py-2 text-sm font-semibold hover:bg-muted">{item.label}</Link>)}
-                {user ? <Button variant="ghost" className="justify-start" onClick={logout}><LogOut className="size-4" aria-hidden />Log out</Button> : <Link className="rounded-md px-3 py-2 text-sm font-semibold hover:bg-muted" to={routePaths.login}>Log in</Link>}
+              <summary
+                className="grid size-9 cursor-pointer list-none place-items-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                aria-label="Navigation menu"
+              >
+                <Menu className="size-5" aria-hidden />
+              </summary>
+              <nav
+                aria-label="Mobile main navigation"
+                className="absolute right-0 top-11 z-50 grid max-h-[75dvh] min-w-48 gap-1 overflow-y-auto rounded-xl border border-border bg-card p-2 shadow-lg"
+              >
+                {(navigation ?? publicNavigation).map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className="rounded-md px-3 py-2 text-sm font-semibold hover:bg-muted"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                {user ? (
+                  <Button variant="ghost" className="justify-start" onClick={logout}>
+                    <LogOut className="size-4" aria-hidden />
+                    Log out
+                  </Button>
+                ) : (
+                  <Link
+                    className="rounded-md px-3 py-2 text-sm font-semibold hover:bg-muted"
+                    to={routePaths.login}
+                  >
+                    Log in
+                  </Link>
+                )}
               </nav>
             </details>
           </div>

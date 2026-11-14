@@ -17,7 +17,9 @@ export function OAuthCallbackPage() {
   const providerError = params.get("error");
   const initialError = providerError
     ? callbackError(providerError)
-    : (((provider !== "google" && provider !== "facebook") || !code) ? "The sign-in callback is invalid or expired." : "");
+    : (provider !== "google" && provider !== "facebook") || !code
+      ? "The sign-in callback is invalid or expired."
+      : "";
   const [error, setError] = useState(initialError);
 
   useEffect(() => {
@@ -29,19 +31,48 @@ export function OAuthCallbackPage() {
       .catch((caught) => setError(toUiError(caught).message));
   }, [code, completeOAuth, navigate, provider, providerError]);
 
-  return <AuthShell eyebrow="Secure sign-in" title={<>Finishing your<br /><span className="text-secondary">session.</span></>} description="YPGym is validating the one-time provider response.">
-    {error ? <ErrorState title="Sign-in could not be completed" message={error} action={<Link className="font-semibold text-primary underline" to="/login">Return to sign in</Link>} /> : <LoadingState title="Completing sign-in" />}
-  </AuthShell>;
+  return (
+    <AuthShell
+      eyebrow="Secure sign-in"
+      title={
+        <>
+          Finishing your
+          <br />
+          <span className="text-secondary">session.</span>
+        </>
+      }
+      description="YPGym is validating the one-time provider response."
+    >
+      {error ? (
+        <ErrorState
+          title="Sign-in could not be completed"
+          message={error}
+          action={
+            <Link className="font-semibold text-primary underline" to="/login">
+              Return to sign in
+            </Link>
+          }
+        />
+      ) : (
+        <LoadingState title="Completing sign-in" />
+      )}
+    </AuthShell>
+  );
 }
 
 function callbackError(code: string) {
   const messages: Record<string, string> = {
-    oauth_provider_denied: "The provider sign-in was cancelled. You can return to sign in and try again.",
-    oauth_state_invalid: "This sign-in request is invalid, expired, or has already been used. Start again from YPGym.",
-    oauth_callback_replayed: "This sign-in response has already been processed. Return to sign in if your session did not open.",
+    oauth_provider_denied:
+      "The provider sign-in was cancelled. You can return to sign in and try again.",
+    oauth_state_invalid:
+      "This sign-in request is invalid, expired, or has already been used. Start again from YPGym.",
+    oauth_callback_replayed:
+      "This sign-in response has already been processed. Return to sign in if your session did not open.",
     oauth_email_unverified: "The provider did not confirm a usable email address.",
-    oauth_identity_conflict: "That provider identity is already connected to another YPGym account.",
-    oauth_temporarily_unavailable: "The provider could not be reached. Return to sign in and try again.",
+    oauth_identity_conflict:
+      "That provider identity is already connected to another YPGym account.",
+    oauth_temporarily_unavailable:
+      "The provider could not be reached. Return to sign in and try again.",
   };
   return messages[code] ?? "The provider sign-in could not be completed safely.";
 }

@@ -37,7 +37,14 @@ export function LoginPage() {
       const user = await login(values.email, values.password);
       const fallback = workspacePathForRole(user.role);
       const from = (location.state as { from?: string } | null)?.from;
-      navigate(user.must_change_password ? "/change-password" : user.role === "member" && from ? from : fallback, { replace: true });
+      navigate(
+        user.must_change_password
+          ? "/change-password"
+          : user.role === "member" && from
+            ? from
+            : fallback,
+        { replace: true },
+      );
     } catch (caught) {
       if (!applyApiFieldErrors(caught, form.setError, ["email", "password"])) {
         setError(toUiError(caught));
@@ -48,32 +55,97 @@ export function LoginPage() {
   return (
     <AuthShell
       eyebrow="Member access"
-      title={<>Back to your<br /><span className="text-secondary">training.</span></>}
+      title={
+        <>
+          Back to your
+          <br />
+          <span className="text-secondary">training.</span>
+        </>
+      }
       description="Sign in to manage your membership, update your profile and keep your invoices in one place."
       detail="Protected destinations only render after the current session has been resolved."
     >
       <section className="form-card p-6 sm:p-8">
-        <span className="grid size-11 place-items-center rounded-xl bg-secondary text-foreground"><KeyRound className="size-5" aria-hidden /></span>
-        <h2 className="mt-5 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none">Welcome back</h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">Use your verified YPGym email and password.</p>
-        {error ? <ErrorState className="mt-5" title={error.title} message={error.message} action={error.code === "EMAIL_NOT_VERIFIED" ? <Link className="inline-flex rounded-full bg-primary px-4 py-2 text-sm font-extrabold text-primary-foreground" to={`/verify-email?email=${encodeURIComponent(form.getValues("email"))}`}>Enter your verification code</Link> : undefined} /> : null}
+        <span className="grid size-11 place-items-center rounded-xl bg-secondary text-foreground">
+          <KeyRound className="size-5" aria-hidden />
+        </span>
+        <h2 className="mt-5 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none">
+          Welcome back
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Use your verified YPGym email and password.
+        </p>
+        {error ? (
+          <ErrorState
+            className="mt-5"
+            title={error.title}
+            message={error.message}
+            action={
+              error.code === "EMAIL_NOT_VERIFIED" ? (
+                <Link
+                  className="inline-flex rounded-full bg-primary px-4 py-2 text-sm font-extrabold text-primary-foreground"
+                  to={`/verify-email?email=${encodeURIComponent(form.getValues("email"))}`}
+                >
+                  Enter your verification code
+                </Link>
+              ) : undefined
+            }
+          />
+        ) : null}
         <form className="mt-6 space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
           <Field>
             <Label htmlFor="email">Email address</Label>
-            <Input id="email" type="email" autoComplete="email" placeholder="you@example.com" {...form.register("email")} />
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              {...form.register("email")}
+            />
             <FieldError message={form.formState.errors.email?.message} />
           </Field>
           <Field>
-            <div className="flex items-center justify-between gap-3"><Label htmlFor="password">Password</Label><Link className="text-xs font-extrabold text-primary underline-offset-4 hover:underline" to="/forgot-password">Forgot password?</Link></div>
-            <Input id="password" type="password" autoComplete="current-password" {...form.register("password")} />
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="password">Password</Label>
+              <Link
+                className="text-xs font-extrabold text-primary underline-offset-4 hover:underline"
+                to="/forgot-password"
+              >
+                Forgot password?
+              </Link>
+            </div>
+            <Input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              {...form.register("password")}
+            />
             <FieldError message={form.formState.errors.password?.message} />
           </Field>
-          <Button type="submit" className="mt-2 w-full rounded-full" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? "Signing in..." : <>Sign in <ArrowRight className="size-4" aria-hidden /></>}
+          <Button
+            type="submit"
+            className="mt-2 w-full rounded-full"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              "Signing in..."
+            ) : (
+              <>
+                Sign in <ArrowRight className="size-4" aria-hidden />
+              </>
+            )}
           </Button>
         </form>
         <SocialLoginButtons />
-        <p className="mt-6 text-center text-sm text-muted-foreground">New to YPGym? <Link className="font-extrabold text-primary underline-offset-4 hover:underline" to="/register">Create an account</Link></p>
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          New to YPGym?{" "}
+          <Link
+            className="font-extrabold text-primary underline-offset-4 hover:underline"
+            to="/register"
+          >
+            Create an account
+          </Link>
+        </p>
       </section>
     </AuthShell>
   );

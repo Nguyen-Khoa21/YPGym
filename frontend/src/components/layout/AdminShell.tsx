@@ -1,7 +1,5 @@
 import type { PropsWithChildren } from "react";
-import {
-  BarChart3,
-} from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { navigationForRole, operationsNavigation } from "@/app/navigation";

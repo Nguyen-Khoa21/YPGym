@@ -7,7 +7,13 @@ import { toast } from "sonner";
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/FeedbackState";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { DataTable } from "@/components/operations/DataTable";
-import { MetricCard, OperationsHeader, Pagination, Panel, StatusBadge } from "@/components/operations/OperationsUi";
+import {
+  MetricCard,
+  OperationsHeader,
+  Pagination,
+  Panel,
+  StatusBadge,
+} from "@/components/operations/OperationsUi";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { apiRequest, downloadApiFile } from "@/lib/apiClient";
@@ -19,7 +25,12 @@ function ResolveRefundButton({ payment }: { payment: BillingPayment }) {
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const resolution = useMutation({
-    mutationFn: (reason: string) => apiRequest(`/payments/${payment.payment_id}/resolve-class-refund`, { method: "POST", token, body: { reason } }),
+    mutationFn: (reason: string) =>
+      apiRequest(`/payments/${payment.payment_id}/resolve-class-refund`, {
+        method: "POST",
+        token,
+        body: { reason },
+      }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin", "billing"] });
       toast.success("Refund resolution recorded");
@@ -27,29 +38,120 @@ function ResolveRefundButton({ payment }: { payment: BillingPayment }) {
     onError: (error) => toast.error(toUiError(error).message),
   });
   if (payment.refund_status !== "required") return null;
-  return <Button className="mt-2" variant="outline" disabled={resolution.isPending} onClick={() => {
-    const reason = window.prompt("Record how this refund was resolved (at least 10 characters):");
-    if (reason?.trim() && reason.trim().length >= 10) resolution.mutate(reason.trim());
-    else if (reason !== null) toast.error("Enter at least 10 characters.");
-  }}>{resolution.isPending ? "Saving..." : "Mark resolved"}</Button>;
+  return (
+    <Button
+      className="mt-2"
+      variant="outline"
+      disabled={resolution.isPending}
+      onClick={() => {
+        const reason = window.prompt(
+          "Record how this refund was resolved (at least 10 characters):",
+        );
+        if (reason?.trim() && reason.trim().length >= 10) resolution.mutate(reason.trim());
+        else if (reason !== null) toast.error("Enter at least 10 characters.");
+      }}
+    >
+      {resolution.isPending ? "Saving..." : "Mark resolved"}
+    </Button>
+  );
 }
 
 const paymentColumns: ColumnDef<BillingPayment>[] = [
-  { header: "Member", cell: ({ row }) => <div><strong>{row.original.member_name}</strong><p className="mt-1 text-[11px] text-muted-foreground">{row.original.member_email}</p></div> },
-  { header: "Product", cell: ({ row }) => <div><strong>{row.original.product_name}</strong><p className="mt-1 text-[11px] uppercase text-primary">{row.original.product_type.replace("_", " ")}</p></div> },
-  { header: "Tier", cell: ({ row }) => <span className="capitalize">{row.original.member_tier}</span> },
+  {
+    header: "Member",
+    cell: ({ row }) => (
+      <div>
+        <strong>{row.original.member_name}</strong>
+        <p className="mt-1 text-[11px] text-muted-foreground">{row.original.member_email}</p>
+      </div>
+    ),
+  },
+  {
+    header: "Product",
+    cell: ({ row }) => (
+      <div>
+        <strong>{row.original.product_name}</strong>
+        <p className="mt-1 text-[11px] uppercase text-primary">
+          {row.original.product_type.replace("_", " ")}
+        </p>
+      </div>
+    ),
+  },
+  {
+    header: "Tier",
+    cell: ({ row }) => <span className="capitalize">{row.original.member_tier}</span>,
+  },
   { header: "Amount", cell: ({ row }) => <strong>{formatMoney(row.original.amount)}</strong> },
-  { header: "Provider", cell: ({ row }) => <span className="uppercase">{row.original.provider}</span> },
-  { header: "Reference", cell: ({ row }) => <div><span className="font-mono text-xs">{row.original.transaction_reference}</span>{row.original.provider_transaction_no ? <p className="mt-1 text-[11px] text-muted-foreground">{row.original.provider} {row.original.provider_transaction_no}</p> : null}</div> },
-  { header: "Status", cell: ({ row }) => <div><StatusBadge value={row.original.status} />{row.original.refund_status === "required" ? <><p className="mt-1 text-[11px] font-bold text-destructive">Refund review</p><ResolveRefundButton payment={row.original} /></> : null}</div> },
-  { header: "Settlement", cell: ({ row }) => <div><span>{row.original.bank_code ?? "—"}{row.original.card_type ? ` · ${row.original.card_type}` : ""}</span><p className="mt-1 text-[11px] text-muted-foreground">Email: {row.original.email_delivery_state ?? "not queued"}</p></div> },
+  {
+    header: "Provider",
+    cell: ({ row }) => <span className="uppercase">{row.original.provider}</span>,
+  },
+  {
+    header: "Reference",
+    cell: ({ row }) => (
+      <div>
+        <span className="font-mono text-xs">{row.original.transaction_reference}</span>
+        {row.original.provider_transaction_no ? (
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {row.original.provider} {row.original.provider_transaction_no}
+          </p>
+        ) : null}
+      </div>
+    ),
+  },
+  {
+    header: "Status",
+    cell: ({ row }) => (
+      <div>
+        <StatusBadge value={row.original.status} />
+        {row.original.refund_status === "required" ? (
+          <>
+            <p className="mt-1 text-[11px] font-bold text-destructive">Refund review</p>
+            <ResolveRefundButton payment={row.original} />
+          </>
+        ) : null}
+      </div>
+    ),
+  },
+  {
+    header: "Settlement",
+    cell: ({ row }) => (
+      <div>
+        <span>
+          {row.original.bank_code ?? "—"}
+          {row.original.card_type ? ` · ${row.original.card_type}` : ""}
+        </span>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Email: {row.original.email_delivery_state ?? "not queued"}
+        </p>
+      </div>
+    ),
+  },
   { header: "Created", cell: ({ row }) => formatDateTime(row.original.created_at) },
 ];
 
 const invoiceColumns: ColumnDef<BillingInvoice>[] = [
   { header: "Invoice", cell: ({ row }) => <strong>{row.original.invoice_number}</strong> },
-  { header: "Member", cell: ({ row }) => <div><strong>{row.original.member_name}</strong><p className="mt-1 text-[11px] text-muted-foreground">{row.original.member_email}</p></div> },
-  { header: "Product", cell: ({ row }) => <div><strong>{row.original.product_name}</strong><p className="mt-1 text-[11px] uppercase text-primary">{row.original.product_type.replace("_", " ")}</p></div> },
+  {
+    header: "Member",
+    cell: ({ row }) => (
+      <div>
+        <strong>{row.original.member_name}</strong>
+        <p className="mt-1 text-[11px] text-muted-foreground">{row.original.member_email}</p>
+      </div>
+    ),
+  },
+  {
+    header: "Product",
+    cell: ({ row }) => (
+      <div>
+        <strong>{row.original.product_name}</strong>
+        <p className="mt-1 text-[11px] uppercase text-primary">
+          {row.original.product_type.replace("_", " ")}
+        </p>
+      </div>
+    ),
+  },
   { header: "Amount", cell: ({ row }) => <strong>{formatMoney(row.original.amount)}</strong> },
   { header: "Transaction", cell: ({ row }) => formatDateTime(row.original.transaction_date) },
 ];
@@ -76,38 +178,227 @@ export function AdminBillingPage() {
   if (productType) query.set("product_type", productType);
   const billing = useQuery({
     queryKey: ["admin", "billing", tab, query.toString()],
-    queryFn: ({ signal }) => apiRequest<BillingPage<BillingPayment> | BillingPage<BillingInvoice>>(`/admin/billing/${tab}?${query}`, { token, signal }),
+    queryFn: ({ signal }) =>
+      apiRequest<BillingPage<BillingPayment> | BillingPage<BillingInvoice>>(
+        `/admin/billing/${tab}?${query}`,
+        { token, signal },
+      ),
   });
 
   async function exportCsv() {
     try {
-      const exportQuery = new URLSearchParams(query); exportQuery.delete("page"); exportQuery.delete("page_size");
+      const exportQuery = new URLSearchParams(query);
+      exportQuery.delete("page");
+      exportQuery.delete("page_size");
       const blob = await downloadApiFile(`/admin/billing/${tab}/export.csv?${exportQuery}`, token);
-      const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = `ypgym-${tab}.csv`; anchor.click(); URL.revokeObjectURL(url);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `ypgym-${tab}.csv`;
+      anchor.click();
+      URL.revokeObjectURL(url);
       toast.success(`${tab === "payments" ? "Payment" : "Invoice"} export downloaded`);
-    } catch (error) { toast.error(toUiError(error).message); }
+    } catch (error) {
+      toast.error(toUiError(error).message);
+    }
   }
 
   const data = billing.data;
-  return <AdminShell><div className="mx-auto max-w-7xl">
-    <OperationsHeader kicker="Admin billing" title="Money, traceable." description="Filtered payments and invoices share the exact same server-side semantics as their audited CSV exports." actions={<Button variant="outline" onClick={exportCsv}><Download className="size-4" /> Export {tab}</Button>} />
-    {data ? <div className="ops-metrics"><MetricCard label={`${tab} found`} value={data.page.total} /><MetricCard label="Filtered total" value={formatMoney(data.total_amount)} tone="forest" /><MetricCard label="Current page" value={`${data.page.page}/${Math.max(data.page.pages, 1)}`} tone="lime" /><MetricCard label="Access" value="Admin" detail="Sensitive billing scope" tone="coral" /></div> : null}
-    <Panel title="Billing ledger" detail="Staff and manager roles are intentionally excluded from this sensitive dataset." actions={<div className="ops-filter-row"><Button variant={tab === "payments" ? "secondary" : "ghost"} onClick={() => { setTab("payments"); setPage(1); }}><WalletCards className="size-4" /> Payments</Button><Button variant={tab === "invoices" ? "secondary" : "ghost"} onClick={() => { setTab("invoices"); setPage(1); }}><ReceiptText className="size-4" /> Invoices</Button></div>}>
-      <form className="ops-toolbar" onSubmit={(event) => { event.preventDefault(); setAppliedMember(member); setPage(1); }}>
-        <Search className="size-4 text-muted-foreground" />
-        <input aria-label="Search billing member" placeholder="Member name or email" value={member} onChange={(event) => setMember(event.target.value)} />
-        <select aria-label="Filter billing status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}><option value="">All statuses</option><option value="pending">Pending</option><option value="paid">Paid</option><option value="paid_review">Paid — review</option><option value="succeeded">Succeeded (legacy)</option><option value="failed">Failed</option><option value="cancelled">Cancelled</option><option value="expired">Expired</option></select>
-        <select aria-label="Filter billing product" value={productType} onChange={(event) => { setProductType(event.target.value); setPage(1); }}><option value="">All products</option><option value="membership">Memberships</option><option value="class_booking">Class bookings</option></select>
-        <input aria-label="Filter billing plan" placeholder="Plan" value={plan} onChange={(event) => { setPlan(event.target.value); setPage(1); }} />
-        <select aria-label="Filter billing tier" value={tier} onChange={(event) => { setTier(event.target.value); setPage(1); }}><option value="">All tiers</option><option value="normal">Normal</option><option value="advance">Advance</option><option value="vip">VIP</option></select>
-        <input aria-label="Billing date from" type="date" value={dateFrom} onChange={(event) => { setDateFrom(event.target.value); setPage(1); }} />
-        <input aria-label="Billing date to" type="date" value={dateTo} onChange={(event) => { setDateTo(event.target.value); setPage(1); }} />
-        <Button type="submit" variant="secondary">Apply</Button>
-      </form>
-      {billing.isLoading ? <LoadingState className="m-4" title={`Loading ${tab}`} /> : null}
-      {billing.isError ? <ErrorState className="m-4" title={toUiError(billing.error).title} message={toUiError(billing.error).message} action={<Button variant="outline" onClick={() => billing.refetch()}>Retry</Button>} /> : null}
-      {data?.items.length === 0 ? <EmptyState className="m-4" title={`No ${tab} match`} message="Adjust the current billing filters." /> : null}
-      {data?.items.length ? <>{tab === "payments" ? <DataTable columns={paymentColumns} data={data.items as BillingPayment[]} getRowId={(row) => row.payment_id} label="Filtered payments" /> : <DataTable columns={invoiceColumns} data={data.items as BillingInvoice[]} getRowId={(row) => row.invoice_id} label="Filtered invoices" />}<Pagination page={page} pages={data.page.pages} total={data.page.total} onPage={setPage} /></> : null}
-    </Panel>
-  </div></AdminShell>;
+  return (
+    <AdminShell>
+      <div className="mx-auto max-w-7xl">
+        <OperationsHeader
+          kicker="Admin billing"
+          title="Money, traceable."
+          description="Filtered payments and invoices share the exact same server-side semantics as their audited CSV exports."
+          actions={
+            <Button variant="outline" onClick={exportCsv}>
+              <Download className="size-4" /> Export {tab}
+            </Button>
+          }
+        />
+        {data ? (
+          <div className="ops-metrics">
+            <MetricCard label={`${tab} found`} value={data.page.total} />
+            <MetricCard
+              label="Filtered total"
+              value={formatMoney(data.total_amount)}
+              tone="forest"
+            />
+            <MetricCard
+              label="Current page"
+              value={`${data.page.page}/${Math.max(data.page.pages, 1)}`}
+              tone="lime"
+            />
+            <MetricCard
+              label="Access"
+              value="Admin"
+              detail="Sensitive billing scope"
+              tone="coral"
+            />
+          </div>
+        ) : null}
+        <Panel
+          title="Billing ledger"
+          detail="Staff and manager roles are intentionally excluded from this sensitive dataset."
+          actions={
+            <div className="ops-filter-row">
+              <Button
+                variant={tab === "payments" ? "secondary" : "ghost"}
+                onClick={() => {
+                  setTab("payments");
+                  setPage(1);
+                }}
+              >
+                <WalletCards className="size-4" /> Payments
+              </Button>
+              <Button
+                variant={tab === "invoices" ? "secondary" : "ghost"}
+                onClick={() => {
+                  setTab("invoices");
+                  setPage(1);
+                }}
+              >
+                <ReceiptText className="size-4" /> Invoices
+              </Button>
+            </div>
+          }
+        >
+          <form
+            className="ops-toolbar"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setAppliedMember(member);
+              setPage(1);
+            }}
+          >
+            <Search className="size-4 text-muted-foreground" />
+            <input
+              aria-label="Search billing member"
+              placeholder="Member name or email"
+              value={member}
+              onChange={(event) => setMember(event.target.value)}
+            />
+            <select
+              aria-label="Filter billing status"
+              value={status}
+              onChange={(event) => {
+                setStatus(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="paid">Paid</option>
+              <option value="paid_review">Paid — review</option>
+              <option value="succeeded">Succeeded (legacy)</option>
+              <option value="failed">Failed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="expired">Expired</option>
+            </select>
+            <select
+              aria-label="Filter billing product"
+              value={productType}
+              onChange={(event) => {
+                setProductType(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All products</option>
+              <option value="membership">Memberships</option>
+              <option value="class_booking">Class bookings</option>
+            </select>
+            <input
+              aria-label="Filter billing plan"
+              placeholder="Plan"
+              value={plan}
+              onChange={(event) => {
+                setPlan(event.target.value);
+                setPage(1);
+              }}
+            />
+            <select
+              aria-label="Filter billing tier"
+              value={tier}
+              onChange={(event) => {
+                setTier(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All tiers</option>
+              <option value="normal">Normal</option>
+              <option value="advance">Advance</option>
+              <option value="vip">VIP</option>
+            </select>
+            <input
+              aria-label="Billing date from"
+              type="date"
+              value={dateFrom}
+              onChange={(event) => {
+                setDateFrom(event.target.value);
+                setPage(1);
+              }}
+            />
+            <input
+              aria-label="Billing date to"
+              type="date"
+              value={dateTo}
+              onChange={(event) => {
+                setDateTo(event.target.value);
+                setPage(1);
+              }}
+            />
+            <Button type="submit" variant="secondary">
+              Apply
+            </Button>
+          </form>
+          {billing.isLoading ? <LoadingState className="m-4" title={`Loading ${tab}`} /> : null}
+          {billing.isError ? (
+            <ErrorState
+              className="m-4"
+              title={toUiError(billing.error).title}
+              message={toUiError(billing.error).message}
+              action={
+                <Button variant="outline" onClick={() => billing.refetch()}>
+                  Retry
+                </Button>
+              }
+            />
+          ) : null}
+          {data?.items.length === 0 ? (
+            <EmptyState
+              className="m-4"
+              title={`No ${tab} match`}
+              message="Adjust the current billing filters."
+            />
+          ) : null}
+          {data?.items.length ? (
+            <>
+              {tab === "payments" ? (
+                <DataTable
+                  columns={paymentColumns}
+                  data={data.items as BillingPayment[]}
+                  getRowId={(row) => row.payment_id}
+                  label="Filtered payments"
+                />
+              ) : (
+                <DataTable
+                  columns={invoiceColumns}
+                  data={data.items as BillingInvoice[]}
+                  getRowId={(row) => row.invoice_id}
+                  label="Filtered invoices"
+                />
+              )}
+              <Pagination
+                page={page}
+                pages={data.page.pages}
+                total={data.page.total}
+                onPage={setPage}
+              />
+            </>
+          ) : null}
+        </Panel>
+      </div>
+    </AdminShell>
+  );
 }

@@ -9,12 +9,20 @@ type PaymentTone = "wait" | "ok" | "bad";
 const PAYMENT_STATUS: Record<string, { label: string; tone: PaymentTone; final: boolean }> = {
   paid: { label: "Paid. Membership is active.", tone: "ok", final: true },
   succeeded: { label: "Paid. Membership is active.", tone: "ok", final: true },
-  paid_review: { label: "Paid, but needs manager review before activation.", tone: "bad", final: true },
+  paid_review: {
+    label: "Paid, but needs manager review before activation.",
+    tone: "bad",
+    final: true,
+  },
   failed: { label: "Payment failed.", tone: "bad", final: true },
   cancelled: { label: "Payment was cancelled.", tone: "bad", final: true },
   expired: { label: "The QR code expired.", tone: "bad", final: true },
 };
-const WAITING = { label: "Waiting for the member to pay.", tone: "wait" as PaymentTone, final: false };
+const WAITING = {
+  label: "Waiting for the member to pay.",
+  tone: "wait" as PaymentTone,
+  final: false,
+};
 
 /** A final status ends polling. */
 export function isFinalPaymentStatus(status: string): boolean {
@@ -32,6 +40,7 @@ export function qrValue(checkout: { qr_code?: string | null; checkout_url: strin
 
 /** One key per attempt: a repeated click or retry with the same key never creates a second payment. */
 export function newPaymentKey(prefix: "qr" | "cash"): string {
-  const random = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const random =
+    globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return `${prefix}-${random}`;
 }

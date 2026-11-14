@@ -1,7 +1,6 @@
 import { ApiError, type ApiErrorPayload } from "./apiErrors.ts";
 
-export const API_BASE_URL =
-  import.meta.env?.VITE_API_BASE_URL ?? "http://localhost:8001/api/v1";
+export const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? "http://localhost:8001/api/v1";
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -18,10 +17,7 @@ export function apiUrl(path: string) {
   return `${API_BASE_URL}${path}`;
 }
 
-export async function apiRequest<T>(
-  path: string,
-  options: RequestOptions = {},
-): Promise<T> {
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (options.body !== undefined) {
     headers.set("Content-Type", "application/json");
@@ -49,7 +45,13 @@ export async function apiRequest<T>(
     if (isApiErrorPayload(data)) {
       throw fromPayload(data, response);
     }
-    throw new ApiError("HTTP_ERROR", "The request failed.", response.status, null, requestId(response));
+    throw new ApiError(
+      "HTTP_ERROR",
+      "The request failed.",
+      response.status,
+      null,
+      requestId(response),
+    );
   }
 
   return data as T;
@@ -63,12 +65,22 @@ export async function downloadApiFile(path: string, token?: string | null): Prom
     if (response.status === 401) window.dispatchEvent(new Event("ypgym:unauthorized"));
     const data = await response.json().catch(() => null);
     if (isApiErrorPayload(data)) throw fromPayload(data, response);
-    throw new ApiError("HTTP_ERROR", "The file could not be downloaded.", response.status, null, requestId(response));
+    throw new ApiError(
+      "HTTP_ERROR",
+      "The file could not be downloaded.",
+      response.status,
+      null,
+      requestId(response),
+    );
   }
   return response.blob();
 }
 
-export async function uploadApiImage<T>(path: string, file: File, token?: string | null): Promise<T> {
+export async function uploadApiImage<T>(
+  path: string,
+  file: File,
+  token?: string | null,
+): Promise<T> {
   const body = new FormData();
   body.append("file", file);
   const response = await safeFetch(apiUrl(path), {
@@ -80,7 +92,13 @@ export async function uploadApiImage<T>(path: string, file: File, token?: string
   if (!response.ok) {
     if (response.status === 401) window.dispatchEvent(new Event("ypgym:unauthorized"));
     if (isApiErrorPayload(data)) throw fromPayload(data, response);
-    throw new ApiError("HTTP_ERROR", "The image could not be uploaded.", response.status, null, requestId(response));
+    throw new ApiError(
+      "HTTP_ERROR",
+      "The image could not be uploaded.",
+      response.status,
+      null,
+      requestId(response),
+    );
   }
   return data as T;
 }

@@ -1,15 +1,39 @@
-import type { Broadcast, NotificationItem, TrafficSummary, TrafficWindow } from "../../types/operations.ts";
+import type {
+  Broadcast,
+  NotificationItem,
+  TrafficSummary,
+  TrafficWindow,
+} from "../../types/operations.ts";
 
-export type QuickAction = { key: string; label: string; target: string; enabled: boolean; reason: string | null };
+export type QuickAction = {
+  key: string;
+  label: string;
+  target: string;
+  enabled: boolean;
+  reason: string | null;
+};
 
-export type HistoryRow = { label: string; shortLabel: string; startHour: number; percentage: number; isBusiest: boolean; isQuietest: boolean };
+export type HistoryRow = {
+  label: string;
+  shortLabel: string;
+  startHour: number;
+  percentage: number;
+  isBusiest: boolean;
+  isQuietest: boolean;
+};
 
 export type HistoryView =
   | { kind: "insufficient"; reason: string }
-  | { kind: "ready"; busiest: TrafficWindow | null; quietest: TrafficWindow | null; rows: HistoryRow[] };
+  | {
+      kind: "ready";
+      busiest: TrafficWindow | null;
+      quietest: TrafficWindow | null;
+      rows: HistoryRow[];
+    };
 
 export const INSUFFICIENT_DATA_TITLE = "Not enough attendance data yet";
-const DEFAULT_REASON = "This gym has not recorded enough visits last month to show a reliable pattern.";
+const DEFAULT_REASON =
+  "This gym has not recorded enough visits last month to show a reliable pattern.";
 
 /** Short axis label for a two-hour window, for example "6 PM". */
 export function shortHourLabel(hour: number): string {
@@ -34,7 +58,12 @@ export function buildHistoryView(summary: TrafficSummary): HistoryView {
       isBusiest: summary.busiest_window?.start_hour === bucket.start_hour,
       isQuietest: summary.quietest_window?.start_hour === bucket.start_hour,
     }));
-  return { kind: "ready", busiest: summary.busiest_window, quietest: summary.quietest_window, rows };
+  return {
+    kind: "ready",
+    busiest: summary.busiest_window,
+    quietest: summary.quietest_window,
+    rows,
+  };
 }
 
 /** The QR code lives on the dashboard itself, so it is never offered as a quick action. */
@@ -43,7 +72,10 @@ export function visibleQuickActions(actions: QuickAction[]): QuickAction[] {
 }
 
 /** A broadcast already shown as an announcement is not repeated in the notification list. */
-export function dedupeNotifications(notifications: NotificationItem[], broadcasts: Broadcast[]): NotificationItem[] {
+export function dedupeNotifications(
+  notifications: NotificationItem[],
+  broadcasts: Broadcast[],
+): NotificationItem[] {
   const shown = new Set(broadcasts.map((item) => `${item.title}\n${item.message}`));
   return notifications.filter((item) => !shown.has(`${item.title}\n${item.message}`));
 }
@@ -66,14 +98,35 @@ export function occupancyHeading(name: string | null | undefined): string {
 }
 
 export type DashboardTab = "important" | "membership";
-export type ImportantItem = { kind: "broadcast" | "notification"; id: string; title: string; message: string };
+export type ImportantItem = {
+  kind: "broadcast" | "notification";
+  id: string;
+  title: string;
+  message: string;
+};
 
 /** Active broadcasts first, then unread notifications, each message once, at most `limit` items. */
-export function importantItems(broadcasts: Broadcast[], notifications: NotificationItem[], limit = 5): ImportantItem[] {
-  const unread = dedupeNotifications(notifications, broadcasts).filter((item) => item.read_at === null);
+export function importantItems(
+  broadcasts: Broadcast[],
+  notifications: NotificationItem[],
+  limit = 5,
+): ImportantItem[] {
+  const unread = dedupeNotifications(notifications, broadcasts).filter(
+    (item) => item.read_at === null,
+  );
   return [
-    ...broadcasts.map((item) => ({ kind: "broadcast" as const, id: item.id, title: item.title, message: item.message })),
-    ...unread.map((item) => ({ kind: "notification" as const, id: item.id, title: item.title, message: item.message })),
+    ...broadcasts.map((item) => ({
+      kind: "broadcast" as const,
+      id: item.id,
+      title: item.title,
+      message: item.message,
+    })),
+    ...unread.map((item) => ({
+      kind: "notification" as const,
+      id: item.id,
+      title: item.title,
+      message: item.message,
+    })),
   ].slice(0, limit);
 }
 

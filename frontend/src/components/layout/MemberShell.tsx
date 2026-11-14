@@ -39,7 +39,9 @@ export function MemberShell({ children }: PropsWithChildren) {
           </nav>
           <div className="workspace-sidebar__note">
             <strong>Member portal</strong>
-            <p>Membership, classes, notifications, QR access, attendance and billing are connected.</p>
+            <p>
+              Membership, classes, notifications, QR access, attendance and billing are connected.
+            </p>
           </div>
         </aside>
         <main id="main-content" className="workspace-content">

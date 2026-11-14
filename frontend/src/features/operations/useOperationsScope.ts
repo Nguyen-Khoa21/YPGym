@@ -27,9 +27,11 @@ export function useOperationsScope() {
     staleTime: 300_000,
   });
 
-  const gymId = isOwner ? effectiveOwnerGym(selection, gyms.data?.[0]?.id) : mine.data?.id ?? "";
+  const gymId = isOwner ? effectiveOwnerGym(selection, gyms.data?.[0]?.id) : (mine.data?.id ?? "");
   const gymName = isOwner
-    ? gymId ? gyms.data?.find((gym) => gym.id === gymId)?.name ?? "Selected branch" : "All branches"
+    ? gymId
+      ? (gyms.data?.find((gym) => gym.id === gymId)?.name ?? "Selected branch")
+      : "All branches"
     : mine.data?.name;
   const ready = isOwner ? gyms.isSuccess : mine.isSuccess;
 

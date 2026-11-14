@@ -29,7 +29,10 @@ export class AppErrorBoundary extends Component<PropsWithChildren, ErrorBoundary
       },
       createElement(
         "section",
-        { className: "w-full max-w-lg rounded-2xl border border-destructive/30 bg-card p-7 shadow-sm" },
+        {
+          className:
+            "w-full max-w-lg rounded-2xl border border-destructive/30 bg-card p-7 shadow-sm",
+        },
         createElement("p", { className: "page-kicker" }, "Application recovery"),
         createElement("h1", { className: "page-title mt-2" }, "This page could not be displayed."),
         createElement(
@@ -40,7 +43,8 @@ export class AppErrorBoundary extends Component<PropsWithChildren, ErrorBoundary
         createElement(
           "button",
           {
-            className: "mt-6 inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            className:
+              "mt-6 inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             onClick: () => window.location.reload(),
             type: "button",
           },

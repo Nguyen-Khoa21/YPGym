@@ -25,7 +25,9 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
   }
 
   if (!token || !user) {
-    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+    return (
+      <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />
+    );
   }
 
   if (user.must_change_password && location.pathname !== "/change-password") {

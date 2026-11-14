@@ -21,7 +21,10 @@ type AuthContextValue = {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
   completeOAuth: (provider: "google" | "facebook", code: string) => Promise<User>;
-  completeOAuthLink: (path: "/auth/oauth/link/password" | "/auth/oauth/link/email/confirm", body: unknown) => Promise<User>;
+  completeOAuthLink: (
+    path: "/auth/oauth/link/password" | "/auth/oauth/link/email/confirm",
+    body: unknown,
+  ) => Promise<User>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
@@ -29,9 +32,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
-  const [token, setToken] = useState<string | null>(() =>
-    window.localStorage.getItem(TOKEN_KEY),
-  );
+  const [token, setToken] = useState<string | null>(() => window.localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(token));
 
@@ -92,18 +93,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return response.user;
   }, []);
 
-  const completeOAuth = useCallback(async (provider: "google" | "facebook", code: string) => {
-    const response = await apiRequest<LoginResponse>(`/auth/oauth/${provider}/exchange`, {
-      method: "POST",
-      body: { code },
-    });
-    return acceptLogin(response);
-  }, [acceptLogin]);
+  const completeOAuth = useCallback(
+    async (provider: "google" | "facebook", code: string) => {
+      const response = await apiRequest<LoginResponse>(`/auth/oauth/${provider}/exchange`, {
+        method: "POST",
+        body: { code },
+      });
+      return acceptLogin(response);
+    },
+    [acceptLogin],
+  );
 
-  const completeOAuthLink = useCallback(async (
-    path: "/auth/oauth/link/password" | "/auth/oauth/link/email/confirm",
-    body: unknown,
-  ) => acceptLogin(await apiRequest<LoginResponse>(path, { method: "POST", body })), [acceptLogin]);
+  const completeOAuthLink = useCallback(
+    async (path: "/auth/oauth/link/password" | "/auth/oauth/link/email/confirm", body: unknown) =>
+      acceptLogin(await apiRequest<LoginResponse>(path, { method: "POST", body })),
+    [acceptLogin],
+  );
 
   const value = useMemo(
     () => ({

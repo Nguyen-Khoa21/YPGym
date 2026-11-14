@@ -18,7 +18,9 @@ export function DataTable<T>({ columns, data, getRowId, label }: DataTableProps<
             <tr key={group.id}>
               {group.headers.map((header) => (
                 <th key={header.id} scope="col">
-                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(header.column.columnDef.header, header.getContext())}
                 </th>
               ))}
             </tr>
