@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import { EmptyState, ErrorState, LoadingState } from "@/components/common/FeedbackState";
+import { QueryState } from "@/components/common/QueryState";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { DataTable } from "@/components/operations/DataTable";
 import {
@@ -146,44 +146,34 @@ export function AdminClassesPage() {
                 setPage(1);
               }}
             />
-            {classes.isLoading ? (
-              <LoadingState className="m-4" title="Loading class schedule" />
-            ) : null}
-            {classes.isError ? (
-              <ErrorState
-                className="m-4"
-                title={toUiError(classes.error).title}
-                message={toUiError(classes.error).message}
-                action={
-                  <Button variant="outline" onClick={() => classes.refetch()}>
-                    Retry
-                  </Button>
-                }
-              />
-            ) : null}
-            {classes.data?.items.length === 0 ? (
-              <EmptyState
-                className="m-4"
-                title="No classes match"
-                message="Adjust the schedule filters or add a future class."
-              />
-            ) : null}
-            {classes.data?.items.length ? (
-              <>
-                <DataTable
-                  columns={columns}
-                  data={classes.data.items}
-                  getRowId={(row) => row.id}
-                  label="Admin class schedule"
-                />
-                <Pagination
-                  page={page}
-                  pages={classes.data.page.pages}
-                  total={classes.data.page.total}
-                  onPage={setPage}
-                />
-              </>
-            ) : null}
+            <QueryState
+              query={classes}
+              className="m-4"
+              loading={{ title: "Loading class schedule" }}
+              retry
+              empty={{
+                title: "No classes match",
+                message: "Adjust the schedule filters or add a future class.",
+              }}
+              isEmpty={(data) => data.items.length === 0}
+            >
+              {(data) => (
+                <>
+                  <DataTable
+                    columns={columns}
+                    data={data.items}
+                    getRowId={(row) => row.id}
+                    label="Admin class schedule"
+                  />
+                  <Pagination
+                    page={page}
+                    pages={data.page.pages}
+                    total={data.page.total}
+                    onPage={setPage}
+                  />
+                </>
+              )}
+            </QueryState>
           </Panel>
           <div className="grid content-start gap-5">
             <NextClassCard item={nextClass} onEdit={openEdit} />
