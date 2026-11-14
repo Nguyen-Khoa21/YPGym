@@ -60,11 +60,13 @@ export function MemberDashboardPage() {
       <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
         <div className="grid content-start gap-5">
           {data.crowdedness ? <OccupancyCard data={data.crowdedness} /> : null}
-          <DashboardTabs broadcasts={data.active_broadcasts} notifications={data.recent_notifications} unreadCount={data.unread_notification_count} membership={data.membership} />
+        <TrafficHistory query={traffic} gymName={data.membership.home_gym_name} />
         </div>
+        <div className="self-start">
         <EmbeddedQr eligible={data.qr_access.eligible} reason={data.qr_access.reason} />
+        </div>
       </div>
-      <TrafficHistory query={traffic} gymName={data.membership.home_gym_name} />
+          <DashboardTabs broadcasts={data.active_broadcasts} notifications={data.recent_notifications} unreadCount={data.unread_notification_count} membership={data.membership} />
     </> : <><section className="rounded-2xl border border-border bg-card p-6"><h2 className="text-xl font-bold">Choose your gym</h2><p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Buy a membership and pick a location to see live occupancy, quiet times and your check-in code.</p><Link className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground" to="/memberships">Buy membership <ArrowRight className="size-4" aria-hidden /></Link></section><DashboardTabs broadcasts={data.active_broadcasts} notifications={data.recent_notifications} unreadCount={data.unread_notification_count} membership={data.membership} /></>}
     <section className="grid gap-5"><article className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between"><div><h2 className="text-lg font-bold">Upcoming bookings</h2><p className="mt-1 text-xs text-muted-foreground">Your next three confirmed classes.</p></div><Link className="text-sm font-bold text-primary" to="/app/bookings">View all</Link></div>{data.upcoming_bookings.length ? <ul className="mt-4 grid gap-3">{data.upcoming_bookings.map((booking) => <li className="rounded-xl bg-muted/50 p-4" key={booking.id}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><strong>{booking.gym_class.title}</strong><p className="mt-1 text-xs text-muted-foreground">{formatDateTime(booking.gym_class.start_at)} / {booking.gym_class.location}</p></div><StatusBadge value={booking.status} /></div></li>)}</ul> : <EmptyState className="mt-4" title="No upcoming bookings" message="Book a class to see it here." />}{data.active_waitlists.length ? <div className="mt-5 border-t border-border pt-4"><p className="text-xs font-black uppercase tracking-wider text-muted-foreground">Active waitlists</p>{data.active_waitlists.map((entry) => <p className="mt-2 text-sm" key={entry.id}>{entry.gym_class.title} / position {entry.position}</p>)}</div> : null}</article>
     </section>
