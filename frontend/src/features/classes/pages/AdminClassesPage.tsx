@@ -1,90 +1,53 @@
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { ColumnDef } from "@tanstack/react-table";
-import { CalendarDays, Clock3, Pencil, Plus, Search, UserRound } from "lucide-react";
-import { useForm, useWatch } from "react-hook-form";
+import { Plus } from "lucide-react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
 
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/FeedbackState";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { DataTable } from "@/components/operations/DataTable";
 import {
   MetricCard,
-  Modal,
   OperationsHeader,
   Pagination,
   Panel,
-  StatusBadge,
 } from "@/components/operations/OperationsUi";
 import { Button } from "@/components/ui/Button";
-import { Field, FieldError, Input, Label, Textarea } from "@/components/ui/Form";
 import { useAuth } from "@/features/auth/AuthContext";
+import { classColumns } from "@/features/classes/classColumns";
+import { classListParams, initialClassFilters } from "@/features/classes/classFilters";
+import {
+  classSchema,
+  classToForm,
+  emptyClassForm,
+  toClassPayload,
+  type ClassForm,
+} from "@/features/classes/classForm";
+import { CancelClassDialog } from "@/features/classes/components/CancelClassDialog";
+import { ClassFilterBar } from "@/features/classes/components/ClassFilterBar";
+import { ClassFormDialog } from "@/features/classes/components/ClassFormDialog";
+import { NextClassCard } from "@/features/classes/components/NextClassCard";
 import { apiRequest } from "@/lib/apiClient";
 import { toUiError } from "@/lib/apiErrors";
-import { formatDateTime, formatMoney } from "@/lib/format";
 import { refreshManagementQueries } from "@/lib/managementMutations";
 import { queryClient } from "@/lib/queryClient";
-import type { ClassPage, GymClass, Trainer } from "@/types/operations";
-
-const classSchema = z
-  .object({
-    title: z.string().min(3, "Use at least 3 characters.").max(160),
-    class_type: z.string().min(2, "Class type is required.").max(100),
-    description: z.string().max(3000).optional(),
-    start_at: z.string().min(1, "Start time is required."),
-    end_at: z.string().min(1, "End time is required."),
-    capacity: z.number().int().min(1).max(500),
-    price_vnd: z.number().int().min(1, "Enter a positive VND price.").max(1_000_000_000),
-    gym_id: z.string().uuid("Select a gym location."),
-    trainer_id: z.string().optional(),
-    location: z.string().min(2, "Location is required.").max(160),
-  })
-  .refine((values) => new Date(values.end_at) > new Date(values.start_at), {
-    path: ["end_at"],
-    message: "End time must be after start time.",
-  });
-type ClassForm = z.infer<typeof classSchema>;
-
-type ClassFilters = {
-  search: string;
-  status: string;
-  gymId: string;
-  trainerId: string;
-  dateFrom: string;
-  dateTo: string;
-};
-const initialFilters: ClassFilters = {
-  search: "",
-  status: "",
-  gymId: "",
-  trainerId: "",
-  dateFrom: "",
-  dateTo: "",
-};
+import type { ClassPage, GymClass, GymLocation, Trainer } from "@/types/operations";
 
 export function AdminClassesPage() {
   const { token } = useAuth();
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState(initialFilters);
-  const [applied, setApplied] = useState(initialFilters);
+  const [filters, setFilters] = useState(initialClassFilters);
+  const [applied, setApplied] = useState(initialClassFilters);
   const [editing, setEditing] = useState<GymClass | "new" | null>(null);
   const [cancelling, setCancelling] = useState<GymClass | null>(null);
-  const [cancelReason, setCancelReason] = useState("");
   const gyms = useQuery({
     queryKey: ["gyms", "active"],
-    queryFn: ({ signal }) =>
-      apiRequest<import("@/types/operations").GymLocation[]>("/gyms", { signal }),
+    queryFn: ({ signal }) => apiRequest<GymLocation[]>("/gyms", { signal }),
   });
   const gymId = applied.gymId || gyms.data?.[0]?.id || "";
-  const query = new URLSearchParams({ page: String(page), page_size: "25" });
-  if (applied.search) query.set("search", applied.search);
-  if (applied.status) query.set("status", applied.status);
-  if (gymId) query.set("gym_id", gymId);
-  if (applied.trainerId) query.set("trainer_id", applied.trainerId);
-  if (applied.dateFrom) query.set("date_from", new Date(applied.dateFrom).toISOString());
-  if (applied.dateTo) query.set("date_to", new Date(applied.dateTo).toISOString());
+  const query = classListParams(applied, gymId, page);
   const classes = useQuery({
     queryKey: ["admin", "classes", query.toString()],
     queryFn: ({ signal }) => apiRequest<ClassPage>(`/admin/classes?${query}`, { token, signal }),
@@ -98,19 +61,12 @@ export function AdminClassesPage() {
     resolver: zodResolver(classSchema),
     defaultValues: emptyClassForm(),
   });
-  const descriptionLength = (useWatch({ control: form.control, name: "description" }) ?? "").length;
   const save = useMutation({
     mutationFn: ({ id, values }: { id?: string; values: ClassForm }) =>
       apiRequest<GymClass>(id ? `/admin/classes/${id}` : "/admin/classes", {
         method: id ? "PATCH" : "POST",
         token,
-        body: {
-          ...values,
-          description: values.description || null,
-          trainer_id: values.trainer_id || null,
-          start_at: new Date(values.start_at).toISOString(),
-          end_at: new Date(values.end_at).toISOString(),
-        },
+        body: toClassPayload(values),
       }),
     onSuccess: async (_, variables) => {
       setEditing(null);
@@ -129,7 +85,6 @@ export function AdminClassesPage() {
       }),
     onSuccess: async () => {
       setCancelling(null);
-      setCancelReason("");
       await refreshManagementQueries(queryClient, "classes");
       toast.success("Class cancelled", { id: "class-cancel" });
     },
@@ -141,69 +96,14 @@ export function AdminClassesPage() {
     setEditing("new");
   }
   function openEdit(item: GymClass) {
-    form.reset({
-      title: item.title,
-      class_type: item.class_type,
-      description: item.description ?? "",
-      start_at: toLocalDateTime(item.start_at),
-      end_at: toLocalDateTime(item.end_at),
-      capacity: item.capacity,
-      price_vnd: item.price_vnd ?? 150000,
-      gym_id: item.gym_id,
-      trainer_id: item.trainer_id ?? "",
-      location: item.location,
-    });
+    form.reset(classToForm(item));
     setEditing(item);
   }
-  const gymNames = new Map(gyms.data?.map((gym) => [gym.id, gym.name]));
-  const columns: ColumnDef<GymClass>[] = [
-    {
-      header: "Class",
-      cell: ({ row }) => (
-        <div>
-          <strong>{row.original.title}</strong>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {row.original.class_type} / {gymNames.get(row.original.gym_id) ?? "Gym"} /{" "}
-            {row.original.location}
-          </p>
-        </div>
-      ),
-    },
-    {
-      header: "Schedule",
-      cell: ({ row }) => (
-        <div>
-          <strong>{formatDateTime(row.original.start_at)}</strong>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            to {formatDateTime(row.original.end_at)}
-          </p>
-        </div>
-      ),
-    },
-    { header: "Trainer", cell: ({ row }) => row.original.trainer_name ?? "Unassigned" },
-    { header: "Capacity", accessorKey: "capacity" },
-    {
-      header: "Price",
-      cell: ({ row }) => (row.original.price_vnd ? formatMoney(row.original.price_vnd) : "Not set"),
-    },
-    { header: "Status", cell: ({ row }) => <StatusBadge value={row.original.status} /> },
-    {
-      header: "Actions",
-      cell: ({ row }) =>
-        row.original.status === "scheduled" ? (
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => openEdit(row.original)}>
-              <Pencil className="size-4" /> Edit
-            </Button>
-            <Button variant="danger" onClick={() => setCancelling(row.original)}>
-              Cancel
-            </Button>
-          </div>
-        ) : (
-          <span className="text-xs text-muted-foreground">No actions</span>
-        ),
-    },
-  ];
+  const columns = classColumns({
+    gymNames: new Map(gyms.data?.map((gym) => [gym.id, gym.name])),
+    onEdit: openEdit,
+    onCancel: setCancelling,
+  });
   const nextClass = classes.data?.items.find((item) => item.status === "scheduled");
   return (
     <AdminShell>
@@ -235,83 +135,17 @@ export function AdminClassesPage() {
             title="Class schedule"
             detail="The visible filters are enforced by the list endpoint."
           >
-            <form
-              className="ops-toolbar"
-              onSubmit={(event) => {
-                event.preventDefault();
+            <ClassFilterBar
+              filters={filters}
+              setFilters={setFilters}
+              gymId={gymId}
+              gyms={gyms.data}
+              trainers={trainers.data}
+              onApply={() => {
                 setApplied(filters);
                 setPage(1);
               }}
-            >
-              <Search className="size-4 text-muted-foreground" />
-              <input
-                aria-label="Search classes"
-                placeholder="Title or class type"
-                value={filters.search}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, search: event.target.value }))
-                }
-              />
-              <select
-                aria-label="Filter gym location"
-                value={filters.gymId || gymId}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, gymId: event.target.value }))
-                }
-              >
-                <option value="">Select gym</option>
-                {gyms.data?.map((gym) => (
-                  <option value={gym.id} key={gym.id}>
-                    {gym.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label="Filter class status"
-                value={filters.status}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, status: event.target.value }))
-                }
-              >
-                <option value="">All statuses</option>
-                <option value="scheduled">Scheduled</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="completed">Completed</option>
-              </select>
-              <select
-                aria-label="Filter trainer"
-                value={filters.trainerId}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, trainerId: event.target.value }))
-                }
-              >
-                <option value="">All trainers</option>
-                {trainers.data?.map((trainer) => (
-                  <option value={trainer.id} key={trainer.id}>
-                    {trainer.display_name}
-                  </option>
-                ))}
-              </select>
-              <input
-                aria-label="Classes from"
-                type="datetime-local"
-                value={filters.dateFrom}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, dateFrom: event.target.value }))
-                }
-              />
-              <input
-                aria-label="Classes to"
-                type="datetime-local"
-                value={filters.dateTo}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, dateTo: event.target.value }))
-                }
-              />
-              <Button type="submit" variant="secondary">
-                Apply
-              </Button>
-            </form>
+            />
             {classes.isLoading ? (
               <LoadingState className="m-4" title="Loading class schedule" />
             ) : null}
@@ -352,41 +186,7 @@ export function AdminClassesPage() {
             ) : null}
           </Panel>
           <div className="grid content-start gap-5">
-            <Panel title="Next scheduled class" detail="Real backend schedule data only.">
-              {nextClass ? (
-                <article className="p-5">
-                  <span className="inline-flex rounded-full bg-secondary px-3 py-1 text-[10px] font-black uppercase tracking-wider">
-                    {nextClass.class_type}
-                  </span>
-                  <h3 className="mt-4 font-['Barlow_Condensed'] text-4xl font-bold uppercase">
-                    {nextClass.title}
-                  </h3>
-                  <p className="mt-3 flex items-center gap-2 text-sm">
-                    <Clock3 className="size-4 text-primary" /> {formatDateTime(nextClass.start_at)}
-                  </p>
-                  <p className="mt-2 flex items-center gap-2 text-sm">
-                    <UserRound className="size-4 text-primary" />{" "}
-                    {nextClass.trainer_name ?? "Trainer unassigned"}
-                  </p>
-                  <p className="mt-2 flex items-center gap-2 text-sm">
-                    <CalendarDays className="size-4 text-primary" /> {nextClass.location} /{" "}
-                    {nextClass.capacity} places
-                  </p>
-                  <p className="mt-2 text-lg font-bold">
-                    {nextClass.price_vnd ? formatMoney(nextClass.price_vnd) : "Price not set"}
-                  </p>
-                  <Button className="mt-5" variant="outline" onClick={() => openEdit(nextClass)}>
-                    Edit details
-                  </Button>
-                </article>
-              ) : (
-                <EmptyState
-                  className="m-4"
-                  title="No upcoming class"
-                  message="Add a future class to populate this schedule card."
-                />
-              )}
-            </Panel>
+            <NextClassCard item={nextClass} onEdit={openEdit} />
             <Panel title="Paid session rules" detail="One price per scheduled session.">
               <p className="p-5 text-sm leading-6 text-muted-foreground">
                 Future price edits apply only to new checkouts. Pending and paid bookings retain
@@ -396,187 +196,29 @@ export function AdminClassesPage() {
           </div>
         </div>
         {editing ? (
-          <Modal
+          <ClassFormDialog
+            editing={editing}
+            form={form}
+            gyms={gyms.data}
+            trainers={trainers.data}
             error={save.isError ? toUiError(save.error).message : undefined}
-            title={editing === "new" ? "Schedule a class" : `Edit ${editing.title}`}
-            description="Timezone, future time, capacity, trainer availability, and resource overlap are validated by the server."
+            isPending={save.isPending}
+            onSubmit={(values) =>
+              save.mutate({ id: editing === "new" ? undefined : editing.id, values })
+            }
             onClose={() => setEditing(null)}
-          >
-            <form
-              className="ops-modal__body"
-              onSubmit={form.handleSubmit((values) =>
-                save.mutate({ id: editing === "new" ? undefined : editing.id, values }),
-              )}
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field>
-                  <Label>Title</Label>
-                  <Input {...form.register("title")} />
-                  <FieldError message={form.formState.errors.title?.message} />
-                </Field>
-                <Field>
-                  <Label>Class type</Label>
-                  <Input {...form.register("class_type")} />
-                  <FieldError message={form.formState.errors.class_type?.message} />
-                </Field>
-                <Field>
-                  <Label>Gym location</Label>
-                  <select
-                    className="h-11 rounded-md border border-input px-3"
-                    {...form.register("gym_id")}
-                  >
-                    <option value="">Select a gym</option>
-                    {gyms.data?.map((gym) => (
-                      <option value={gym.id} key={gym.id}>
-                        {gym.name} · {gym.district}
-                      </option>
-                    ))}
-                  </select>
-                  <FieldError message={form.formState.errors.gym_id?.message} />
-                </Field>
-                <Field>
-                  <Label>Room / area</Label>
-                  <Input {...form.register("location")} />
-                  <FieldError message={form.formState.errors.location?.message} />
-                </Field>
-                <Field>
-                  <Label>Start</Label>
-                  <Input type="datetime-local" {...form.register("start_at")} />
-                  <FieldError message={form.formState.errors.start_at?.message} />
-                </Field>
-                <Field>
-                  <Label>End</Label>
-                  <Input type="datetime-local" {...form.register("end_at")} />
-                  <FieldError message={form.formState.errors.end_at?.message} />
-                </Field>
-                <Field>
-                  <Label>Capacity</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="500"
-                    {...form.register("capacity", { valueAsNumber: true })}
-                  />
-                  <FieldError message={form.formState.errors.capacity?.message} />
-                </Field>
-                <Field>
-                  <Label>Price (VND)</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    step="1000"
-                    {...form.register("price_vnd", { valueAsNumber: true })}
-                  />
-                  <FieldError message={form.formState.errors.price_vnd?.message} />
-                </Field>
-                <Field className="sm:col-span-2">
-                  <Label>Trainer</Label>
-                  <select
-                    className="h-11 rounded-md border border-input px-3"
-                    {...form.register("trainer_id")}
-                  >
-                    <option value="">Unassigned</option>
-                    {trainers.data?.map((trainer) => (
-                      <option value={trainer.id} key={trainer.id}>
-                        {trainer.display_name}
-                        {trainer.specialty ? ` - ${trainer.specialty}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field className="sm:col-span-2">
-                  <Label htmlFor="class-description">Description</Label>
-                  <Textarea
-                    id="class-description"
-                    className="min-h-32 w-full resize-y"
-                    {...form.register("description")}
-                  />
-                  <div className="flex items-start justify-between gap-3">
-                    <FieldError message={form.formState.errors.description?.message} />
-                    <span className="ml-auto text-xs text-muted-foreground" aria-live="polite">
-                      {descriptionLength}/3000
-                    </span>
-                  </div>
-                </Field>
-              </div>
-              <div className="ops-modal__actions">
-                <Button type="button" variant="outline" onClick={() => setEditing(null)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={save.isPending}>
-                  {save.isPending
-                    ? "Saving..."
-                    : editing === "new"
-                      ? "Schedule class"
-                      : "Save changes"}
-                </Button>
-              </div>
-            </form>
-          </Modal>
+          />
         ) : null}
         {cancelling ? (
-          <Modal
+          <CancelClassDialog
+            item={cancelling}
             error={cancel.isError ? toUiError(cancel.error).message : undefined}
-            title={`Cancel ${cancelling.title}?`}
-            description="Cancellation is an audited status transition; the class is never hard-deleted."
-            onClose={() => {
-              setCancelling(null);
-              setCancelReason("");
-            }}
-          >
-            <div className="ops-modal__body">
-              <label>
-                Mandatory cancellation reason
-                <textarea
-                  value={cancelReason}
-                  onChange={(event) => setCancelReason(event.target.value)}
-                />
-              </label>
-              <div className="ops-modal__actions">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setCancelling(null);
-                    setCancelReason("");
-                  }}
-                >
-                  Keep class
-                </Button>
-                <Button
-                  variant="danger"
-                  disabled={cancelReason.trim().length < 10 || cancel.isPending}
-                  onClick={() => cancel.mutate({ id: cancelling.id, reason: cancelReason.trim() })}
-                >
-                  {cancel.isPending ? "Cancelling..." : "Confirm cancellation"}
-                </Button>
-              </div>
-            </div>
-          </Modal>
+            isPending={cancel.isPending}
+            onConfirm={(reason) => cancel.mutate({ id: cancelling.id, reason })}
+            onClose={() => setCancelling(null)}
+          />
         ) : null}
       </div>
     </AdminShell>
   );
-}
-
-function emptyClassForm(gymId = ""): ClassForm {
-  const start = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  start.setMinutes(0, 0, 0);
-  const end = new Date(start.getTime() + 60 * 60 * 1000);
-  return {
-    title: "",
-    class_type: "",
-    description: "",
-    start_at: toLocalDateTime(start.toISOString()),
-    end_at: toLocalDateTime(end.toISOString()),
-    capacity: 20,
-    price_vnd: 150000,
-    gym_id: gymId,
-    trainer_id: "",
-    location: "",
-  };
-}
-function toLocalDateTime(value: string) {
-  const dateValue = new Date(value);
-  const offset = dateValue.getTimezoneOffset();
-  return new Date(dateValue.getTime() - offset * 60_000).toISOString().slice(0, 16);
 }
