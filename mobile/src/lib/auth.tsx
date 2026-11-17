@@ -1,34 +1,49 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
-import * as SecureStore from 'expo-secure-store';
-import { router } from 'expo-router';
-import { Platform } from 'react-native';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type PropsWithChildren,
+} from "react";
+import * as SecureStore from "expo-secure-store";
+import { router } from "expo-router";
+import { Platform } from "react-native";
 
-import { apiRequest, ApiError, errorMessage } from '@/lib/api';
-import { clearMemberQueryData } from '@/lib/query';
-import { endMemberSession, restoreMemberSession } from '@/lib/session';
-import type { LoginResponse, User } from '@/lib/types';
+import { apiRequest, ApiError, errorMessage } from "@/lib/api";
+import { clearMemberQueryData } from "@/lib/query";
+import { endMemberSession, restoreMemberSession } from "@/lib/session";
+import type { LoginResponse, User } from "@/lib/types";
 
-const TOKEN_KEY = 'ypgym_member_token';
+const TOKEN_KEY = "ypgym_member_token";
 async function readToken() {
-  if (Platform.OS !== 'web') return SecureStore.getItemAsync(TOKEN_KEY);
+  if (Platform.OS !== "web") return SecureStore.getItemAsync(TOKEN_KEY);
   return window.sessionStorage.getItem(TOKEN_KEY) ?? window.localStorage.getItem(TOKEN_KEY);
 }
 async function saveToken(value: string) {
-  if (Platform.OS !== 'web') return SecureStore.setItemAsync(TOKEN_KEY, value);
+  if (Platform.OS !== "web") return SecureStore.setItemAsync(TOKEN_KEY, value);
   window.localStorage.removeItem(TOKEN_KEY);
   window.sessionStorage.setItem(TOKEN_KEY, value);
 }
 async function deleteToken() {
-  if (Platform.OS !== 'web') return SecureStore.deleteItemAsync(TOKEN_KEY);
+  if (Platform.OS !== "web") return SecureStore.deleteItemAsync(TOKEN_KEY);
   window.sessionStorage.removeItem(TOKEN_KEY);
   window.localStorage.removeItem(TOKEN_KEY);
 }
 
-type Options = { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal };
+type Options = {
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  body?: unknown;
+  signal?: AbortSignal;
+};
 type Session = {
-  ready: boolean; token: string | null; user: User | null; restoreError: string | null;
+  ready: boolean;
+  token: string | null;
+  user: User | null;
+  restoreError: string | null;
   login: (email: string, password: string) => Promise<void>;
-  completeOAuth: (provider: 'google' | 'facebook', code: string) => Promise<void>;
+  completeOAuth: (provider: "google" | "facebook", code: string) => Promise<void>;
   logout: () => Promise<void>;
   retryRestore: () => void;
   refreshUser: () => Promise<void>;
@@ -55,7 +70,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       },
       clearQueries: clearMemberQueryData,
       clearStoredToken: deleteToken,
-      resetNavigation: () => router.replace('/login'),
+      resetNavigation: () => router.replace("/login"),
     });
   }, []);
 
@@ -64,17 +79,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
     async function restore() {
       const result = await restoreMemberSession({
         readToken,
-        loadUser: (stored) => apiRequest<User>('/auth/me', stored),
-        discardStoredSession: async () => { clearMemberQueryData(); await deleteToken(); },
+        loadUser: (stored) => apiRequest<User>("/auth/me", stored),
+        discardStoredSession: async () => {
+          clearMemberQueryData();
+          await deleteToken();
+        },
         isUnauthorized: (error) => error instanceof ApiError && error.status === 401,
       });
       if (!mounted) return;
-      if (result.kind === 'authenticated') {
+      if (result.kind === "authenticated") {
         currentToken.current = result.token;
         setToken(result.token);
         setUser(result.user);
         setRestoreError(null);
-      } else if (result.kind === 'retry') {
+      } else if (result.kind === "retry") {
         currentToken.current = result.token;
         setToken(result.token);
         setUser(null);
@@ -92,12 +110,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setRestoreError(errorMessage(error));
       setReady(true);
     });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [restoreAttempt]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const result = await apiRequest<LoginResponse>('/auth/login', undefined, { method: 'POST', body: { email, password } });
-    if (result.user.role !== 'member') throw new ApiError('This app is for members. Use the web workspace for your role.', 403, 'PERMISSION_DENIED');
+    const result = await apiRequest<LoginResponse>("/auth/login", undefined, {
+      method: "POST",
+      body: { email, password },
+    });
+    if (result.user.role !== "member")
+      throw new ApiError(
+        "This app is for members. Use the web workspace for your role.",
+        403,
+        "PERMISSION_DENIED",
+      );
     await saveToken(result.access_token);
     clearMemberQueryData();
     currentToken.current = result.access_token;
@@ -106,10 +134,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setRestoreError(null);
   }, []);
 
-  const completeOAuth = useCallback(async (provider: 'google' | 'facebook', code: string) => {
-    const exchangePath = Platform.OS === 'web' ? `/auth/oauth/${provider}/mobile-web/exchange` : `/auth/oauth/${provider}/mobile/exchange`;
-    const result = await apiRequest<LoginResponse>(exchangePath, undefined, { method: 'POST', body: { code } });
-    if (result.user.role !== 'member') throw new ApiError('This app is for members. Use the web workspace for your role.', 403, 'PERMISSION_DENIED');
+  const completeOAuth = useCallback(async (provider: "google" | "facebook", code: string) => {
+    const exchangePath =
+      Platform.OS === "web"
+        ? `/auth/oauth/${provider}/mobile-web/exchange`
+        : `/auth/oauth/${provider}/mobile/exchange`;
+    const result = await apiRequest<LoginResponse>(exchangePath, undefined, {
+      method: "POST",
+      body: { code },
+    });
+    if (result.user.role !== "member")
+      throw new ApiError(
+        "This app is for members. Use the web workspace for your role.",
+        403,
+        "PERMISSION_DENIED",
+      );
     await saveToken(result.access_token);
     clearMemberQueryData();
     currentToken.current = result.access_token;
@@ -118,25 +157,46 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setRestoreError(null);
   }, []);
 
-  const request = useCallback(async <T,>(path: string, options?: Options) => {
-    try { return await apiRequest<T>(path, token, options); }
-    catch (error) {
-      if (error instanceof ApiError && error.status === 401 && token) await logout(token);
-      throw error;
-    }
-  }, [logout, token]);
+  const request = useCallback(
+    async <T,>(path: string, options?: Options) => {
+      try {
+        return await apiRequest<T>(path, token, options);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401 && token) await logout(token);
+        throw error;
+      }
+    },
+    [logout, token],
+  );
 
   const refreshUser = useCallback(async () => {
     if (!token) return;
-    const refreshed = await request<User>('/auth/me');
+    const refreshed = await request<User>("/auth/me");
     setUser(refreshed);
   }, [request, token]);
 
-  return <Context.Provider value={{ ready, token, user, restoreError, login, completeOAuth, logout: () => logout(), retryRestore: () => setRestoreAttempt((n) => n + 1), refreshUser, request }}>{children}</Context.Provider>;
+  return (
+    <Context.Provider
+      value={{
+        ready,
+        token,
+        user,
+        restoreError,
+        login,
+        completeOAuth,
+        logout: () => logout(),
+        retryRestore: () => setRestoreAttempt((n) => n + 1),
+        refreshUser,
+        request,
+      }}
+    >
+      {children}
+    </Context.Provider>
+  );
 }
 
 export function useAuth() {
   const context = useContext(Context);
-  if (!context) throw new Error('AuthProvider is required');
+  if (!context) throw new Error("AuthProvider is required");
   return context;
 }

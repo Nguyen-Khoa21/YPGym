@@ -1,5 +1,5 @@
-import { parseCredentials, serializeCredentials } from './credentials.ts';
-import type { Credentials } from './types.ts';
+import { parseCredentials, serializeCredentials } from "./credentials.ts";
+import type { Credentials } from "./types.ts";
 
 export interface CredentialStorageAdapter {
   getItemAsync(key: string): Promise<string | null>;
@@ -10,7 +10,7 @@ export interface CredentialStorageAdapter {
 export function createCredentialStore(
   adapter: CredentialStorageAdapter,
   options?: object,
-  key = 'ypgym_scanner_device_v1',
+  key = "ypgym_scanner_device_v1",
 ) {
   return {
     async load() {

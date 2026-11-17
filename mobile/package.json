@@ -37,6 +37,7 @@
     "@types/react": "~19.3.0",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
+    "prettier": "3.10.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -47,7 +48,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.mjs"
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "format": "prettier --write src tests",
+    "format:check": "prettier --check src tests"
   },
   "private": true
 }

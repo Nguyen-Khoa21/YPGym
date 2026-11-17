@@ -11,7 +11,9 @@
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "export:android": "expo export --platform android"
+    "export:android": "expo export --platform android",
+    "format": "prettier --write App.tsx index.ts src tests",
+    "format:check": "prettier --check App.tsx index.ts src tests"
   },
   "dependencies": {
     "expo": "^58.0.22",
@@ -27,6 +29,7 @@
     "@types/react": "~19.3.0",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
+    "prettier": "3.10.1",
     "typescript": "~6.0.3"
   }
 }
