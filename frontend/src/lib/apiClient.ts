@@ -10,9 +10,16 @@ type RequestOptions = {
   signal?: AbortSignal;
 };
 
+// Path part of the base URL (e.g. "/api/v1"). Server-built links such as invoice download URLs
+// already include it, so it must not be added a second time.
+const API_BASE_PATH = new URL(API_BASE_URL, "http://base.invalid").pathname.replace(/\/+$/, "");
+
 export function apiUrl(path: string) {
   if (path.startsWith("http")) {
     return path;
+  }
+  if (API_BASE_PATH && path.startsWith(`${API_BASE_PATH}/`)) {
+    return `${API_BASE_URL}${path.slice(API_BASE_PATH.length)}`;
   }
   return `${API_BASE_URL}${path}`;
 }

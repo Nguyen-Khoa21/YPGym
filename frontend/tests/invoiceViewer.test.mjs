@@ -16,3 +16,12 @@ test("only a non-empty PDF payload can reach the viewer", () => {
   assert.equal(isPdfBlob(new Blob(["{}"], { type: "application/json" })), false);
   assert.equal(isPdfBlob(new Blob(["<html>"], { type: "text/html" })), false);
 });
+
+test("server-built invoice links are not prefixed with the API path twice", async () => {
+  const { API_BASE_URL, apiUrl } = await import("../src/lib/apiClient.ts");
+  const id = "961c8cb9-76a9-4779-a8b5-67dbf5b0a580";
+  const expected = `${API_BASE_URL}/billing/me/invoices/${id}`;
+  assert.equal(apiUrl(`/api/v1/billing/me/invoices/${id}`), expected);
+  assert.equal(apiUrl(`/billing/me/invoices/${id}`), expected);
+  assert.equal(apiUrl("https://cdn.example.test/file.pdf"), "https://cdn.example.test/file.pdf");
+});
