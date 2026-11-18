@@ -94,7 +94,7 @@ export function ClassFormDialog({
             <Input
               type="number"
               min="1"
-              step="1000"
+              step="1"
               {...form.register("price_vnd", { valueAsNumber: true })}
             />
             <FieldError message={errors.price_vnd?.message} />
