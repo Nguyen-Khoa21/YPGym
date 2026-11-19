@@ -94,11 +94,13 @@ export default function Login() {
         />
       </View>
       <SocialLoginActions />
-      <Action
-        label="Create a member account"
-        onPress={() => router.push("/register" as Href)}
-        outline
-      />
+      <View style={{ marginTop: 24 }}>
+        <Action
+          label="Create a member account"
+          onPress={() => router.push("/register" as Href)}
+          outline
+        />
+      </View>
       <Text
         style={{
           color: health.isSuccess ? colors.primary : colors.muted,
