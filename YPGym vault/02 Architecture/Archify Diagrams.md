@@ -33,6 +33,20 @@ For the technical map of the stack, see [[YPGym Architecture.canvas]] and [[Syst
 - Built from repo revision `e5fe895` (2026-11-05, "replace VNPay with payOS").
 - Status: `stale`. HEAD is 23 commits later (`9088536`, 2026-11-09). It was drawn before the multi-gym work and before Packages 11 to 16.
 
+### 3. Study-course diagram set (7 diagrams)
+- Created: 2026-11-15, from repo revision `abe08b7` (branch `refactor/frontend-readability`).
+- Folders: `.archify/<type>-ypgym-<slug>-20261115-145808/`, each with its `candidate.json` and HTML.
+- Diagrams: architecture `kien-truc`, workflow `luong-nghiep-vu`, sequences `qr-checkin`, `payos-thanh-toan`, `dang-ky-dang-nhap`, lifecycles `vong-doi-membership`, `vong-doi-booking`.
+- Embedded in the study course `ypgym-ultimate-course/` (modules 11 and 12, plus the 14-day roadmap in module 15).
+- Status: `current` for `abe08b7`. Diagrams 1 and 2 above are older and not updated.
+
+### 4. Report Figure 4.1: system context and actors
+- Created: 2026-11-17, from repo revision `eb21ecf` (branch `refactor/frontend-readability`).
+- HTML: `.archify/architecture-ypgym-context-diagram-20261117-151234/ypgym-context-diagram.html`
+- Source: `.archify/architecture-ypgym-context-diagram-20261117-151234/candidate.json`
+- Shows Member, Owner/Admin, Branch Manager, Staff, PT and the authenticated scanner around the YPGym system, plus payOS, the SMTP email service and Google/Facebook sign-in. English, for report section 4.2.
+- Status: `current` for `eb21ecf`.
+
 ## What the latest diagram covers
 
 Five lanes: member journey, QR and attendance and realtime, payment and benefits, classes and waitlist and YPTrain, operations and data and background jobs. Views include the main journey, payOS payment and attendance.
@@ -61,3 +75,5 @@ These came after revision `e5fe895`, so check them when you regenerate:
 ## Update log
 
 - 2026-11-10: note created. Latest diagram is stale (see above). Add a line here each time a diagram is regenerated: date, repo revision, what changed.
+- 2026-11-15: revision `abe08b7`. Added the 7-diagram study set (section 3) for `ypgym-ultimate-course/`: architecture, overall workflow, QR check-in, payOS payment, register/login, membership and booking lifecycles. Diagrams 1 and 2 left as they were.
+- 2026-11-17: revision `eb21ecf`. Added the report Figure 4.1 context diagram (section 4). No business flow changed.
