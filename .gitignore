@@ -103,15 +103,19 @@ scanner-mobile/credentials.json
 YPGym vault/.obsidian/workspace.json
 YPGym vault/.obsidian/workspaces.json
 
-# Archify: keep candidate.json (the source), ignore generated output
-.archify/**/*.html
-.archify/**/*.finalize.json
-.archify/**/*.finalize-summary.json
-.archify/**/*.browser-check.json
-.archify/**/*.delivery.json
+# Local-only diagram, graph, report and viva-audio material (not versioned).
+# Two older .archify/ candidate.json files were committed before this rule and stay tracked.
+.archify/
+docs/report-diagrams/
+graphify-out/
+report/
+viva-audio/
+HUONG-DAN-AUDIO-GIAI-THICH-CODE.md
 
 # Local scratch, Word lock files and unrelated projects
 ~$*
 tmp/
 MiroFish/
 notes25/
+ypgym-course
+ypgym-ultimate-course
