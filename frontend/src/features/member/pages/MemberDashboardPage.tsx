@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   CalendarDays,
@@ -16,30 +15,21 @@ import { MemberShell } from "@/components/layout/MemberShell";
 import { StatusBadge } from "@/components/operations/OperationsUi";
 import { Button } from "@/components/ui/Button";
 import { routePaths } from "@/app/routes";
-import { useAuth } from "@/features/auth/AuthContext";
 import { useOnboarding, useRecommendations } from "@/features/onboarding/onboardingApi";
-import { apiRequest } from "@/lib/apiClient";
 import { toUiError } from "@/lib/apiErrors";
 import { formatDateTime } from "@/lib/format";
-import type { MemberDashboardPayload } from "@/types/operations";
 import { EmbeddedQr } from "../components/EmbeddedQr";
-import { DashboardTabs } from "../components/DashboardTabs";
 import { ExpiredMembershipPanel } from "../components/ExpiredMembershipPanel";
 import { OccupancyCard } from "../components/OccupancyCard";
 import { TrafficHistory } from "../components/TrafficHistory";
 import { gymDisplayName, visibleQuickActions } from "../memberDashboardLogic";
-import { useTrafficSummary } from "../useMemberQueries";
+import { useMemberDashboard, useTrafficSummary } from "../useMemberQueries";
 
 const ONBOARDING_PROMPTED_KEY = "ypgym:onboarding:prompted";
 const actionIcons = { membership: RefreshCw, classes: CalendarDays, profile: CircleUserRound };
 
 export function MemberDashboardPage() {
-  const { token } = useAuth();
-  const query = useQuery({
-    queryKey: ["dashboard", "me"],
-    queryFn: ({ signal }) => apiRequest<MemberDashboardPayload>("/dashboard/me", { token, signal }),
-    refetchInterval: 30_000,
-  });
+  const query = useMemberDashboard();
   const hasMembership = Boolean(query.data?.membership);
   const traffic = useTrafficSummary(hasMembership);
   const navigate = useNavigate();
@@ -90,21 +80,20 @@ export function MemberDashboardPage() {
             <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">
               Member dashboard
             </p>
-            <h1 className="mt-1 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none sm:text-5xl">
-              Hi, {data.member.name.split(" ")[0]}
-            </h1>
+            {data.membership ? (
+              <h1
+                className="mt-1 inline-flex items-center gap-2 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none text-primary sm:text-5xl"
+                data-testid="member-gym"
+              >
+                <MapPin className="size-7 shrink-0 sm:size-8" aria-hidden />
+                {gymDisplayName(data.membership.home_gym_name)}
+              </h1>
+            ) : (
+              <h1 className="mt-1 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none sm:text-5xl">
+                No gym selected yet
+              </h1>
+            )}
           </div>
-          {data.membership ? (
-            <p
-              className="inline-flex items-center gap-2 font-['Barlow_Condensed'] text-3xl font-bold uppercase leading-none text-primary sm:text-4xl"
-              data-testid="member-gym"
-            >
-              <MapPin className="size-6" aria-hidden />
-              {gymDisplayName(data.membership.home_gym_name)}
-            </p>
-          ) : (
-            <p className="text-sm font-semibold">No gym selected yet</p>
-          )}
           {next ? (
             <p className="w-full text-sm text-muted-foreground">
               Your next class is {next.gym_class.title} at {formatDateTime(next.gym_class.start_at)}
@@ -115,16 +104,21 @@ export function MemberDashboardPage() {
         <ExpiredMembershipPanel membership={data.membership} />
         {recommendations.data?.quiet_hours ? (
           <section
-            className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4"
+            className="flex items-center gap-4 rounded-2xl border-2 border-secondary bg-secondary/15 p-4 shadow-sm sm:p-5"
             aria-label="Quiet time for you"
           >
-            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-foreground">
-              <Clock3 className="size-4" aria-hidden />
+            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
+              <Clock3 className="size-6" aria-hidden />
             </span>
             <p className="text-sm">
-              <strong>Quiet time for you: {recommendations.data.quiet_hours.label}</strong> at{" "}
-              {recommendations.data.quiet_hours.gym_name}
-              <span className="block text-xs text-muted-foreground">
+              <span className="block text-xs font-black uppercase tracking-wider text-primary">
+                Quiet time for you
+              </span>
+              <strong className="mt-0.5 block font-['Barlow_Condensed'] text-2xl font-bold uppercase leading-tight sm:text-3xl">
+                {recommendations.data.quiet_hours.label}
+              </strong>
+              <span className="block">at {recommendations.data.quiet_hours.gym_name}</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
                 Based on last month's attendance at that gym.
               </span>
             </p>
@@ -141,45 +135,29 @@ export function MemberDashboardPage() {
           </section>
         ) : null}
         {data.membership ? (
-          <>
-            <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
-              <div className="grid content-start gap-5">
-                {data.crowdedness ? <OccupancyCard data={data.crowdedness} /> : null}
-                <TrafficHistory query={traffic} gymName={data.membership.home_gym_name} />
-              </div>
-              <div className="self-start">
-                <EmbeddedQr eligible={data.qr_access.eligible} reason={data.qr_access.reason} />
-              </div>
+          <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
+            <div className="grid content-start gap-5">
+              {data.crowdedness ? <OccupancyCard data={data.crowdedness} /> : null}
+              <TrafficHistory query={traffic} gymName={data.membership.home_gym_name} />
             </div>
-            <DashboardTabs
-              broadcasts={data.active_broadcasts}
-              notifications={data.recent_notifications}
-              unreadCount={data.unread_notification_count}
-              membership={data.membership}
-            />
-          </>
+            <div className="self-start">
+              <EmbeddedQr eligible={data.qr_access.eligible} reason={data.qr_access.reason} />
+            </div>
+          </div>
         ) : (
-          <>
-            <section className="rounded-2xl border border-border bg-card p-6">
-              <h2 className="text-xl font-bold">Choose your gym</h2>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                Buy a membership and pick a location to see live occupancy, quiet times and your
-                check-in code.
-              </p>
-              <Link
-                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-                to="/memberships"
-              >
-                Buy membership <ArrowRight className="size-4" aria-hidden />
-              </Link>
-            </section>
-            <DashboardTabs
-              broadcasts={data.active_broadcasts}
-              notifications={data.recent_notifications}
-              unreadCount={data.unread_notification_count}
-              membership={data.membership}
-            />
-          </>
+          <section className="rounded-2xl border border-border bg-card p-6">
+            <h2 className="text-xl font-bold">Choose your gym</h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+              Buy a membership and pick a location to see live occupancy, quiet times and your
+              check-in code.
+            </p>
+            <Link
+              className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+              to="/memberships"
+            >
+              Buy membership <ArrowRight className="size-4" aria-hidden />
+            </Link>
+          </section>
         )}
         <section className="grid gap-5">
           <article className="rounded-2xl border border-border bg-card p-5">

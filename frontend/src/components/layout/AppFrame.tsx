@@ -8,6 +8,7 @@ import { routePaths } from "@/app/routes";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { workspacePathForRole } from "@/features/auth/workspace";
+import { HeaderNotifications } from "@/features/member/components/HeaderNotifications";
 import { apiRequest } from "@/lib/apiClient";
 import type { GymLocation } from "@/types/operations";
 
@@ -54,6 +55,7 @@ export function AppFrame({ children, compact = false, navigation }: AppFrameProp
             </span>
             <span>YPGYM</span>
           </Link>
+          {user ? <p className="header-greeting">Hi, {user.name.split(" ")[0]}</p> : null}
 
           {!compact ? (
             <nav className="site-nav" aria-label="Main navigation">
@@ -75,9 +77,15 @@ export function AppFrame({ children, compact = false, navigation }: AppFrameProp
             {user ? (
               <>
                 <WorkforceGymChip />
-                <Link className="header-join" to={workspacePathForRole(user.role)}>
+                {user.role === "member" ? <HeaderNotifications /> : null}
+
+                <Link
+                  className="header-join"
+                  to={workspacePathForRole(user.role)}
+                  aria-label="Workspace"
+                >
                   <LayoutDashboard className="size-4" aria-hidden />
-                  Workspace
+                  <span className="header-join__label">Workspace</span>
                 </Link>
                 <Link
                   className="identity-chip"

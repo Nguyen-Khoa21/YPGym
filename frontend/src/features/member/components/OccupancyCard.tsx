@@ -3,12 +3,12 @@ import { Gauge } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import type { Crowdedness } from "@/types/operations";
 
-/** Live occupancy of the member's home gym, kept compact so the tab card fits beside it above the fold. */
+/** Live occupancy of the member's home gym, kept compact so the traffic history stays above the fold. */
 export function OccupancyCard({ data }: { data: Crowdedness }) {
   const percentage = Math.min(Math.max(data.percentage, 0), 100);
   return (
     <section
-      className="rounded-2xl border border-border bg-card p-4"
+      className="rounded-2xl border border-border bg-card px-4 py-3"
       aria-labelledby="occupancy-heading"
     >
       <div className="flex items-center justify-between gap-4">
@@ -19,20 +19,20 @@ export function OccupancyCard({ data }: { data: Crowdedness }) {
           >
             Live occupancy
           </h2>
-          <p className="mt-1 flex flex-wrap items-baseline gap-x-3">
-            <span className="font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none">
+          <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
+            <span className="font-['Barlow_Condensed'] text-3xl font-bold uppercase leading-none">
               {data.percentage}%
             </span>
-            <span className="text-sm font-bold">{data.status}</span>
+            <span className="text-xs font-bold">{data.status}</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             {data.active_count} of {data.capacity} places in use right now.
           </p>
         </div>
-        <Gauge className="size-7 shrink-0 text-primary" aria-hidden />
+        <Gauge className="size-6 shrink-0 text-primary" aria-hidden />
       </div>
       <div
-        className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted"
+        className="mt-2 h-2 overflow-hidden rounded-full bg-muted"
         role="progressbar"
         aria-label="Capacity used"
         aria-valuemin={0}
@@ -41,7 +41,7 @@ export function OccupancyCard({ data }: { data: Crowdedness }) {
       >
         <div className="h-full rounded-full bg-secondary" style={{ width: `${percentage}%` }} />
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-1.5 text-[11px] text-muted-foreground">
         Updated {formatDateTime(data.calculated_at)}
       </p>
     </section>

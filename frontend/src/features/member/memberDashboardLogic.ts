@@ -97,7 +97,6 @@ export function occupancyHeading(name: string | null | undefined): string {
   return display ? `${display}'s Occupancy` : "Occupancy";
 }
 
-export type DashboardTab = "important" | "membership";
 export type ImportantItem = {
   kind: "broadcast" | "notification";
   id: string;
@@ -130,23 +129,8 @@ export function importantItems(
   ].slice(0, limit);
 }
 
-/** Open on Important when there is something to read, otherwise on Membership. */
-export function defaultDashboardTab(unreadCount: number, broadcastCount: number): DashboardTab {
-  return unreadCount > 0 || broadcastCount > 0 ? "important" : "membership";
-}
-
 /** Unread badge text: nothing at 0 and "99+" above 99. */
 export function formatBadgeCount(count: number): string {
   if (count <= 0) return "";
   return count > 99 ? "99+" : String(count);
-}
-
-/** Arrow-key navigation across tabs. Returns the index to focus, or null when the key is not a tab key. */
-export function nextTabIndex(current: number, key: string, count: number): number | null {
-  if (count <= 0) return null;
-  if (key === "ArrowRight") return (current + 1) % count;
-  if (key === "ArrowLeft") return (current - 1 + count) % count;
-  if (key === "Home") return 0;
-  if (key === "End") return count - 1;
-  return null;
 }

@@ -24,7 +24,8 @@ for (const [email, gym] of [["memberdist1@ypgym.dev", "District 1"], ["memberdis
       await login(page, email);
       await expect(page.getByTestId("member-gym")).toHaveText(`YPGym ${gym}`);
       await expect(page.getByRole("heading", { name: "Live occupancy" })).toBeVisible();
-      await expect(page.getByRole("tab", { name: /Important/ })).toBeVisible();
+      await expect(page.getByRole("tab")).toHaveCount(0);
+      await expect(page.locator(".header-greeting")).toBeVisible({ visible: label === "1280px" });
       await expect(page.getByRole("heading", { name: `YPGym ${gym}'s Occupancy` })).toBeVisible();
       await expect(page.getByLabel("Rotating YPGym attendance QR code")).toBeVisible();
       await expect(page.getByText(/Refreshes in/)).toBeVisible();
@@ -47,20 +48,26 @@ for (const [email, gym] of [["memberdist1@ypgym.dev", "District 1"], ["memberdis
   }
 }
 
-test("dashboard tabs switch by mouse and keyboard", async ({ page }) => {
+test("header bell opens the important notifications and closes with Escape", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await login(page, "memberdist1@ypgym.dev");
-  const important = page.getByRole("tab", { name: /Important/ });
-  const membership = page.getByRole("tab", { name: "Membership" });
-  await membership.click();
-  await expect(membership).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tabpanel", { name: "Membership" })).toBeVisible();
-  await membership.press("ArrowLeft");
-  await expect(important).toHaveAttribute("aria-selected", "true");
-  await expect(important).toBeFocused();
-  await important.press("ArrowRight");
-  await expect(membership).toHaveAttribute("aria-selected", "true");
+  const bell = page.locator(".header-notifications__button");
+  await bell.click();
+  await expect(page.getByRole("link", { name: "Open inbox" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("link", { name: "Open inbox" })).toBeHidden();
+  await expect(bell).toBeFocused();
   await noHorizontalScroll(page);
+});
+
+test("membership status shows on the profile and membership pages", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await login(page, "memberdist1@ypgym.dev");
+  for (const path of ["/app/profile", "/memberships"]) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { name: "Membership status" })).toBeVisible();
+    await noHorizontalScroll(page);
+  }
 });
 
 test("the QR code changes when the token rotates", async ({ page }) => {

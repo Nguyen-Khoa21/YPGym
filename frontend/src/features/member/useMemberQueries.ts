@@ -3,7 +3,23 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useAuth } from "@/features/auth/AuthContext";
 import { apiRequest } from "@/lib/apiClient";
-import type { Crowdedness, QrToken, TrafficSummary } from "@/types/operations";
+import type {
+  Crowdedness,
+  MemberDashboardPayload,
+  QrToken,
+  TrafficSummary,
+} from "@/types/operations";
+
+/** The signed-in member's dashboard summary. Shared by the dashboard, profile and membership pages. */
+export function useMemberDashboard(enabled = true) {
+  const { token } = useAuth();
+  return useQuery({
+    queryKey: ["dashboard", "me"],
+    queryFn: ({ signal }) => apiRequest<MemberDashboardPayload>("/dashboard/me", { token, signal }),
+    enabled: enabled && Boolean(token),
+    refetchInterval: 30_000,
+  });
+}
 
 /**
  * Rotating attendance QR token. The token is held only in query memory, is refetched five seconds

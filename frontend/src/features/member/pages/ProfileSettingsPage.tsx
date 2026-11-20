@@ -24,6 +24,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { applyApiFieldErrors, toUiError, type UiError } from "@/lib/apiErrors";
 import { queryClient } from "@/lib/queryClient";
 import { OnboardingForm } from "@/features/onboarding/OnboardingForm";
+import { MembershipStatusCard } from "@/features/member/components/MembershipStatusCard";
 import type { User } from "@/types/api";
 
 const schema = z
@@ -158,60 +159,63 @@ export function ProfileSettingsPage() {
         ) : null}
         {profile.data ? (
           <div className="mt-8 grid gap-6 lg:grid-cols-[0.76fr_1.24fr]">
-            <aside className="surface-card h-fit overflow-hidden">
-              <div className="bg-primary p-6 text-primary-foreground">
-                <span className="grid size-14 place-items-center rounded-2xl bg-secondary text-xl font-extrabold text-foreground">
-                  {profile.data.name.slice(0, 1).toUpperCase()}
-                </span>
-                <p className="mt-5 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none">
-                  {profile.data.name}
-                </p>
-                <p className="mt-2 text-xs text-primary-foreground/65">
-                  {profile.data.tier} membership ·{" "}
-                  {profile.data.is_email_verified ? "Verified" : "Verification pending"}
-                </p>
-              </div>
-              <nav className="p-3" aria-label="Profile settings">
-                {profileRows.map((row) => {
-                  const Icon = row.icon;
-                  const content = (
-                    <>
-                      <span
-                        className={`grid size-9 place-items-center rounded-lg ${row.connected ? "bg-secondary text-foreground" : "bg-muted text-muted-foreground"}`}
+            <div className="grid h-fit gap-6">
+              <aside className="surface-card overflow-hidden">
+                <div className="bg-primary p-6 text-primary-foreground">
+                  <span className="grid size-14 place-items-center rounded-2xl bg-secondary text-xl font-extrabold text-foreground">
+                    {profile.data.name.slice(0, 1).toUpperCase()}
+                  </span>
+                  <p className="mt-5 font-['Barlow_Condensed'] text-4xl font-bold uppercase leading-none">
+                    {profile.data.name}
+                  </p>
+                  <p className="mt-2 text-xs text-primary-foreground/65">
+                    {profile.data.tier} membership ·{" "}
+                    {profile.data.is_email_verified ? "Verified" : "Verification pending"}
+                  </p>
+                </div>
+                <nav className="p-3" aria-label="Profile settings">
+                  {profileRows.map((row) => {
+                    const Icon = row.icon;
+                    const content = (
+                      <>
+                        <span
+                          className={`grid size-9 place-items-center rounded-lg ${row.connected ? "bg-secondary text-foreground" : "bg-muted text-muted-foreground"}`}
+                        >
+                          <Icon className="size-4" aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <strong className="block text-xs">{row.label}</strong>
+                          <small className="block pt-0.5 text-[11px] text-muted-foreground">
+                            {row.detail}
+                          </small>
+                        </span>
+                        {row.connected ? (
+                          <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+                        ) : (
+                          <small className="rounded-full bg-muted px-2 py-1 text-[9px] font-extrabold uppercase text-muted-foreground">
+                            Unavailable
+                          </small>
+                        )}
+                      </>
+                    );
+                    return row.href ? (
+                      <Link
+                        className="flex items-center gap-3 rounded-xl p-3 hover:bg-muted/40"
+                        to={row.href}
+                        key={row.label}
                       >
-                        <Icon className="size-4" aria-hidden />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <strong className="block text-xs">{row.label}</strong>
-                        <small className="block pt-0.5 text-[11px] text-muted-foreground">
-                          {row.detail}
-                        </small>
-                      </span>
-                      {row.connected ? (
-                        <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
-                      ) : (
-                        <small className="rounded-full bg-muted px-2 py-1 text-[9px] font-extrabold uppercase text-muted-foreground">
-                          Unavailable
-                        </small>
-                      )}
-                    </>
-                  );
-                  return row.href ? (
-                    <Link
-                      className="flex items-center gap-3 rounded-xl p-3 hover:bg-muted/40"
-                      to={row.href}
-                      key={row.label}
-                    >
-                      {content}
-                    </Link>
-                  ) : (
-                    <div className="flex items-center gap-3 rounded-xl p-3" key={row.label}>
-                      {content}
-                    </div>
-                  );
-                })}
-              </nav>
-            </aside>
+                        {content}
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-3 rounded-xl p-3" key={row.label}>
+                        {content}
+                      </div>
+                    );
+                  })}
+                </nav>
+              </aside>
+              <MembershipStatusCard />
+            </div>
             <section id="personal-information" className="surface-card p-6 sm:p-8">
               <div className="flex items-start gap-3">
                 <span className="grid size-10 place-items-center rounded-xl bg-secondary text-foreground">

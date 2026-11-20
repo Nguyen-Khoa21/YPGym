@@ -6,6 +6,7 @@ import { routeFor } from "@/app/routes";
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/FeedbackState";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { useAuth } from "@/features/auth/AuthContext";
+import { MembershipStatusCard } from "@/features/member/components/MembershipStatusCard";
 import { apiRequest } from "@/lib/apiClient";
 import { toUiError } from "@/lib/apiErrors";
 import { formatMoney } from "@/lib/format";
@@ -43,6 +44,8 @@ export function MembershipPlansPage() {
             </Link>
           ) : null}
         </section>
+
+        <MembershipStatusCard className="mt-6" showPlansLink={false} />
 
         <div className="mt-10 flex items-end justify-between gap-4">
           <div>

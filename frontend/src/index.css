@@ -181,6 +181,81 @@
   transform: translateY(-1px);
 }
 
+.header-greeting {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  border-left: 1px solid hsl(var(--border));
+  padding-left: 0.9rem;
+  color: hsl(var(--primary));
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.header-notifications {
+  position: relative;
+}
+
+.header-notifications__button {
+  display: inline-flex;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  padding: 0.65rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+.header-notifications__button::-webkit-details-marker {
+  display: none;
+}
+
+.header-notifications__button:hover,
+.header-notifications[open] > .header-notifications__button {
+  background: color-mix(in srgb, hsl(var(--secondary)) 85%, white);
+  transform: translateY(-1px);
+}
+
+.header-notifications__button:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+.header-notifications__panel {
+  position: absolute;
+  z-index: 50;
+  top: 3rem;
+  right: 0;
+  width: 24rem;
+}
+
+.header-notifications__count {
+  display: inline-grid;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  border-radius: 999px;
+  background: hsl(var(--destructive));
+  color: white;
+  padding: 0 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .identity-chip {
   display: inline-flex;
   align-items: center;
@@ -945,6 +1020,28 @@
   }
 }
 
+/* Below desktop width the member header drops the greeting and shows icon-only buttons so it never overflows. */
+@media (max-width: 1100px) {
+  .header-greeting,
+  .header-notifications__label,
+  .site-header__actions:has(.header-notifications) .header-join__label {
+    display: none;
+  }
+
+  .header-notifications__button {
+    position: relative;
+  }
+
+  .header-notifications__count {
+    position: absolute;
+    top: -0.3rem;
+    right: -0.3rem;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    font-size: 0.6rem;
+  }
+}
+
 @media (max-width: 760px) {
   .site-header__inner {
     min-height: 4.25rem;
@@ -956,6 +1053,19 @@
   .identity-chip__copy,
   .header-login {
     display: none !important;
+  }
+
+  .header-notifications__button {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.67rem;
+  }
+
+  .header-notifications__panel {
+    position: fixed;
+    top: 4.6rem;
+    right: 1rem;
+    left: 1rem;
+    width: auto;
   }
 
   .site-header__menu {

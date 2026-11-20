@@ -51,7 +51,7 @@ test("window labels read as clock times", () => {
   assert.equal(shortHourLabel(18), "6 PM");
 });
 
-const { defaultDashboardTab, formatBadgeCount, gymDisplayName, importantItems, nextTabIndex, occupancyHeading } = await import("../src/features/member/memberDashboardLogic.ts");
+const { formatBadgeCount, gymDisplayName, importantItems, occupancyHeading } = await import("../src/features/member/memberDashboardLogic.ts");
 
 test("the occupancy heading never doubles the YPGym prefix", () => {
   assert.equal(occupancyHeading("YPGym District 11"), "YPGym District 11's Occupancy");
@@ -75,24 +75,9 @@ test("important items list broadcasts first, then unread notifications, each onc
   assert.deepEqual(importantItems([], []), []);
 });
 
-test("the default tab is Important only when there is something to read", () => {
-  assert.equal(defaultDashboardTab(0, 0), "membership");
-  assert.equal(defaultDashboardTab(2, 0), "important");
-  assert.equal(defaultDashboardTab(0, 1), "important");
-});
-
 test("badge counts hide at zero and cap at 99+", () => {
   assert.equal(formatBadgeCount(0), "");
   assert.equal(formatBadgeCount(3), "3");
   assert.equal(formatBadgeCount(99), "99");
   assert.equal(formatBadgeCount(120), "99+");
-});
-
-test("arrow keys move between tabs and wrap", () => {
-  assert.equal(nextTabIndex(0, "ArrowRight", 2), 1);
-  assert.equal(nextTabIndex(1, "ArrowRight", 2), 0);
-  assert.equal(nextTabIndex(0, "ArrowLeft", 2), 1);
-  assert.equal(nextTabIndex(1, "Home", 2), 0);
-  assert.equal(nextTabIndex(0, "End", 2), 1);
-  assert.equal(nextTabIndex(0, "a", 2), null);
 });

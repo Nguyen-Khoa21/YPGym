@@ -42,3 +42,4 @@ Commit exists in git log. API notes in `docs/api/staff-in-person-registration.md
 - Repo spec: `specs/package-16-staff-workspace-in-person-registration/spec.md`
 - Main code: `StaffTimeClockPage.tsx`, `InPersonRegistrationDialog`, migration `0024`
 - Previous: [[Package 15 - Invoice viewer]]
+- Next: [[Package 17 - Lecturer dashboard feedback]]

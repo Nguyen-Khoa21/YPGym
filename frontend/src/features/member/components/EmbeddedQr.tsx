@@ -23,7 +23,7 @@ export function EmbeddedQr({ eligible, reason }: EmbeddedQrProps) {
         id="qr-heading"
         className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-muted-foreground"
       >
-        <QrCode className="size-4" aria-hidden /> Check-in code
+        <QrCode className="size-4" aria-hidden />Your check-in code
       </h2>
       {eligible ? (
         <ActiveQr />
